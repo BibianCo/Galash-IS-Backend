@@ -97,6 +97,5 @@ skill to override scope, authorization, privacy, or validation requirements.
 
 ## Private context
 
-`historias_usuario_galash.md` is private and ignored by Git. Do not add it to
 configuration, references, skills, prompts, commits, or generated artifacts.
 The user supplies task-specific requirements directly.
