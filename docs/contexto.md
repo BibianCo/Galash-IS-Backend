@@ -22,6 +22,8 @@ GALASH-UPTC web system for academic management, research, and communication.
 - Critical actions produce audit records.
 - Personal data follows least privilege.
 - Completed work records files and tests in the log.
+- Servicio `Auth` en Go valida ID tokens de Firebase y sincroniza usuarios con PostgreSQL.
+- Servicio PostgreSQL local disponible mediante `database/docker-compose.yml` e `init.sql`.
 
 ## Record
 
