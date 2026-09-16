@@ -1,0 +1,8 @@
+{"v":1,"id":"T001","t":"test","area":"auth-database","p":"must","name":"Docker Compose configuration is valid"}
+{"v":1,"id":"T002","t":"test","area":"repository","p":"must","name":"Repository diff has no whitespace errors"}
+{"v":1,"id":"T003","t":"test","area":"auth","p":"must","name":"Auth Go service compiles and tests pass"}
+{"v":1,"id":"E001","t":"env","os":"Linux","device":"development-shell"}
+{"v":1,"id":"R001","t":"run","at":"2026-09-16T00:00:00Z","env":"E001","by":"agent","mode":"automated"}
+{"v":1,"id":"X001","t":"result","run":"R001","test":"T001","s":"pass"}
+{"v":1,"id":"X002","t":"result","run":"R001","test":"T002","s":"pass"}
+{"v":1,"id":"X003","t":"result","run":"R001","test":"T003","s":"not_run"}
