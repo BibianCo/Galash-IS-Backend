@@ -13,6 +13,20 @@ go mod tidy
 go run .
 ```
 
+### Ejecución con Docker (sin instalar Go)
+
+1. Levanta primero la base de datos (`database/docker-compose.yml`).
+2. Coloca la cuenta de servicio de Firebase en `Auth/firebase-service-account.json`
+   o exporta `FIREBASE_CREDENTIALS_FILE` con la ruta absoluta del archivo.
+3. Ejecuta:
+
+```bash
+docker compose up -d --build
+```
+
+El contenedor se conecta a la red `database_default` creada por el compose de
+PostgreSQL y expone el servicio en el puerto 8080.
+
 Ejemplo de registro:
 
 ```bash

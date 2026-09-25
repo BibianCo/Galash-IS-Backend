@@ -61,6 +61,14 @@ go mod tidy
 go run .
 ```
 
+Alternativa con Docker, sin instalar Go:
+
+```bash
+# Primero: levantar PostgreSQL desde database/
+cd Auth
+docker compose up -d --build
+```
+
 ## 2. Base de datos PostgreSQL
 
 **Ubicación:** `database/`  
