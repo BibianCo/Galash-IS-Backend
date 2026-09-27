@@ -1,11 +1,11 @@
 # PostgreSQL
 
-Este directorio levanta la instancia de PostgreSQL y ejecuta `init.sql` la
-primera vez que se crea el volumen.
+Este directorio contiene `init.sql`, que es utilizado por el compose general
+de la raíz para inicializar PostgreSQL la primera vez que se crea el volumen.
 
 ```bash
-cp .env.example .env
-docker compose up -d
+cd ..
+docker compose up -d postgres
 ```
 
 El esquema se aplica automáticamente al iniciar una base de datos nueva. Para

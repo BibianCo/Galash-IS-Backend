@@ -1,6 +1,8 @@
 services:
   auth:
-    build: .
+    build:
+      context: ../..
+      dockerfile: Dockerfile
     container_name: galash-auth
     restart: unless-stopped
     environment:

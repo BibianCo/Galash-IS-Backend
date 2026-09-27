@@ -6,3 +6,15 @@
 {"v":1,"id":"X001","t":"result","run":"R001","test":"T001","s":"pass"}
 {"v":1,"id":"X002","t":"result","run":"R001","test":"T002","s":"pass"}
 {"v":1,"id":"X003","t":"result","run":"R001","test":"T003","s":"not_run"}
+{"v":1,"id":"T004","t":"test","area":"auth","p":"must","name":"Auth monolith compiles through its Docker build"}
+{"v":1,"id":"R002","t":"run","at":"2026-09-26T00:00:00Z","env":"E001","by":"agent","mode":"automated"}
+{"v":1,"id":"X004","t":"result","run":"R002","test":"T002","s":"pass"}
+{"v":1,"id":"X005","t":"result","run":"R002","test":"T003","s":"not_run"}
+{"v":1,"id":"X006","t":"result","run":"R002","test":"T004","s":"pass","ev":["docker build output: image compiled successfully"]}
+{"v":1,"id":"R003","t":"run","at":"2026-09-26T00:00:00Z","env":"E001","by":"agent","mode":"automated"}
+{"v":1,"id":"X007","t":"result","run":"R003","test":"T002","s":"pass"}
+{"v":1,"id":"X008","t":"result","run":"R003","test":"T003","s":"pass"}
+{"v":1,"id":"X009","t":"result","run":"R003","test":"T004","s":"pass","ev":["Docker build compiled the unified root module"]}
+{"v":1,"id":"R004","t":"run","at":"2026-09-27T00:00:00Z","env":"E001","by":"agent","mode":"automated"}
+{"v":1,"id":"X010","t":"result","run":"R004","test":"T001","s":"pass"}
+{"v":1,"id":"X011","t":"result","run":"R004","test":"T002","s":"pass"}

@@ -23,7 +23,12 @@ GALASH-UPTC web system for academic management, research, and communication.
 - Personal data follows least privilege.
 - Completed work records files and tests in the log.
 - Servicio `Auth` en Go valida ID tokens de Firebase y sincroniza usuarios con PostgreSQL.
-- Servicio PostgreSQL local disponible mediante `database/docker-compose.yml` e `init.sql`.
+- El backend Go está organizado como un monolito con arquitectura hexagonal:
+  entidades y errores en `internal/domain`, puertos en `internal/ports`, casos
+  de uso en `internal/application`, adaptadores en `internal/adapters` y
+  composición en `cmd/api`, con un único `main.go` y `Dockerfile` en la raíz.
+- PostgreSQL y Auth se levantan juntos mediante el único `docker-compose.yml` de
+  la raíz; PostgreSQL usa `database/init.sql` para inicializar el esquema.
 
 ## Record
 

@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: galash-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-galash}
+      POSTGRES_USER: ${POSTGRES_USER:-galash}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-galash}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: galash-auth
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-galash}:${POSTGRES_PASSWORD:-galash}@postgres:5432/${POSTGRES_DB:-galash}?sslmode=disable
+      FIREBASE_CREDENTIALS_FILE: /secrets/firebase-service-account.json
+    ports:
+      - "${AUTH_PORT:-8080}:8080"
+    volumes:
+      - ${FIREBASE_CREDENTIALS_FILE:-./deploy/auth/firebase-service-account.json}:/secrets/firebase-service-account.json:ro
+
+volumes:
+  postgres_data:

@@ -5,7 +5,7 @@ proyecto. Úsalo como referencia rápida para pruebas e integración.
 
 ## Servicio Auth (Go)
 
-- **Ubicación:** `Auth/`
+- **Ubicación:** raíz del backend Go
 - **Base URL local:** `http://localhost:8080`
 - **Formato de datos:** JSON
 

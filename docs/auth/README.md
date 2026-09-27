@@ -1,5 +1,10 @@
 # Servicio Auth
 
+La aplicación es un monolito organizado con arquitectura hexagonal. La
+composición está en `cmd/api`, el dominio y los puertos en `internal/core`,
+los casos de uso en `internal/application` y las integraciones en
+`internal/adapters`. Consulta `ARCHITECTURE.md` para el mapa de dependencias.
+
 El endpoint `POST /auth/register` recibe el ID token de Firebase en el header
 `Authorization: Bearer <token>`, lo valida con Firebase Admin SDK y crea o
 actualiza el usuario local usando el `uid` de Firebase como referencia única.
@@ -15,8 +20,9 @@ go run .
 
 ### Ejecución con Docker (sin instalar Go)
 
-1. Levanta primero la base de datos (`database/docker-compose.yml`).
-2. Coloca la cuenta de servicio de Firebase en `Auth/firebase-service-account.json`
+1. Ejecuta el compose general desde la raíz del proyecto.
+2. Coloca la cuenta de servicio de Firebase en
+   `deploy/auth/firebase-service-account.json`
    o exporta `FIREBASE_CREDENTIALS_FILE` con la ruta absoluta del archivo.
 3. Ejecuta:
 
