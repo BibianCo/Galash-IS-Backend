@@ -1,0 +1,22 @@
+services:
+  auth:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: galash-auth
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-galash}:${POSTGRES_PASSWORD:-galash}@galash-postgres:5432/${POSTGRES_DB:-galash}?sslmode=disable
+      FIREBASE_CREDENTIALS_FILE: /secrets/firebase-service-account.json
+    ports:
+      - "${AUTH_PORT:-8080}:8080"
+    volumes:
+      - ${FIREBASE_CREDENTIALS_FILE:-./firebase-service-account.json}:/secrets/firebase-service-account.json:ro
+    networks:
+      - database
+
+networks:
+  database:
+    external: true
+    name: database_default

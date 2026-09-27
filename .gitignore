@@ -7,3 +7,7 @@ dist/
 build/
 coverage/
 Auth/*service-account*.json
+Auth/*firebase-service-account*.json
+deploy/auth/*service-account*.json
+deploy/auth/*firebase-service-account*.json
+/*firebase-service-account*.json
