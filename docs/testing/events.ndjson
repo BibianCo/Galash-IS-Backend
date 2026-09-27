@@ -18,3 +18,13 @@
 {"v":1,"id":"R004","t":"run","at":"2026-09-27T00:00:00Z","env":"E001","by":"agent","mode":"automated"}
 {"v":1,"id":"X010","t":"result","run":"R004","test":"T001","s":"pass"}
 {"v":1,"id":"X011","t":"result","run":"R004","test":"T002","s":"pass"}
+{"v":1,"id":"T005","t":"test","area":"auth-contract","p":"must","name":"Public HTTP contracts accept health and reject unauthenticated or unknown requests"}
+{"v":1,"id":"E002","t":"env","os":"Linux","device":"development-shell","runtime":"Python 3 standard library; Go 1.22 module"}
+{"v":1,"id":"R005","t":"run","at":"2026-09-27T00:00:00Z","env":"E002","by":"agent","mode":"automated"}
+{"v":1,"id":"X012","t":"result","run":"R005","test":"T005","s":"not_run","ev":["tests/auth_contract.py: service unavailable on localhost:8080"]}
+{"v":1,"id":"X013","t":"result","run":"R005","test":"T003","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"X014","t":"result","run":"R005","test":"T001","s":"pass","ev":["docker compose config"]}
+{"v":1,"id":"R006","t":"run","at":"2026-09-27T00:00:00Z","env":"E002","by":"agent","mode":"automated"}
+{"v":1,"id":"X015","t":"result","run":"R006","test":"T003","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"X016","t":"result","run":"R006","test":"T001","s":"pass","ev":["docker compose config"]}
+{"v":1,"id":"X017","t":"result","run":"R006","test":"T005","s":"pass","ev":["GET /health returned HTTP 200 with PostgreSQL running"]}
