@@ -15,6 +15,22 @@ CREATE TABLE usuarios (
     creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE sesiones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    expira_en TIMESTAMPTZ NOT NULL,
+    revocada_en TIMESTAMPTZ
+);
+
+CREATE TABLE recuperaciones_password (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    expira_en TIMESTAMPTZ NOT NULL,
+    usado_en TIMESTAMPTZ
+);
+
 CREATE TABLE lineas_investigacion (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre TEXT NOT NULL UNIQUE,
