@@ -40,3 +40,8 @@
 {"v":1,"id":"T009","t":"test","area":"ci","p":"must","name":"All Go packages pass automated test command"}
 {"v":1,"id":"R010","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
 {"v":1,"id":"X021","t":"result","run":"R010","test":"T009","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T010","t":"test","area":"auth-service","p":"must","name":"Auth registration and session service behavior"}
+{"v":1,"id":"T011","t":"test","area":"auth-http","p":"must","name":"Auth HTTP handlers protect sessions and set safe cookies"}
+{"v":1,"id":"R011","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X022","t":"result","run":"R011","test":"T010","s":"pass","ev":["go test ./internal/application/auth"]}
+{"v":1,"id":"X023","t":"result","run":"R011","test":"T011","s":"pass","ev":["go test ./internal/adapters/inbound/http"]}
