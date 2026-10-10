@@ -48,3 +48,21 @@
 {"v":1,"id":"T012","t":"test","area":"auth-tests-folder","p":"must","name":"Auth tests execute from tests/auth without importing application test packages"}
 {"v":1,"id":"R012","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
 {"v":1,"id":"X024","t":"result","run":"R012","test":"T012","s":"pass","ev":["go test ./...","go vet ./...","git diff --check"]}
+{"v":1,"id":"T013","t":"test","area":"auth-login-logout","p":"must","name":"Login and logout HTTP behavior for supported auth matrix scenarios"}
+{"v":1,"id":"T014","t":"test","area":"auth-recovery","p":"should","name":"Password recovery service handles unknown users and one-time reset behavior"}
+{"v":1,"id":"R013","at":"2026-10-10T21:57:54Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X025","t":"result","run":"R013","test":"T012","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X026","t":"result","run":"R013","test":"T013","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X027","t":"result","run":"R013","test":"T014","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"R014","at":"2026-10-10T21:59:20Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X028","t":"result","run":"R014","test":"T012","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X029","t":"result","run":"R014","test":"T013","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X030","t":"result","run":"R014","test":"T014","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"T015","t":"test","area":"auth-registration","p":"must","name":"Auth registration persists supported profile fields and rejects missing values"}
+{"v":1,"id":"R015","at":"2026-10-10T22:00:17Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X031","t":"result","run":"R015","test":"T010","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X032","t":"result","run":"R015","test":"T011","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X033","t":"result","run":"R015","test":"T012","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X034","t":"result","run":"R015","test":"T013","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X035","t":"result","run":"R015","test":"T014","s":"pass","ev":["go test ./tests/auth"]}
+{"v":1,"id":"X036","t":"result","run":"R015","test":"T015","s":"pass","ev":["go test ./tests/auth"]}
