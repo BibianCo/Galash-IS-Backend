@@ -45,3 +45,6 @@
 {"v":1,"id":"R011","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
 {"v":1,"id":"X022","t":"result","run":"R011","test":"T010","s":"pass","ev":["go test ./internal/application/auth"]}
 {"v":1,"id":"X023","t":"result","run":"R011","test":"T011","s":"pass","ev":["go test ./internal/adapters/inbound/http"]}
+{"v":1,"id":"T012","t":"test","area":"auth-tests-folder","p":"must","name":"Auth tests execute from tests/auth without importing application test packages"}
+{"v":1,"id":"R012","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X024","t":"result","run":"R012","test":"T012","s":"pass","ev":["go test ./...","go vet ./...","git diff --check"]}
