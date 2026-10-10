@@ -34,3 +34,9 @@
 {"v":1,"id":"T007","t":"test","area":"auth-registration","p":"must","name":"Registration persists name, document, email, and role fields"}
 {"v":1,"id":"R008","t":"run","at":"2026-10-09T00:00:00Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X019","t":"result","run":"R008","test":"T007","s":"pass","ev":["docker build galash-registration-fix-check","docker run golang:1.22-alpine go test ./..."]}
+{"v":1,"id":"T008","t":"test","area":"auth-review","p":"must","name":"Affected auth packages pass focused Go tests"}
+{"v":1,"id":"R009","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X020","t":"result","run":"R009","test":"T008","s":"pass","ev":["go test ./internal/application/auth ./internal/adapters/inbound/http ./internal/adapters/outbound/postgres"]}
+{"v":1,"id":"T009","t":"test","area":"ci","p":"must","name":"All Go packages pass automated test command"}
+{"v":1,"id":"R010","at":"2026-10-10T00:00:00Z","t":"run","by":"agent","mode":"automated"}
+{"v":1,"id":"X021","t":"result","run":"R010","test":"T009","s":"pass","ev":["go test ./..."]}
