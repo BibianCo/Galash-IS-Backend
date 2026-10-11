@@ -3,6 +3,7 @@ package httpadapter
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -45,11 +46,20 @@ func (h *Handler) Routes() http.Handler {
 
 func (h *Handler) createSession(w http.ResponseWriter, r *http.Request) {
 	var request sessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil { writeError(w, http.StatusBadRequest, "cuerpo JSON inválido"); return }
-	if request.Token == "" { request.Token = r.Header.Get("Authorization") }
-	if strings.HasPrefix(strings.ToLower(request.Token), "bearer ") { request.Token, _ = bearerToken(request.Token) }
+	// The Authorization header is authoritative. Do not decode the body first:
+	// clients using the header are allowed to send no body at all.
+	if authorization := strings.TrimSpace(r.Header.Get("Authorization")); authorization != "" {
+		var err error
+		request.Token, err = bearerToken(authorization)
+		if err != nil { writeError(w, http.StatusUnauthorized, err.Error()); return }
+	} else {
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			if err == io.EOF { writeError(w, http.StatusUnauthorized, "se requiere un token de sesión"); return }
+			writeError(w, http.StatusBadRequest, "cuerpo JSON inválido"); return
+		}
+	}
 	result, err := h.service.Login(r.Context(), request.Token)
-	if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrInactiveUser) { writeError(w, http.StatusUnauthorized, "credenciales inválidas"); return }
+	if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrInactiveUser) || errors.Is(err, domain.ErrUserNotRegistered) { writeError(w, http.StatusUnauthorized, "credenciales inválidas"); return }
 	if err != nil { writeError(w, http.StatusInternalServerError, "no fue posible iniciar sesión"); return }
 	http.SetCookie(w, &http.Cookie{Name: "galash_session", Value: result.Token, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: 86400})
 	writeJSON(w, http.StatusCreated, map[string]any{"user": result.User})
