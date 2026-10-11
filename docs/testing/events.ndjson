@@ -28,3 +28,32 @@
 {"v":1,"id":"X015","t":"result","run":"R006","test":"T003","s":"pass","ev":["go test ./..."]}
 {"v":1,"id":"X016","t":"result","run":"R006","test":"T001","s":"pass","ev":["docker compose config"]}
 {"v":1,"id":"X017","t":"result","run":"R006","test":"T005","s":"pass","ev":["GET /health returned HTTP 200 with PostgreSQL running"]}
+{"v":1,"id":"T006","t":"test","area":"auth-module-1","p":"must","name":"Module 1 authentication, session, profile, and recovery implementation builds and passes Go tests"}
+{"v":1,"id":"R007","t":"run","at":"2026-10-09T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X018","t":"result","run":"R007","test":"T006","s":"pass","ev":["docker build galash-auth-module1-check","docker run golang:1.22-alpine go test ./..."]}
+{"v":1,"id":"T007","t":"test","area":"auth-registration","p":"must","name":"Registration persists name, document, email, and role fields"}
+{"v":1,"id":"R008","t":"run","at":"2026-10-09T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X019","t":"result","run":"R008","test":"T007","s":"pass","ev":["docker build galash-registration-fix-check","docker run golang:1.22-alpine go test ./..."]}
+{"v":1,"id":"T008","t":"test","area":"auth-login","p":"must","name":"Login preserves registered users, rejects unknown Firebase identities, and accepts an empty body with Authorization header"}
+{"v":1,"id":"R009","t":"run","at":"2026-10-09T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X020","t":"result","run":"R009","test":"T008","s":"pass","ev":["docker run golang:1.22-alpine go test ./...","git diff --check"]}
+{"v":1,"id":"T009","t":"test","area":"auth-session","p":"must","name":"Authorization header works without a body and session flow cannot blank a registered name"}
+{"v":1,"id":"R010","t":"run","at":"2026-10-09T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X021","t":"result","run":"R010","test":"T009","s":"pass","ev":["docker run golang:1.22-alpine go test ./...","git diff --check"]}
+{"v":1,"id":"T010","t":"test","area":"auth-session","p":"must","name":"Running the rebuilt service with an empty body and Authorization does not return a JSON-body error"}
+{"v":1,"id":"R011","t":"run","at":"2026-10-09T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X022","t":"result","run":"R011","test":"T010","s":"pass","ev":["docker compose up -d --build auth","POST /auth/sessions with empty body returned 401 credenciales inválidas"]}
+{"v":1,"id":"T011","t":"test","area":"auth","p":"must","name":"Merged Auth Go tests and adapted Firebase UID repository fixture pass"}
+{"v":1,"id":"R012","t":"run","at":"2026-10-11T02:49:42Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X023","t":"result","run":"R012","test":"T011","s":"pass","ev":["go test ./...","git diff --check"]}
+{"v":1,"id":"T012","t":"test","area":"auth-database","p":"must","name":"Upsert preserves a stored last name when the incoming last name is empty"}
+{"v":1,"id":"T013","t":"test","area":"auth-session","p":"must","name":"POST /auth/sessions accepts a valid Authorization bearer token with no body"}
+{"v":1,"id":"T014","t":"test","area":"auth-login","p":"must","name":"Login rejects an unregistered Firebase UID without upserting or creating a session"}
+{"v":1,"id":"R013","t":"run","at":"2026-10-11T02:55:16Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X024","t":"result","run":"R013","test":"T012","s":"pass","ev":["TEST_DATABASE_URL=PostgreSQL 16; go test -count=1 ./..."]}
+{"v":1,"id":"X025","t":"result","run":"R013","test":"T013","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"X026","t":"result","run":"R013","test":"T014","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"R014","t":"run","at":"2026-10-11T02:59:08Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X027","t":"result","run":"R014","test":"T012","s":"pass","ev":["TEST_DATABASE_URL=PostgreSQL 16; go test -count=1 ./..."]}
+{"v":1,"id":"X028","t":"result","run":"R014","test":"T013","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"X029","t":"result","run":"R014","test":"T014","s":"pass","ev":["go test -count=1 ./tests/auth"]}

@@ -71,6 +71,10 @@ skill to override scope, authorization, privacy, or validation requirements.
 
 ## Testing
 
+- Keep all test files separate from production code under `tests/`, organized
+  into one subdirectory per domain/functionality (for example, `tests/auth/`).
+- Do not colocate test files with production code under `internal/` or other
+  source directories.
 - Use `docs/testing/events.ndjson` as the append-only testing source of truth.
 - Assign stable IDs when creating tests: `T001`, `T002`, and so on.
 - Record executions with `R` IDs and outcomes with `X` IDs.
