@@ -19,15 +19,25 @@ func (r *UserRepository) Upsert(ctx context.Context, user domain.User) (string, 
 	var id string
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO usuarios (firebase_uid, nombre, apellido, tipo_dni, dni, email, rol)
-		VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''), $6, COALESCE(NULLIF($7, ''), 'estudiante'))
+		VALUES (
+			$1,
+			$2,
+			NULLIF($3, ''),
+			NULLIF($4, ''),
+			NULLIF($5, ''),
+			$6,
+			COALESCE(NULLIF($7, ''), 'estudiante')
+		)
 		ON CONFLICT (firebase_uid) DO UPDATE SET
-			nombre = EXCLUDED.nombre,
-			apellido = EXCLUDED.apellido,
-			tipo_dni = COALESCE(EXCLUDED.tipo_dni, usuarios.tipo_dni),
-			dni = COALESCE(EXCLUDED.dni, usuarios.dni),
+			nombre = COALESCE(NULLIF(EXCLUDED.nombre, ''), usuarios.nombre),
+			apellido = COALESCE(NULLIF(EXCLUDED.apellido, ''), usuarios.apellido),
+			tipo_dni = COALESCE(NULLIF(EXCLUDED.tipo_dni, ''), usuarios.tipo_dni),
+			dni = COALESCE(NULLIF(EXCLUDED.dni, ''), usuarios.dni),
 			email = EXCLUDED.email,
 			rol = COALESCE(NULLIF(EXCLUDED.rol, ''), usuarios.rol)
-		RETURNING id`, user.FirebaseUID, user.Name, user.LastName, user.DocumentType, user.DocumentNumber, user.Email, user.Role).Scan(&id)
+		RETURNING id`,
+		user.FirebaseUID, user.Name, user.LastName, user.DocumentType, user.DocumentNumber, user.Email, user.Role,
+	).Scan(&id)
 	return id, err
 }
 
@@ -37,6 +47,10 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (domain.User, 
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	return r.find(ctx, `WHERE lower(email) = lower($1)`, email)
+}
+
+func (r *UserRepository) FindByFirebaseUID(ctx context.Context, uid string) (domain.User, error) {
+	return r.find(ctx, `WHERE firebase_uid = $1`, uid)
 }
 
 func (r *UserRepository) find(ctx context.Context, where string, arg string) (domain.User, error) {
@@ -77,7 +91,6 @@ func (r *UserRepository) Consume(ctx context.Context, tokenHash string) (string,
 	err := r.db.QueryRow(ctx, `UPDATE recuperaciones_password SET usado_en = now() WHERE token_hash = $1 AND usado_en IS NULL AND expira_en > now() RETURNING usuario_id`, tokenHash).Scan(&id)
 	return id, err
 }
-
 
 func (r *UserRepository) Ping(ctx context.Context) error {
 	return r.db.Ping(ctx)

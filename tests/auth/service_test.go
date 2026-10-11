@@ -26,6 +26,7 @@ type repository struct {
 	revokedHash          string
 	sessionID            string
 	findErr              error
+	findUIDErr           error
 	findEmailErr         error
 	recoveryHash         string
 	recoveryUserID       string
@@ -49,6 +50,13 @@ func (r *repository) FindByID(context.Context, string) (domain.User, error) {
 func (r *repository) FindByEmail(context.Context, string) (domain.User, error) {
 	if r.findEmailErr != nil {
 		return domain.User{}, r.findEmailErr
+	}
+	return r.user, nil
+}
+
+func (r *repository) FindByFirebaseUID(context.Context, string) (domain.User, error) {
+	if r.findUIDErr != nil {
+		return domain.User{}, r.findUIDErr
 	}
 	return r.user, nil
 }

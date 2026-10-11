@@ -83,14 +83,10 @@ func (s *Service) Login(ctx context.Context, token string) (LoginResult, error) 
 	if s.sessions == nil { return LoginResult{}, errors.New("sesiones no configuradas") }
 	identity, err := s.identities.Verify(ctx, strings.TrimSpace(token))
 	if err != nil || identity.UID == "" || identity.Email == "" { return LoginResult{}, domain.ErrInvalidCredentials }
-	id, err := s.users.Upsert(ctx, domain.User{FirebaseUID: identity.UID, Name: identity.Name, Email: identity.Email, Status: "activo"})
-	if err != nil { return LoginResult{}, err }
-	user := domain.User{ID: id, FirebaseUID: identity.UID, Name: identity.Name, Email: identity.Email, Status: "activo"}
-	if s.userReader != nil {
-		user, err = s.userReader.FindByID(ctx, id)
-		if err != nil { return LoginResult{}, err }
-		if user.Status != "" && user.Status != "activo" { return LoginResult{}, domain.ErrInactiveUser }
-	}
+	if s.userReader == nil { return LoginResult{}, domain.ErrUserNotRegistered }
+	user, err := s.userReader.FindByFirebaseUID(ctx, identity.UID)
+	if err != nil { return LoginResult{}, domain.ErrUserNotRegistered }
+	if user.Status != "" && user.Status != "activo" { return LoginResult{}, domain.ErrInactiveUser }
 	plain, err := randomToken()
 	if err != nil { return LoginResult{}, err }
 	if err := s.sessions.Create(ctx, user.ID, hashToken(plain)); err != nil { return LoginResult{}, err }

@@ -17,6 +17,7 @@ type UserRepository interface {
 type UserReader interface {
 	FindByID(ctx context.Context, id string) (domain.User, error)
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
+	FindByFirebaseUID(ctx context.Context, uid string) (domain.User, error)
 	SetPassword(ctx context.Context, id string, passwordHash string) error
 }
 
