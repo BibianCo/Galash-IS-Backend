@@ -41,6 +41,18 @@ func TestCreateSessionSetsSecureCookie(t *testing.T) {
 	}
 }
 
+func TestCreateSessionAcceptsAuthorizationHeaderWithoutBody(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/auth/sessions", nil)
+	request.Header.Set("Authorization", "Bearer firebase-token")
+	response := httptest.NewRecorder()
+
+	newHTTPServer(&repository{user: domain.User{ID: "user-id", Status: "activo"}}).ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+}
+
 func TestCurrentUserRequiresSession(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/users/me", nil)
 	response := httptest.NewRecorder()

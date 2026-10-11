@@ -46,3 +46,14 @@
 {"v":1,"id":"T011","t":"test","area":"auth","p":"must","name":"Merged Auth Go tests and adapted Firebase UID repository fixture pass"}
 {"v":1,"id":"R012","t":"run","at":"2026-10-11T02:49:42Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X023","t":"result","run":"R012","test":"T011","s":"pass","ev":["go test ./...","git diff --check"]}
+{"v":1,"id":"T012","t":"test","area":"auth-database","p":"must","name":"Upsert preserves a stored last name when the incoming last name is empty"}
+{"v":1,"id":"T013","t":"test","area":"auth-session","p":"must","name":"POST /auth/sessions accepts a valid Authorization bearer token with no body"}
+{"v":1,"id":"T014","t":"test","area":"auth-login","p":"must","name":"Login rejects an unregistered Firebase UID without upserting or creating a session"}
+{"v":1,"id":"R013","t":"run","at":"2026-10-11T02:55:16Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X024","t":"result","run":"R013","test":"T012","s":"pass","ev":["TEST_DATABASE_URL=PostgreSQL 16; go test -count=1 ./..."]}
+{"v":1,"id":"X025","t":"result","run":"R013","test":"T013","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"X026","t":"result","run":"R013","test":"T014","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"R014","t":"run","at":"2026-10-11T02:59:08Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X027","t":"result","run":"R014","test":"T012","s":"pass","ev":["TEST_DATABASE_URL=PostgreSQL 16; go test -count=1 ./..."]}
+{"v":1,"id":"X028","t":"result","run":"R014","test":"T013","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"X029","t":"result","run":"R014","test":"T014","s":"pass","ev":["go test -count=1 ./tests/auth"]}

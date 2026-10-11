@@ -218,6 +218,22 @@ func TestLoginRejectsInvalidAndInactiveUsers(t *testing.T) {
 	}
 }
 
+func TestLoginRejectsUnregisteredFirebaseUserWithoutUpsert(t *testing.T) {
+	repository := &repository{findUIDErr: errors.New("user not found")}
+	service := application.NewService(identityVerifier{identity: domain.Identity{UID: "firebase-id", Email: "ana@example.com"}}, repository)
+
+	_, err := service.Login(context.Background(), "firebase-token")
+	if !errors.Is(err, domain.ErrUserNotRegistered) {
+		t.Fatalf("Login() error=%v, want ErrUserNotRegistered", err)
+	}
+	if repository.upsertedUser != (domain.User{}) {
+		t.Fatalf("unregistered identity was upserted: %+v", repository.upsertedUser)
+	}
+	if repository.createdHash != "" {
+		t.Fatal("session was created for an unregistered identity")
+	}
+}
+
 func TestCurrentUserAndLogoutUseSessionHash(t *testing.T) {
 	sessionRepo := &repository{user: domain.User{ID: "user-id", Name: "Ana", Status: "activo"}, sessionID: "user-id", createdHash: "session-hash"}
 	service := application.NewService(identityVerifier{}, sessionRepo)
