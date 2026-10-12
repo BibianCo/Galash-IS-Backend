@@ -63,3 +63,6 @@
 {"v":1,"id":"T016","t":"test","area":"user-management","p":"must","name":"Admin member search rejects an authenticated non-admin session"}
 {"v":1,"id":"R016","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X031","t":"result","run":"R016","test":"T016","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./...","git diff --check"]}
+{"v":1,"id":"T017","t":"test","area":"user-management","p":"must","name":"Role assignment uses canonical profesor value and accepts case-insensitive admin actors"}
+{"v":1,"id":"R017","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X032","t":"result","run":"R017","test":"T017","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./..."]}

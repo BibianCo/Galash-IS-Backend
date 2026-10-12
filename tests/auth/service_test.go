@@ -344,19 +344,19 @@ func TestResetPasswordRejectsShortPasswordAndInvalidToken(t *testing.T) {
 }
 
 func TestUpdateUserRoleRequiresAdminAndUsesTargetUID(t *testing.T) {
-	repository := &repository{user: domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "admin", Status: "activo"}}
+	repository := &repository{user: domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "Admin", Status: "activo"}}
 	service := application.NewService(identityVerifier{identity: domain.Identity{UID: "admin-uid", Email: "admin@example.com"}}, repository)
 	login, err := service.Login(context.Background(), "firebase-token")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := service.UpdateUserRole(context.Background(), login.Token, "target-uid", "docente"); err != nil {
+	if err := service.UpdateUserRole(context.Background(), login.Token, "target-uid", "profesor"); err != nil {
 		t.Fatalf("UpdateUserRole() error=%v", err)
 	}
-	if repository.updatedUID != "target-uid" || repository.updatedRole != "docente" {
+	if repository.updatedUID != "target-uid" || repository.updatedRole != "profesor" {
 		t.Fatalf("updated target=%q role=%q", repository.updatedUID, repository.updatedRole)
 	}
-	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "docente"); !errors.Is(err, domain.ErrSelfRoleChange) {
+	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "profesor"); !errors.Is(err, domain.ErrSelfRoleChange) {
 		t.Fatalf("self role change error=%v", err)
 	}
 }

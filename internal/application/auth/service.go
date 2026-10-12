@@ -35,7 +35,9 @@ type Service struct {
 	recovery   ports.RecoveryTokenRepository
 }
 
-var allowedRoles = map[string]bool{"visitante": true, "estudiante": true, "docente": true, "admin": true}
+// Roles are persisted in their canonical lowercase form. The existing system
+// uses "profesor" for teaching staff, including during registration.
+var allowedRoles = map[string]bool{"visitante": true, "estudiante": true, "profesor": true, "admin": true}
 
 func NewService(identities ports.IdentityVerifier, users ports.UserRepository) *Service {
 	s := &Service{identities: identities, users: users}
@@ -165,7 +167,7 @@ func (s *Service) UpdateUserRole(ctx context.Context, token, targetUID, role str
 	if err != nil {
 		return domain.ErrInvalidSession
 	}
-	if actor.Role != "admin" {
+	if !strings.EqualFold(strings.TrimSpace(actor.Role), "admin") {
 		return domain.ErrForbidden
 	}
 	targetUID = strings.TrimSpace(targetUID)
