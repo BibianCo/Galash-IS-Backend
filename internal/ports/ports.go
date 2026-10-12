@@ -19,6 +19,8 @@ type UserReader interface {
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
 	FindByFirebaseUID(ctx context.Context, uid string) (domain.User, error)
 	SetPassword(ctx context.Context, id string, passwordHash string) error
+	Search(ctx context.Context, query string, limit int) ([]domain.User, error)
+	UpdateRole(ctx context.Context, firebaseUID string, role string) error
 }
 
 type SessionRepository interface {

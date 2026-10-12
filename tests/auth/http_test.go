@@ -64,6 +64,26 @@ func TestCurrentUserRequiresSession(t *testing.T) {
 	}
 }
 
+func TestAdminMembersRejectsAuthenticatedNonAdmin(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id", Role: "estudiante", Status: "activo"}}
+	server := newHTTPServer(repository)
+
+	loginRequest := httptest.NewRequest(http.MethodPost, "/auth/sessions", strings.NewReader(`{"token":"firebase-token"}`))
+	loginResponse := httptest.NewRecorder()
+	server.ServeHTTP(loginResponse, loginRequest)
+	if loginResponse.Code != http.StatusCreated {
+		t.Fatalf("login status=%d, want %d", loginResponse.Code, http.StatusCreated)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/admin/members?q=ana", nil)
+	request.AddCookie(loginResponse.Result().Cookies()[0])
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusForbidden, response.Body.String())
+	}
+}
+
 func TestRegisterRequiresBearerToken(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(`{}`))
 	response := httptest.NewRecorder()

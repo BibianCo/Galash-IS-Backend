@@ -34,6 +34,8 @@ type repository struct {
 	recoveryConsumed     bool
 	recoveryConsumeErr   error
 	passwordHash         string
+	updatedUID           string
+	updatedRole          string
 }
 
 func (r *repository) Upsert(_ context.Context, user domain.User) (string, error) {
@@ -63,6 +65,13 @@ func (r *repository) FindByFirebaseUID(context.Context, string) (domain.User, er
 
 func (r *repository) SetPassword(_ context.Context, _ string, hash string) error {
 	r.passwordHash = hash
+	return nil
+}
+func (r *repository) Search(context.Context, string, int) ([]domain.User, error) {
+	return []domain.User{r.user}, nil
+}
+func (r *repository) UpdateRole(_ context.Context, uid, role string) error {
+	r.updatedUID, r.updatedRole = uid, role
 	return nil
 }
 
@@ -332,4 +341,22 @@ func TestResetPasswordRejectsShortPasswordAndInvalidToken(t *testing.T) {
 			t.Fatalf("ResetPassword() error=%v, want ErrInvalidRecoveryToken", err)
 		}
 	})
+}
+
+func TestUpdateUserRoleRequiresAdminAndUsesTargetUID(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "admin", Status: "activo"}}
+	service := application.NewService(identityVerifier{identity: domain.Identity{UID: "admin-uid", Email: "admin@example.com"}}, repository)
+	login, err := service.Login(context.Background(), "firebase-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.UpdateUserRole(context.Background(), login.Token, "target-uid", "docente"); err != nil {
+		t.Fatalf("UpdateUserRole() error=%v", err)
+	}
+	if repository.updatedUID != "target-uid" || repository.updatedRole != "docente" {
+		t.Fatalf("updated target=%q role=%q", repository.updatedUID, repository.updatedRole)
+	}
+	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "docente"); !errors.Is(err, domain.ErrSelfRoleChange) {
+		t.Fatalf("self role change error=%v", err)
+	}
 }

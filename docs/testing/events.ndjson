@@ -57,3 +57,9 @@
 {"v":1,"id":"X027","t":"result","run":"R014","test":"T012","s":"pass","ev":["TEST_DATABASE_URL=PostgreSQL 16; go test -count=1 ./..."]}
 {"v":1,"id":"X028","t":"result","run":"R014","test":"T013","s":"pass","ev":["go test -count=1 ./tests/auth"]}
 {"v":1,"id":"X029","t":"result","run":"R014","test":"T014","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"T015","t":"test","area":"user-management","p":"must","name":"Admin role updates use a selected Firebase UID and reject self role changes"}
+{"v":1,"id":"R015","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X030","t":"result","run":"R015","test":"T015","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./...","git diff --check"]}
+{"v":1,"id":"T016","t":"test","area":"user-management","p":"must","name":"Admin member search rejects an authenticated non-admin session"}
+{"v":1,"id":"R016","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X031","t":"result","run":"R016","test":"T016","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./...","git diff --check"]}
