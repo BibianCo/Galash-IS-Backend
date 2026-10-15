@@ -36,6 +36,11 @@ type repository struct {
 	passwordHash         string
 	updatedUID           string
 	updatedRole          string
+	updateRoleErr        error
+	searchQuery          string
+	searchLimit          int
+	searchUsers          []domain.User
+	searchErr            error
 }
 
 func (r *repository) Upsert(_ context.Context, user domain.User) (string, error) {
@@ -67,12 +72,19 @@ func (r *repository) SetPassword(_ context.Context, _ string, hash string) error
 	r.passwordHash = hash
 	return nil
 }
-func (r *repository) Search(context.Context, string, int) ([]domain.User, error) {
+func (r *repository) Search(_ context.Context, query string, limit int) ([]domain.User, error) {
+	r.searchQuery, r.searchLimit = query, limit
+	if r.searchErr != nil {
+		return nil, r.searchErr
+	}
+	if r.searchUsers != nil {
+		return r.searchUsers, nil
+	}
 	return []domain.User{r.user}, nil
 }
 func (r *repository) UpdateRole(_ context.Context, uid, role string) error {
 	r.updatedUID, r.updatedRole = uid, role
-	return nil
+	return r.updateRoleErr
 }
 
 func (r *repository) Create(_ context.Context, userID, tokenHash string) error {
@@ -358,5 +370,73 @@ func TestUpdateUserRoleRequiresAdminAndUsesTargetUID(t *testing.T) {
 	}
 	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "profesor"); !errors.Is(err, domain.ErrSelfRoleChange) {
 		t.Fatalf("self role change error=%v", err)
+	}
+}
+
+func TestUpdateUserRoleRejectsNonAdminAndInvalidRequests(t *testing.T) {
+	tests := []struct {
+		name    string
+		actor   domain.User
+		target  string
+		role    string
+		wantErr error
+	}{
+		{
+			name:    "non-admin actor",
+			actor:   domain.User{ID: "user-id", FirebaseUID: "user-uid", Role: "estudiante", Status: "activo"},
+			target:  "target-uid",
+			role:    "profesor",
+			wantErr: domain.ErrForbidden,
+		},
+		{
+			name:    "missing target uid",
+			actor:   domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "admin", Status: "activo"},
+			role:    "profesor",
+			wantErr: domain.ErrIncompleteIdentity,
+		},
+		{
+			name:    "unsupported role",
+			actor:   domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "admin", Status: "activo"},
+			target:  "target-uid",
+			role:    "coordinador",
+			wantErr: domain.ErrInvalidRole,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			repository := &repository{user: test.actor}
+			service := application.NewService(identityVerifier{identity: domain.Identity{UID: test.actor.FirebaseUID, Email: "user@example.com"}}, repository)
+			login, err := service.Login(context.Background(), "firebase-token")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := service.UpdateUserRole(context.Background(), login.Token, test.target, test.role); !errors.Is(err, test.wantErr) {
+				t.Fatalf("UpdateUserRole() error=%v, want %v", err, test.wantErr)
+			}
+			if repository.updatedUID != "" {
+				t.Fatalf("invalid role update reached repository for UID %q", repository.updatedUID)
+			}
+		})
+	}
+}
+
+func TestSearchUsersRequiresQueryAndBoundsLimit(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id"}}
+	service := application.NewService(identityVerifier{}, repository)
+
+	if _, err := service.SearchUsers(context.Background(), "  ", 10); !errors.Is(err, domain.ErrIncompleteIdentity) {
+		t.Fatalf("SearchUsers() with blank query error=%v, want ErrIncompleteIdentity", err)
+	}
+	if _, err := service.SearchUsers(context.Background(), " ana ", 1); err != nil {
+		t.Fatalf("SearchUsers() error=%v", err)
+	}
+	if repository.searchQuery != "ana" || repository.searchLimit != 5 {
+		t.Fatalf("Search() query=%q limit=%d, want query ana and minimum limit 5", repository.searchQuery, repository.searchLimit)
+	}
+	if _, err := service.SearchUsers(context.Background(), "ana", 100); err != nil {
+		t.Fatalf("SearchUsers() with large limit error=%v", err)
+	}
+	if repository.searchLimit != 50 {
+		t.Fatalf("Search() limit=%d, want maximum limit 50", repository.searchLimit)
 	}
 }

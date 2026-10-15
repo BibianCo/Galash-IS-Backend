@@ -2,13 +2,16 @@ package auth_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	postgresadapter "github.com/galash-uptc/backend/internal/adapters/outbound/postgres"
 	"github.com/galash-uptc/backend/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -53,5 +56,103 @@ func TestUpsertPreservesExistingLastName(t *testing.T) {
 	}
 	if lastName != "Pérez" {
 		t.Fatalf("stored last name=%q, want %q", lastName, "Pérez")
+	}
+}
+
+func TestSearchReturnsOnlyActiveMatchingUsers(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+
+	ctx := context.Background()
+	db, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("connect to test database: %v", err)
+	}
+	defer db.Close()
+
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	activeUID := "member-search-active-" + suffix
+	inactiveUID := "member-search-inactive-" + suffix
+	defer func() {
+		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE firebase_uid IN ($1, $2)`, activeUID, inactiveUID)
+	}()
+
+	repository := postgresadapter.NewUserRepository(db)
+	for _, user := range []domain.User{
+		{FirebaseUID: activeUID, Name: "UniqueMember" + suffix, LastName: "Active", Email: "active-" + suffix + "@example.test", Role: "profesor"},
+		{FirebaseUID: inactiveUID, Name: "UniqueMember" + suffix, LastName: "Inactive", Email: "inactive-" + suffix + "@example.test", Role: "estudiante"},
+	} {
+		if _, err := repository.Upsert(ctx, user); err != nil {
+			t.Fatalf("insert search fixture: %v", err)
+		}
+	}
+	if _, err := db.Exec(ctx, `UPDATE usuarios SET estado = 'inactivo' WHERE firebase_uid = $1`, inactiveUID); err != nil {
+		t.Fatalf("deactivate search fixture: %v", err)
+	}
+
+	users, err := repository.Search(ctx, strings.ToLower("uniquemember"+suffix), 10)
+	if err != nil {
+		t.Fatalf("Search() error=%v", err)
+	}
+	if len(users) != 1 || users[0].FirebaseUID != activeUID || users[0].Role != "profesor" {
+		t.Fatalf("Search() users=%+v, want only active fixture %q", users, activeUID)
+	}
+
+	byEmail, err := repository.Search(ctx, "active-"+suffix+"@example.test", 10)
+	if err != nil {
+		t.Fatalf("Search() by email error=%v", err)
+	}
+	if len(byEmail) != 1 || byEmail[0].FirebaseUID != activeUID {
+		t.Fatalf("Search() by email users=%+v, want active fixture %q", byEmail, activeUID)
+	}
+}
+
+func TestUpdateRoleUpdatesActiveUserAndRejectsInactiveOrMissingUID(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+
+	ctx := context.Background()
+	db, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("connect to test database: %v", err)
+	}
+	defer db.Close()
+
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	activeUID := "role-update-active-" + suffix
+	inactiveUID := "role-update-inactive-" + suffix
+	defer func() {
+		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE firebase_uid IN ($1, $2)`, activeUID, inactiveUID)
+	}()
+
+	repository := postgresadapter.NewUserRepository(db)
+	for _, uid := range []string{activeUID, inactiveUID} {
+		if _, err := repository.Upsert(ctx, domain.User{FirebaseUID: uid, Name: "Role target", Email: uid + "@example.test", Role: "estudiante"}); err != nil {
+			t.Fatalf("insert role fixture: %v", err)
+		}
+	}
+	if _, err := db.Exec(ctx, `UPDATE usuarios SET estado = 'inactivo' WHERE firebase_uid = $1`, inactiveUID); err != nil {
+		t.Fatalf("deactivate role fixture: %v", err)
+	}
+
+	if err := repository.UpdateRole(ctx, activeUID, "profesor"); err != nil {
+		t.Fatalf("UpdateRole() active user error=%v", err)
+	}
+	var role string
+	if err := db.QueryRow(ctx, `SELECT rol FROM usuarios WHERE firebase_uid = $1`, activeUID).Scan(&role); err != nil {
+		t.Fatalf("read updated role: %v", err)
+	}
+	if role != "profesor" {
+		t.Fatalf("stored role=%q, want profesor", role)
+	}
+
+	for _, uid := range []string{inactiveUID, "missing-" + suffix} {
+		if err := repository.UpdateRole(ctx, uid, "admin"); !errors.Is(err, pgx.ErrNoRows) {
+			t.Errorf("UpdateRole(%q) error=%v, want pgx.ErrNoRows", uid, err)
+		}
 	}
 }
