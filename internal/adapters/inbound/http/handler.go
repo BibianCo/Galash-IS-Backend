@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
 )
@@ -34,12 +35,17 @@ type resetRequest struct {
 }
 
 type Handler struct {
-	service *application.Service
-	db      ports.HealthChecker
+	service  *application.Service
+	seedbeds *seedbedapp.Service
+	db       ports.HealthChecker
 }
 
-func NewHandler(service *application.Service, db ports.HealthChecker) *Handler {
-	return &Handler{service: service, db: db}
+func NewHandler(service *application.Service, db ports.HealthChecker, seedbeds ...*seedbedapp.Service) *Handler {
+	var sb *seedbedapp.Service
+	if len(seedbeds) > 0 {
+		sb = seedbeds[0]
+	}
+	return &Handler{service: service, seedbeds: sb, db: db}
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -54,7 +60,253 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/members", h.adminMembers)
 	mux.HandleFunc("PUT /users/roles", h.updateRole)
 	mux.HandleFunc("PUT /users/{userId}/roles", h.updateRole)
+	mux.HandleFunc("GET /seedbeds", h.listSeedbeds)
+	mux.HandleFunc("POST /seedbeds", h.createSeedbed)
+	mux.HandleFunc("GET /seedbeds/{id}", h.getSeedbed)
+	mux.HandleFunc("PATCH /seedbeds/{id}", h.updateSeedbed)
+	mux.HandleFunc("PATCH /seedbeds/{id}/visibility", h.setSeedbedVisibility)
+	mux.HandleFunc("GET /seedbeds/{id}/members", h.listSeedbedMembers)
+	mux.HandleFunc("POST /seedbeds/{id}/members", h.addSeedbedMember)
+	mux.HandleFunc("DELETE /seedbeds/{id}/members/{userId}", h.removeSeedbedMember)
 	return mux
+}
+
+type seedbedRequest struct {
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
+	ResearchLine         string `json:"researchLine"`
+	Objective            string `json:"objective"`
+	ResponsibleTeacherID string `json:"responsibleTeacherId"`
+	ContactEmail         string `json:"contactEmail"`
+}
+type visibilityRequest struct {
+	Status     string `json:"status"`
+	Visibility string `json:"visibility"`
+}
+type memberRequest struct {
+	UserID string `json:"userId"`
+}
+
+func (h *Handler) seedbedReady(w http.ResponseWriter) bool {
+	if h.seedbeds == nil {
+		writeError(w, 500, "módulo de semilleros no configurado")
+		return false
+	}
+	return true
+}
+func (h *Handler) actor(w http.ResponseWriter, r *http.Request) (domain.User, bool) {
+	token, err := sessionToken(r)
+	if err != nil {
+		writeError(w, 401, "sesión requerida")
+		return domain.User{}, false
+	}
+	u, err := h.service.CurrentUser(r.Context(), token)
+	if err != nil {
+		writeError(w, 401, "sesión inválida o expirada")
+		return domain.User{}, false
+	}
+	return u, true
+}
+func seedbedError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, 403, err.Error())
+	case errors.Is(err, domain.ErrSeedbedNotFound):
+		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrInvalidSeedbed), errors.Is(err, domain.ErrInvalidTeacher), errors.Is(err, domain.ErrInvalidSeedbedStatus):
+		writeError(w, 400, err.Error())
+	case errors.Is(err, domain.ErrDuplicateSeedbed):
+		writeError(w, 409, err.Error())
+	default:
+		writeError(w, 500, "no fue posible procesar el semillero")
+	}
+}
+func (h *Handler) listSeedbeds(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	private := false
+	if r.URL.Query().Get("includeInactive") == "true" {
+		a, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		if !strings.EqualFold(a.Role, "admin") {
+			writeError(w, 403, "se requiere rol admin")
+			return
+		}
+		private = true
+	}
+	items, err := h.seedbeds.List(r.Context(), r.URL.Query().Get("q"), r.URL.Query().Get("researchLine"), queryInt(r, "page", 1), queryInt(r, "pageSize", 20), private)
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"seedbeds": items})
+}
+func queryInt(r *http.Request, key string, def int) int {
+	var n int
+	if _, err := fmt.Sscanf(r.URL.Query().Get(key), "%d", &n); err != nil || n < 1 {
+		return def
+	}
+	return n
+}
+func (h *Handler) createSeedbed(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	if !strings.EqualFold(a.Role, "admin") && !strings.EqualFold(a.Role, "profesor") && !strings.EqualFold(a.Role, "docente") {
+		writeError(w, 403, "se requiere rol docente o admin")
+		return
+	}
+	var q seedbedRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	s, err := h.seedbeds.Create(r.Context(), seedbedapp.CreateCommand{q.Name, q.Description, q.ResearchLine, q.Objective, q.ResponsibleTeacherID, q.ContactEmail})
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	writeJSON(w, 201, s)
+}
+func (h *Handler) getSeedbed(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	s, err := h.seedbeds.Find(r.Context(), r.PathValue("id"))
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	if s.Status != domain.SeedbedPublished || s.Visibility != domain.SeedbedPublished {
+		a, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		if !strings.EqualFold(a.Role, "admin") && a.ID != s.ResponsibleTeacherID {
+			writeError(w, 404, "semillero no encontrado")
+			return
+		}
+	}
+	writeJSON(w, 200, s)
+}
+func (h *Handler) updateSeedbed(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	if h.seedbeds.CanManage(r.Context(), a.ID, r.PathValue("id")) != nil {
+		writeError(w, 403, "no tiene permisos para esta operación")
+		return
+	}
+	var q seedbedRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	s, err := h.seedbeds.Update(r.Context(), r.PathValue("id"), seedbedapp.UpdateCommand{q.Name, q.Description, q.ResearchLine, q.Objective, q.ResponsibleTeacherID, q.ContactEmail})
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	writeJSON(w, 200, s)
+}
+func (h *Handler) setSeedbedVisibility(w http.ResponseWriter, r *http.Request) {
+	a, ok := h.actor(w, r)
+	if !ok || !h.seedbedReady(w) {
+		return
+	}
+	var q visibilityRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	status := q.Status
+	if status == "" {
+		status = q.Visibility
+	}
+	s, err := h.seedbeds.Visibility(r.Context(), a.ID, r.PathValue("id"), status)
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	writeJSON(w, 200, s)
+}
+func (h *Handler) listSeedbedMembers(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	history := r.URL.Query().Get("history") == "true"
+	seedbed, err := h.seedbeds.Find(r.Context(), r.PathValue("id"))
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	if !history && (seedbed.Status != domain.SeedbedPublished || seedbed.Visibility != domain.SeedbedPublished) {
+		actor, authenticated := h.actor(w, r)
+		if !authenticated || (!strings.EqualFold(actor.Role, "admin") && actor.ID != seedbed.ResponsibleTeacherID) {
+			writeError(w, http.StatusNotFound, "semillero no encontrado")
+			return
+		}
+	}
+	if history {
+		a, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		if !strings.EqualFold(a.Role, "admin") && seedbed.ResponsibleTeacherID != a.ID {
+			writeError(w, 403, "historial restringido")
+			return
+		}
+	}
+	m, err := h.seedbeds.Members(r.Context(), r.PathValue("id"), history)
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"members": m})
+}
+func (h *Handler) addSeedbedMember(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q memberRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	if err := h.seedbeds.AddMember(r.Context(), a.ID, r.PathValue("id"), q.UserID); err != nil {
+		seedbedError(w, err)
+		return
+	}
+	w.WriteHeader(204)
+}
+func (h *Handler) removeSeedbedMember(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	if err := h.seedbeds.RemoveMember(r.Context(), a.ID, r.PathValue("id"), r.PathValue("userId")); err != nil {
+		seedbedError(w, err)
+		return
+	}
+	w.WriteHeader(204)
 }
 
 type roleRequest struct {
@@ -192,7 +444,15 @@ func (h *Handler) createSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	result, err := h.service.Login(r.Context(), request.Token)
-	if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrInactiveUser) || errors.Is(err, domain.ErrUserNotRegistered) {
+	if errors.Is(err, domain.ErrUserNotRegistered) {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"code":   "REGISTRATION_REQUIRED",
+			"error":  "registro incompleto",
+			"action": "complete_registration",
+		})
+		return
+	}
+	if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrInactiveUser) {
 		writeError(w, http.StatusUnauthorized, "credenciales inválidas")
 		return
 	}

@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -276,6 +277,23 @@ func TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts(t *testing
 				t.Fatalf("response reveals credential/account state: got %q, want %q", response.Body.String(), expectedBody)
 			}
 		})
+	}
+}
+
+func TestCreateSessionReturnsRegistrationRequiredForFirebaseOnlyUser(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/auth/sessions", strings.NewReader(`{"token":"firebase-token"}`))
+	response := httptest.NewRecorder()
+
+	newHTTPServerWithVerifier(&repository{findUIDErr: errors.New("usuario no encontrado")}, identityVerifier{identity: domain.Identity{UID: "firebase-id", Email: "ana@example.com"}}).ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status=%d, want %d", response.Code, http.StatusForbidden)
+	}
+	body := response.Body.String()
+	for _, expected := range []string{`"code":"REGISTRATION_REQUIRED"`, `"action":"complete_registration"`} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("response=%s, missing %s", body, expected)
+		}
 	}
 }
 

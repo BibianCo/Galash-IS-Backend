@@ -30,6 +30,7 @@ GALASH-UPTC web system for academic management, research, and communication.
 - PostgreSQL y Auth se levantan juntos mediante el único `docker-compose.yml` de
   la raíz; PostgreSQL usa `database/init.sql` para inicializar el esquema.
 - El directorio de integrantes permite búsqueda pública por nombre/correo y búsqueda administrativa con datos sensibles; la asignación de roles exige sesión de `Admin` y usa el Firebase UID del integrante seleccionado.
+- El módulo de semilleros implementa CRUD, publicación/ocultamiento/inactivación y membresías históricas mediante `/seedbeds`, con autorización para `Docente` responsable o `Admin` y validación de docentes activos.
 
 ## Record
 

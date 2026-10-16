@@ -66,3 +66,9 @@
 {"v":1,"id":"T017","t":"test","area":"user-management","p":"must","name":"Role assignment uses canonical profesor value and accepts case-insensitive admin actors"}
 {"v":1,"id":"R017","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X032","t":"result","run":"R017","test":"T017","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./..."]}
+{"v":1,"id":"T018","t":"test","area":"seedbeds","p":"must","name":"Seedbed module compilation and authorization paths"}
+{"v":1,"id":"R018","t":"run","at":"2026-10-15T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X033","t":"result","run":"R018","test":"T018","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22 go test ./...","git diff --check"]}
+{"v":1,"id":"T019","t":"test","area":"auth","p":"must","name":"Firebase-only user receives registration-required response"}
+{"v":1,"id":"R019","t":"run","at":"2026-10-16T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X034","t":"result","run":"R019","test":"T019","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22 go test ./...","git diff --check"]}

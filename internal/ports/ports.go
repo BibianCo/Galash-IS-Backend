@@ -37,3 +37,14 @@ type RecoveryTokenRepository interface {
 type HealthChecker interface {
 	Ping(ctx context.Context) error
 }
+
+type SeedbedRepository interface {
+	Create(ctx context.Context, seedbed domain.Seedbed) (domain.Seedbed, error)
+	List(ctx context.Context, query, researchLine string, page, pageSize int, includePrivate bool) ([]domain.Seedbed, error)
+	Find(ctx context.Context, id string) (domain.Seedbed, error)
+	Update(ctx context.Context, id string, seedbed domain.Seedbed) (domain.Seedbed, error)
+	SetVisibility(ctx context.Context, id, status string) (domain.Seedbed, error)
+	ListMembers(ctx context.Context, id string, includeHistory bool) ([]domain.SeedbedMember, error)
+	AddMember(ctx context.Context, seedbedID, userID string) error
+	RemoveMember(ctx context.Context, seedbedID, userID string) error
+}

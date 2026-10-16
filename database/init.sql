@@ -46,6 +46,23 @@ CREATE TABLE semilleros (
     palabras_clave TEXT[]
 );
 
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS linea_investigacion TEXT;
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS objetivo TEXT;
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS email_contacto TEXT;
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Borrador';
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS visibilidad TEXT NOT NULL DEFAULT 'Borrador';
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+CREATE TABLE semillero_miembros (
+    semillero_id UUID NOT NULL REFERENCES semilleros(id),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    ingreso_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    retirado_en TIMESTAMPTZ,
+    PRIMARY KEY (semillero_id, usuario_id)
+);
+CREATE INDEX semillero_miembros_usuario_idx ON semillero_miembros(usuario_id);
+
 ALTER TABLE usuarios
     ADD CONSTRAINT usuarios_semillero_fk
     FOREIGN KEY (semillero_id) REFERENCES semilleros(id);
