@@ -72,3 +72,6 @@
 {"v":1,"id":"T019","t":"test","area":"auth","p":"must","name":"Firebase-only user receives registration-required response"}
 {"v":1,"id":"R019","t":"run","at":"2026-10-16T00:00:00Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X034","t":"result","run":"R019","test":"T019","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22 go test ./...","git diff --check"]}
+{"v":1,"id":"T020","t":"test","area":"auth-http","p":"must","name":"Local frontend preflight and Authorization precedence reach session-protected endpoints"}
+{"v":1,"id":"R020","t":"run","at":"2026-10-16T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X035","t":"result","run":"R020","test":"T020","s":"pass","ev":["docker run --rm -v project:/app -w /app golang:1.22-alpine go test ./...","git diff --check"]}

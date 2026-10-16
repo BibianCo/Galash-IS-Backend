@@ -68,7 +68,35 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /seedbeds/{id}/members", h.listSeedbedMembers)
 	mux.HandleFunc("POST /seedbeds/{id}/members", h.addSeedbedMember)
 	mux.HandleFunc("DELETE /seedbeds/{id}/members/{userId}", h.removeSeedbedMember)
-	return mux
+	return localCORS(mux)
+}
+
+func localCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if isLocalOrigin(origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Add("Vary", "Origin")
+		}
+		if r.Method == http.MethodOptions {
+			if !isLocalOrigin(origin) {
+				writeError(w, http.StatusForbidden, "origen no permitido")
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isLocalOrigin(origin string) bool {
+	return origin == "http://localhost" || strings.HasPrefix(origin, "http://localhost:") ||
+		origin == "http://127.0.0.1" || strings.HasPrefix(origin, "http://127.0.0.1:") ||
+		origin == "http://[::1]" || strings.HasPrefix(origin, "http://[::1]:")
 }
 
 type seedbedRequest struct {
@@ -540,10 +568,16 @@ func bearerToken(header string) (string, error) {
 }
 
 func sessionToken(r *http.Request) (string, error) {
+	// Keep the authentication source consistent with POST /auth/sessions:
+	// when a client sends Authorization, it must not be shadowed by an older
+	// session cookie attached by the browser.
+	if authorization := strings.TrimSpace(r.Header.Get("Authorization")); authorization != "" {
+		return bearerToken(authorization)
+	}
 	if cookie, err := r.Cookie("galash_session"); err == nil && cookie.Value != "" {
 		return cookie.Value, nil
 	}
-	return bearerToken(r.Header.Get("Authorization"))
+	return "", errors.New("se requiere una sesión")
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

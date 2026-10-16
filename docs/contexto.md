@@ -31,6 +31,7 @@ GALASH-UPTC web system for academic management, research, and communication.
   la raíz; PostgreSQL usa `database/init.sql` para inicializar el esquema.
 - El directorio de integrantes permite búsqueda pública por nombre/correo y búsqueda administrativa con datos sensibles; la asignación de roles exige sesión de `Admin` y usa el Firebase UID del integrante seleccionado.
 - El módulo de semilleros implementa CRUD, publicación/ocultamiento/inactivación y membresías históricas mediante `/seedbeds`, con autorización para `Docente` responsable o `Admin` y validación de docentes activos.
+- El adaptador HTTP acepta preflight CORS desde interfaces locales (`localhost`, `127.0.0.1` y `::1`) y prioriza `Authorization` sobre una cookie de sesión antigua.
 
 ## Record
 

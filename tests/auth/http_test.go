@@ -80,6 +80,40 @@ func TestCurrentUserRequiresSession(t *testing.T) {
 	}
 }
 
+func TestLocalFrontendPreflightIsAccepted(t *testing.T) {
+	request := httptest.NewRequest(http.MethodOptions, "/users/me", nil)
+	request.Header.Set("Origin", "http://localhost:5173")
+	request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+	request.Header.Set("Access-Control-Request-Headers", "Authorization")
+	response := httptest.NewRecorder()
+
+	newHTTPServer(&repository{}).ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusNoContent, response.Body.String())
+	}
+	if response.Header().Get("Access-Control-Allow-Origin") != "http://localhost:5173" ||
+		response.Header().Get("Access-Control-Allow-Credentials") != "true" {
+		t.Fatalf("missing local CORS headers: %v", response.Header())
+	}
+}
+
+func TestAuthorizationHeaderTakesPrecedenceOverStaleSessionCookie(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id", Name: "Ana", Status: "activo"}}
+	server := newHTTPServer(repository)
+
+	validCookie := loginCookie(t, server)
+	request := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+	request.AddCookie(&http.Cookie{Name: "galash_session", Value: "stale-session"})
+	request.Header.Set("Authorization", "Bearer "+validCookie.Value)
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+}
+
 func TestAdminMembersRejectsAuthenticatedNonAdmin(t *testing.T) {
 	repository := &repository{user: domain.User{ID: "user-id", Role: "estudiante", Status: "activo"}}
 	server := newHTTPServer(repository)
