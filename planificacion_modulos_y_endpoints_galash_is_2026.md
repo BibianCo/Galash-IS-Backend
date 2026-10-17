@@ -32,7 +32,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `POST` | `/auth/sessions` | Valida credenciales de una cuenta activa y crea la sesión. Ante credenciales inválidas devuelve un mensaje genérico. | Must / Visitante | HU-AUTH-01 |
 | `DELETE` | `/auth/sessions/current` | Invalida la sesión actual. | Must / Estudiante, Docente o Admin | HU-AUTH-02 |
 | `GET` | `/users/me` | Devuelve el perfil mínimo y los roles y permisos efectivos del usuario autenticado. | Must / Estudiante, Docente o Admin | HU-AUTH-01, HU-TR-02 |
-| `POST` | `/auth/password-recovery-requests` | Solicita recuperación por correo; la respuesta no revela opencode. | Should / Visitante | HU-AUTH-03 |
+| `POST` | `/auth/password-recovery-requests` | Solicita recuperación por correo; la respuesta no revela si el correo está registrado. | Should / Visitante | HU-AUTH-03 |
 | `POST` | `/auth/password-resets` | Cambia la contraseña con un token vigente, de un solo uso. | Should / Visitante con token | HU-AUTH-03 |
 
 **Reglas clave:** las contraseñas se almacenan con hash seguro; las sesiones expiran y se revocan al cerrar sesión. Solo `Admin` puede asignar o retirar los cuatro roles permitidos.
