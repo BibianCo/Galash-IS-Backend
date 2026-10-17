@@ -195,7 +195,11 @@ func (h *Handler) createSeedbed(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
 	}
-	s, err := h.seedbeds.Create(r.Context(), seedbedapp.CreateCommand{q.Name, q.Description, q.ResearchLine, q.Objective, q.ResponsibleTeacherID, q.ContactEmail})
+	s, err := h.seedbeds.Create(r.Context(), seedbedapp.CreateCommand{
+		Name: q.Name, Description: q.Description, ResearchLine: q.ResearchLine,
+		Objective: q.Objective, ResponsibleTeacherID: q.ResponsibleTeacherID,
+		ContactEmail: q.ContactEmail,
+	})
 	if err != nil {
 		seedbedError(w, err)
 		return
@@ -240,7 +244,11 @@ func (h *Handler) updateSeedbed(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
 	}
-	s, err := h.seedbeds.Update(r.Context(), r.PathValue("id"), seedbedapp.UpdateCommand{q.Name, q.Description, q.ResearchLine, q.Objective, q.ResponsibleTeacherID, q.ContactEmail})
+	s, err := h.seedbeds.Update(r.Context(), r.PathValue("id"), seedbedapp.UpdateCommand{
+		Name: q.Name, Description: q.Description, ResearchLine: q.ResearchLine,
+		Objective: q.Objective, ResponsibleTeacherID: q.ResponsibleTeacherID,
+		ContactEmail: q.ContactEmail,
+	})
 	if err != nil {
 		seedbedError(w, err)
 		return
