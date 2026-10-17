@@ -19,7 +19,6 @@ type RegisterCommand struct {
 	DocumentType   string
 	DocumentNumber string
 	Email          string
-	Role           string
 }
 
 type RegisterResult struct {
@@ -35,8 +34,7 @@ type Service struct {
 	recovery   ports.RecoveryTokenRepository
 }
 
-// Roles are persisted in their canonical lowercase form. The existing system
-// uses "profesor" for teaching staff, including during registration.
+// Roles are persisted in their canonical lowercase form.
 var allowedRoles = map[string]bool{"visitante": true, "estudiante": true, "profesor": true, "admin": true}
 
 func NewService(identities ports.IdentityVerifier, users ports.UserRepository) *Service {
@@ -53,19 +51,18 @@ func NewService(identities ports.IdentityVerifier, users ports.UserRepository) *
 	return s
 }
 
+// Self-registration never chooses a role: every new account starts as visitante.
+// Other roles are assigned later through UpdateUserRole by an admin.
 func (s *Service) Register(ctx context.Context, token string, command RegisterCommand) (RegisterResult, error) {
 	identity, err := s.identities.Verify(ctx, token)
 	if err != nil {
 		return RegisterResult{}, errors.Join(domain.ErrInvalidIdentity, err)
 	}
 
-	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || command.Role == "" || identity.Email == "" {
+	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || identity.Email == "" {
 		return RegisterResult{}, domain.ErrIncompleteIdentity
 	}
 	if !strings.EqualFold(strings.TrimSpace(command.Email), identity.Email) {
-		return RegisterResult{}, domain.ErrIncompleteIdentity
-	}
-	if command.Role != "estudiante" && command.Role != "profesor" {
 		return RegisterResult{}, domain.ErrIncompleteIdentity
 	}
 
@@ -76,7 +73,6 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		Email:          strings.TrimSpace(command.Email),
 		DocumentType:   command.DocumentType,
 		DocumentNumber: command.DocumentNumber,
-		Role:           command.Role,
 		Status:         "activo",
 	})
 	if err != nil {
@@ -218,7 +214,27 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) err
 	if err != nil {
 		return err
 	}
+	// A password reset ends every session that was opened with the old credentials.
+	// Revoke first: if this fails, the password is unchanged and nothing is half-applied.
+	if s.sessions != nil {
+		if err := s.sessions.RevokeAllForUser(ctx, id); err != nil {
+			return err
+		}
+	}
 	return s.userReader.SetPassword(ctx, id, string(hash))
+}
+
+// PurgeExpiredCredentials deletes sessions and recovery tokens that can no longer be used.
+func (s *Service) PurgeExpiredCredentials(ctx context.Context) error {
+	if s.sessions != nil {
+		if err := s.sessions.DeleteExpiredSessions(ctx); err != nil {
+			return err
+		}
+	}
+	if s.recovery != nil {
+		return s.recovery.DeleteExpiredRecoveries(ctx)
+	}
+	return nil
 }
 
 func randomToken() (string, error) {

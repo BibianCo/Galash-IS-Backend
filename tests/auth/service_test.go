@@ -2,6 +2,8 @@ package auth_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"testing"
 
@@ -24,6 +26,10 @@ type repository struct {
 	upsertedUser         domain.User
 	createdHash          string
 	revokedHash          string
+	revoked              map[string]bool
+	revokedAllUserID     string
+	sessionsPurged       bool
+	recoveriesPurged     bool
 	sessionID            string
 	findErr              error
 	findUIDErr           error
@@ -96,14 +102,44 @@ func (r *repository) Create(_ context.Context, userID, tokenHash string) error {
 	return nil
 }
 func (r *repository) FindUserID(_ context.Context, tokenHash string) (string, error) {
-	if r.findErr != nil || tokenHash == "" || tokenHash != r.createdHash || tokenHash == r.revokedHash {
+	if r.findErr != nil || tokenHash == "" || tokenHash != r.createdHash || tokenHash == r.revokedHash || r.revoked[tokenHash] {
 		return "", errors.New("session not found")
 	}
 	return r.sessionID, nil
 }
 func (r *repository) Revoke(_ context.Context, tokenHash string) error {
 	r.revokedHash = tokenHash
+	r.markRevoked(tokenHash)
 	return nil
+}
+
+func (r *repository) RevokeAllForUser(_ context.Context, userID string) error {
+	r.revokedAllUserID = userID
+	r.markRevoked(r.createdHash)
+	return nil
+}
+
+func (r *repository) DeleteExpiredSessions(context.Context) error {
+	r.sessionsPurged = true
+	return nil
+}
+
+func (r *repository) DeleteExpiredRecoveries(context.Context) error {
+	r.recoveriesPurged = true
+	return nil
+}
+
+func (r *repository) markRevoked(tokenHash string) {
+	if r.revoked == nil {
+		r.revoked = map[string]bool{}
+	}
+	r.revoked[tokenHash] = true
+}
+
+// sessionHash mirrors the server-side hashing so tests can assert on stored hashes.
+func sessionHash(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
 func (r *repository) CreateRecovery(_ context.Context, userID, tokenHash string) error {
@@ -125,7 +161,7 @@ func (r *repository) Consume(_ context.Context, tokenHash string) (string, error
 func validRegistration() application.RegisterCommand {
 	return application.RegisterCommand{
 		Name: "Ana", LastName: "Pérez", DocumentType: "CC", DocumentNumber: "123",
-		Email: "ana@example.com", Role: "estudiante",
+		Email: "ana@example.com",
 	}
 }
 
@@ -139,7 +175,7 @@ func TestRegisterPersistsIdentityFields(t *testing.T) {
 	}
 	want := domain.User{
 		FirebaseUID: "firebase-id", Name: "Ana", LastName: "Pérez", Email: "ana@example.com",
-		DocumentType: "CC", DocumentNumber: "123", Role: "estudiante", Status: "activo",
+		DocumentType: "CC", DocumentNumber: "123", Status: "activo",
 	}
 	if repository.upsertedUser != want {
 		t.Fatalf("Upsert() user=%+v, want %+v", repository.upsertedUser, want)
@@ -155,7 +191,6 @@ func TestRegisterRejectsInvalidInput(t *testing.T) {
 		{"missing name", func(c *application.RegisterCommand) { c.Name = "" }},
 		{"missing last name", func(c *application.RegisterCommand) { c.LastName = "" }},
 		{"email mismatch", func(c *application.RegisterCommand) { c.Email = "other@example.com" }},
-		{"invalid role", func(c *application.RegisterCommand) { c.Role = "administrador" }},
 	}
 	for _, input := range inputs {
 		t.Run(input.name, func(t *testing.T) {
@@ -178,7 +213,6 @@ func TestRegisterRejectsMissingProfileFields(t *testing.T) {
 		{"missing document type", func(c *application.RegisterCommand) { c.DocumentType = "" }},
 		{"missing document number", func(c *application.RegisterCommand) { c.DocumentNumber = "" }},
 		{"missing email", func(c *application.RegisterCommand) { c.Email = "" }},
-		{"missing role", func(c *application.RegisterCommand) { c.Role = "" }},
 	}
 	for _, input := range inputs {
 		t.Run(input.name, func(t *testing.T) {
@@ -331,6 +365,28 @@ func TestResetPasswordHashesPasswordAndConsumesTokenOnce(t *testing.T) {
 	}
 	if err := service.ResetPassword(context.Background(), "recovery-token", "new-password-123"); !errors.Is(err, domain.ErrInvalidRecoveryToken) {
 		t.Fatalf("second ResetPassword() error=%v, want ErrInvalidRecoveryToken", err)
+	}
+}
+
+func TestResetPasswordRevokesAllUserSessions(t *testing.T) {
+	repository := &repository{recoveryUserID: "user-id"}
+	service := application.NewService(identityVerifier{}, repository)
+
+	if err := service.ResetPassword(context.Background(), "recovery-token", "new-password-123"); err != nil {
+		t.Fatalf("ResetPassword() error=%v", err)
+	}
+	if repository.revokedAllUserID != "user-id" {
+		t.Fatalf("sessions revoked for %q, want user-id", repository.revokedAllUserID)
+	}
+}
+
+func TestPurgeExpiredCredentialsRemovesSessionsAndRecoveryTokens(t *testing.T) {
+	repository := &repository{}
+	if err := application.NewService(identityVerifier{}, repository).PurgeExpiredCredentials(context.Background()); err != nil {
+		t.Fatalf("PurgeExpiredCredentials() error=%v", err)
+	}
+	if !repository.sessionsPurged || !repository.recoveriesPurged {
+		t.Fatalf("purge flags sessions=%v recoveries=%v, want both true", repository.sessionsPurged, repository.recoveriesPurged)
 	}
 }
 

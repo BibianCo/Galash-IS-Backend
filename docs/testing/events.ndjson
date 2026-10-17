@@ -75,3 +75,16 @@
 {"v":1,"id":"T020","t":"test","area":"auth-http","p":"must","name":"Local frontend preflight and Authorization precedence reach session-protected endpoints"}
 {"v":1,"id":"R020","t":"run","at":"2026-10-16T00:00:00Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X035","t":"result","run":"R020","test":"T020","s":"pass","ev":["docker run --rm -v project:/app -w /app golang:1.22-alpine go test ./...","git diff --check"]}
+{"v":1,"id":"T021","t":"test","area":"auth-runtime","p":"must","name":"Running auth container serves POST /auth/sessions (not 404) and answers the local frontend CORS preflight"}
+{"v":1,"id":"R021","t":"run","at":"2026-10-17T01:15:00Z","build":"ecb8d99","by":"agent","mode":"automated"}
+{"v":1,"id":"X036","t":"result","run":"R021","test":"T021","s":"pass","ev":["docker compose up -d --build auth (image rebuilt; previous image dated 2026-09-27)","OPTIONS http://localhost:8080/auth/sessions Origin localhost:4200 (204, credentials true)","OPTIONS and POST via http://localhost:4200/api/auth/sessions (204, 401)","POST /auth/sessions without valid credentials (401, not 404)"]}
+{"v":1,"id":"X037","t":"result","run":"R021","test":"T020","s":"pass","ev":["docker run --rm -v project:/app -w /app golang:1.22-alpine go test -count=1 ./..."]}
+{"v":1,"id":"T022","t":"test","area":"auth","p":"must","name":"Sesiones: logout revoca la cookie aunque Authorization sea obsoleto, login rota la sesión previa, 401 limpia cookie vencida, reset revoca sesiones y purga de filas vencidas"}
+{"v":1,"id":"R022","t":"run","at":"2026-10-17T01:44:00Z","build":"ecb8d99+wip","by":"agent","mode":"automated"}
+{"v":1,"id":"X038","t":"result","run":"R022","test":"T022","s":"pass","ev":["go test -count=1 ./... (tests/auth, 0.218s)"]}
+{"v":1,"id":"T023","t":"test","area":"auth","p":"must","name":"Registro: el rol siempre es visitante, el rol enviado por el cliente se ignora y un re-registro no cambia el rol asignado"}
+{"v":1,"id":"R023","t":"run","at":"2026-10-17T15:13:10Z","build":"ecb8d99+wip","by":"agent","mode":"automated"}
+{"v":1,"id":"X039","t":"result","run":"R023","test":"T023","s":"pass","ev":["go test -count=1 ./tests/auth/ (sin TEST_DATABASE_URL)"]}
+{"v":1,"id":"X040","t":"result","run":"R023","test":"T023","s":"pass","ev":["go test -count=1 ./tests/auth/ con TEST_DATABASE_URL a base temporal galash_role_test (creada y eliminada)"]}
+{"v":1,"id":"R024","t":"run","at":"2026-10-17T16:54:12Z","build":"7f7513e","by":"agent","mode":"automated"}
+{"v":1,"id":"X041","t":"result","run":"R024","test":"T023","s":"pass","ev":["go test -count=1 ./..."]}

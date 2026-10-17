@@ -9,7 +9,7 @@ CREATE TABLE usuarios (
     dni TEXT UNIQUE,
     email TEXT NOT NULL,
     password_hash TEXT,
-    rol TEXT NOT NULL DEFAULT 'estudiante',
+    rol TEXT NOT NULL DEFAULT 'visitante',
     estado TEXT NOT NULL DEFAULT 'activo',
     semillero_id UUID,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
