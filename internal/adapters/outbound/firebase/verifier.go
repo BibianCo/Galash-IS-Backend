@@ -15,8 +15,11 @@ func NewVerifier(client *auth.Client) *Verifier {
 	return &Verifier{client: client}
 }
 
+// Verify checks the signature, expiry and revocation state of the Firebase ID
+// token. ID tokens stay valid for up to an hour after the user is disabled or
+// their sessions are revoked, so the revocation check is required here.
 func (v *Verifier) Verify(ctx context.Context, token string) (domain.Identity, error) {
-	firebaseToken, err := v.client.VerifyIDToken(ctx, token)
+	firebaseToken, err := v.client.VerifyIDTokenAndCheckRevoked(ctx, token)
 	if err != nil {
 		return domain.Identity{}, err
 	}

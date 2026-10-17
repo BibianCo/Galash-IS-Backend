@@ -20,7 +20,6 @@ type registerRequest struct {
 	TipoDNI  string `json:"tipo_dni"`
 	DNI      string `json:"dni"`
 	Email    string `json:"email"`
-	Rol      string `json:"rol"`
 }
 
 type sessionRequest struct {
@@ -130,7 +129,7 @@ func (h *Handler) actor(w http.ResponseWriter, r *http.Request) (domain.User, bo
 	}
 	u, err := h.service.CurrentUser(r.Context(), token)
 	if err != nil {
-		writeError(w, 401, "sesión inválida o expirada")
+		invalidSession(w, r, "sesión inválida o expirada")
 		return domain.User{}, false
 	}
 	return u, true
@@ -488,21 +487,29 @@ func (h *Handler) createSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "no fue posible iniciar sesión")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: "galash_session", Value: result.Token, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: 86400})
+	// Rotate: the browser's previous session stops working as soon as a new one is issued.
+	if previous, err := r.Cookie(sessionCookieName); err == nil && previous.Value != "" && previous.Value != result.Token {
+		_ = h.service.Logout(r.Context(), previous.Value)
+	}
+	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: result.Token, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: 86400})
 	writeJSON(w, http.StatusCreated, map[string]any{"user": result.User})
 }
 
 func (h *Handler) deleteSession(w http.ResponseWriter, r *http.Request) {
-	token, err := sessionToken(r)
-	if err != nil {
+	tokens := sessionTokens(r)
+	if len(tokens) == 0 {
 		writeError(w, http.StatusUnauthorized, "sesión requerida")
 		return
 	}
-	if err := h.service.Logout(r.Context(), token); err != nil {
-		writeError(w, http.StatusUnauthorized, "sesión inválida")
-		return
+	// Revoke every credential the request presents. A stale Authorization header
+	// must not make logout revoke the wrong token and leave the cookie session alive.
+	for _, token := range tokens {
+		if err := h.service.Logout(r.Context(), token); err != nil {
+			writeError(w, http.StatusUnauthorized, "sesión inválida")
+			return
+		}
 	}
-	http.SetCookie(w, &http.Cookie{Name: "galash_session", Value: "", Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: -1})
+	clearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -514,7 +521,7 @@ func (h *Handler) currentUser(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.service.CurrentUser(r.Context(), token)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "sesión inválida o expirada")
+		invalidSession(w, r, "sesión inválida o expirada")
 		return
 	}
 	writeJSON(w, http.StatusOK, user)
@@ -534,7 +541,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	result, err := h.service.Register(r.Context(), token, application.RegisterCommand{
 		Name: request.Nombre, LastName: request.Apellido,
 		DocumentType: request.TipoDNI, DocumentNumber: request.DNI,
-		Email: request.Email, Role: request.Rol,
+		Email: request.Email,
 	})
 	if errors.Is(err, domain.ErrIncompleteIdentity) {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -567,6 +574,8 @@ func bearerToken(header string) (string, error) {
 	return parts[1], nil
 }
 
+const sessionCookieName = "galash_session"
+
 func sessionToken(r *http.Request) (string, error) {
 	// Keep the authentication source consistent with POST /auth/sessions:
 	// when a client sends Authorization, it must not be shadowed by an older
@@ -574,10 +583,37 @@ func sessionToken(r *http.Request) (string, error) {
 	if authorization := strings.TrimSpace(r.Header.Get("Authorization")); authorization != "" {
 		return bearerToken(authorization)
 	}
-	if cookie, err := r.Cookie("galash_session"); err == nil && cookie.Value != "" {
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
 		return cookie.Value, nil
 	}
 	return "", errors.New("se requiere una sesión")
+}
+
+// sessionTokens returns every well-formed session credential on the request.
+func sessionTokens(r *http.Request) []string {
+	var tokens []string
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
+		tokens = append(tokens, cookie.Value)
+	}
+	if authorization := strings.TrimSpace(r.Header.Get("Authorization")); authorization != "" {
+		if token, err := bearerToken(authorization); err == nil {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens
+}
+
+// invalidSession answers 401 and expires the browser cookie when the rejected
+// credential came from it, so stale cookies are not replayed on later requests.
+func invalidSession(w http.ResponseWriter, r *http.Request, message string) {
+	if strings.TrimSpace(r.Header.Get("Authorization")) == "" {
+		clearSessionCookie(w)
+	}
+	writeError(w, http.StatusUnauthorized, message)
+}
+
+func clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: -1})
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

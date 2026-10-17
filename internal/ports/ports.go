@@ -27,11 +27,14 @@ type SessionRepository interface {
 	Create(ctx context.Context, userID string, tokenHash string) error
 	FindUserID(ctx context.Context, tokenHash string) (string, error)
 	Revoke(ctx context.Context, tokenHash string) error
+	RevokeAllForUser(ctx context.Context, userID string) error
+	DeleteExpiredSessions(ctx context.Context) error
 }
 
 type RecoveryTokenRepository interface {
 	CreateRecovery(ctx context.Context, userID string, tokenHash string) error
 	Consume(ctx context.Context, tokenHash string) (string, error)
+	DeleteExpiredRecoveries(ctx context.Context) error
 }
 
 type HealthChecker interface {

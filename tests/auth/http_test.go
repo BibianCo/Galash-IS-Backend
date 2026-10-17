@@ -382,3 +382,77 @@ func TestLogoutInvalidatesSessionAndClearsCookie(t *testing.T) {
 		t.Fatalf("current-user status after logout=%d, want %d", currentUserResponse.Code, http.StatusUnauthorized)
 	}
 }
+
+func TestRegisterIgnoresClientSuppliedRole(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id"}}
+	verifier := identityVerifier{identity: domain.Identity{UID: "firebase-id", Email: "ana@example.com"}}
+	body := `{"nombre":"Ana","apellido":"Pérez","tipo_dni":"CC","dni":"123","email":"ana@example.com","rol":"admin"}`
+	request := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(body))
+	request.Header.Set("Authorization", "Bearer firebase-token")
+	response := httptest.NewRecorder()
+
+	newHTTPServerWithVerifier(repository, verifier).ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+	if repository.upsertedUser.Role == "admin" {
+		t.Fatal("client-supplied role reached the repository")
+	}
+}
+
+func TestLogoutRevokesCookieSessionEvenWhenStaleAuthorizationIsPresent(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id", Name: "Ana", Status: "activo"}}
+	server := newHTTPServer(repository)
+	sessionCookie := loginCookie(t, server)
+
+	logoutRequest := httptest.NewRequest(http.MethodDelete, "/auth/sessions/current", nil)
+	logoutRequest.AddCookie(sessionCookie)
+	logoutRequest.Header.Set("Authorization", "Bearer some-other-token")
+	logoutResponse := httptest.NewRecorder()
+	server.ServeHTTP(logoutResponse, logoutRequest)
+	if logoutResponse.Code != http.StatusNoContent {
+		t.Fatalf("logout status=%d, want %d", logoutResponse.Code, http.StatusNoContent)
+	}
+
+	currentUserRequest := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+	currentUserRequest.AddCookie(sessionCookie)
+	currentUserResponse := httptest.NewRecorder()
+	server.ServeHTTP(currentUserResponse, currentUserRequest)
+	if currentUserResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("cookie session survived logout: status=%d, want %d", currentUserResponse.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestLoginRotatesPreviousSessionCookie(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id", Status: "activo"}}
+	server := newHTTPServer(repository)
+	previousCookie := loginCookie(t, server)
+
+	request := httptest.NewRequest(http.MethodPost, "/auth/sessions", strings.NewReader(`{"token":"firebase-token"}`))
+	request.AddCookie(previousCookie)
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("second login status=%d, want %d: %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+	if !repository.revoked[sessionHash(previousCookie.Value)] {
+		t.Fatal("previous session cookie was not revoked on re-login")
+	}
+}
+
+func TestStaleSessionCookieIsClearedOnUnauthorized(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+	request.AddCookie(&http.Cookie{Name: "galash_session", Value: "expired-session"})
+	response := httptest.NewRecorder()
+
+	newHTTPServer(&repository{}).ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) == 0 || cookies[0].Name != "galash_session" || cookies[0].MaxAge >= 0 || !cookies[0].Secure {
+		t.Fatalf("stale cookie was not expired: %+v", cookies)
+	}
+}
