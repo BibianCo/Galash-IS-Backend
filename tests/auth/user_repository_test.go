@@ -59,6 +59,51 @@ func TestUpsertPreservesExistingLastName(t *testing.T) {
 	}
 }
 
+func TestUpsertAssignsVisitanteAndNeverChangesExistingRole(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+	ctx := context.Background()
+	db, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("connect to test database: %v", err)
+	}
+	defer db.Close()
+
+	uid := fmt.Sprintf("role-register-test-%d", time.Now().UnixNano())
+	defer func() {
+		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE firebase_uid = $1`, uid)
+	}()
+
+	repository := postgresadapter.NewUserRepository(db)
+	// Even if a caller passes a privileged role, self-registration stores visitante.
+	if _, err := repository.Upsert(ctx, domain.User{FirebaseUID: uid, Name: "Ana", Email: uid + "@example.test", Role: "admin"}); err != nil {
+		t.Fatalf("initial Upsert(): %v", err)
+	}
+	var role string
+	if err := db.QueryRow(ctx, `SELECT rol FROM usuarios WHERE firebase_uid = $1`, uid).Scan(&role); err != nil {
+		t.Fatalf("read role: %v", err)
+	}
+	if role != "visitante" {
+		t.Fatalf("new role=%q, want visitante", role)
+	}
+
+	// An admin assigns a role later; re-registration must not overwrite it.
+	if _, err := db.Exec(ctx, `UPDATE usuarios SET rol = 'profesor' WHERE firebase_uid = $1`, uid); err != nil {
+		t.Fatalf("assign role: %v", err)
+	}
+	if _, err := repository.Upsert(ctx, domain.User{FirebaseUID: uid, Name: "Ana", Email: uid + "@example.test", Role: "estudiante"}); err != nil {
+		t.Fatalf("re-register Upsert(): %v", err)
+	}
+	if err := db.QueryRow(ctx, `SELECT rol FROM usuarios WHERE firebase_uid = $1`, uid).Scan(&role); err != nil {
+		t.Fatalf("read role after re-register: %v", err)
+	}
+	if role != "profesor" {
+		t.Fatalf("re-registration changed role to %q, want profesor", role)
+	}
+}
+
 func TestSearchReturnsOnlyActiveMatchingUsers(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
@@ -81,12 +126,16 @@ func TestSearchReturnsOnlyActiveMatchingUsers(t *testing.T) {
 
 	repository := postgresadapter.NewUserRepository(db)
 	for _, user := range []domain.User{
-		{FirebaseUID: activeUID, Name: "UniqueMember" + suffix, LastName: "Active", Email: "active-" + suffix + "@example.test", Role: "profesor"},
-		{FirebaseUID: inactiveUID, Name: "UniqueMember" + suffix, LastName: "Inactive", Email: "inactive-" + suffix + "@example.test", Role: "estudiante"},
+		{FirebaseUID: activeUID, Name: "UniqueMember" + suffix, LastName: "Active", Email: "active-" + suffix + "@example.test"},
+		{FirebaseUID: inactiveUID, Name: "UniqueMember" + suffix, LastName: "Inactive", Email: "inactive-" + suffix + "@example.test"},
 	} {
 		if _, err := repository.Upsert(ctx, user); err != nil {
 			t.Fatalf("insert search fixture: %v", err)
 		}
+	}
+	// Registration always creates visitante; the profesor role is assigned by an admin.
+	if _, err := db.Exec(ctx, `UPDATE usuarios SET rol = 'profesor' WHERE firebase_uid = $1`, activeUID); err != nil {
+		t.Fatalf("assign search fixture role: %v", err)
 	}
 	if _, err := db.Exec(ctx, `UPDATE usuarios SET estado = 'inactivo' WHERE firebase_uid = $1`, inactiveUID); err != nil {
 		t.Fatalf("deactivate search fixture: %v", err)

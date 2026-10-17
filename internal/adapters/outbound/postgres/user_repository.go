@@ -28,17 +28,16 @@ func (r *UserRepository) Upsert(ctx context.Context, user domain.User) (string, 
 			NULLIF($4, ''),
 			NULLIF($5, ''),
 			$6,
-			COALESCE(NULLIF($7, ''), 'estudiante')
+			'visitante'
 		)
 		ON CONFLICT (firebase_uid) DO UPDATE SET
 			nombre = COALESCE(NULLIF(EXCLUDED.nombre, ''), usuarios.nombre),
 			apellido = COALESCE(NULLIF(EXCLUDED.apellido, ''), usuarios.apellido),
 			tipo_dni = COALESCE(NULLIF(EXCLUDED.tipo_dni, ''), usuarios.tipo_dni),
 			dni = COALESCE(NULLIF(EXCLUDED.dni, ''), usuarios.dni),
-			email = EXCLUDED.email,
-			rol = COALESCE(NULLIF(EXCLUDED.rol, ''), usuarios.rol)
+			email = EXCLUDED.email
 		RETURNING id`,
-		user.FirebaseUID, user.Name, user.LastName, user.DocumentType, user.DocumentNumber, user.Email, user.Role,
+		user.FirebaseUID, user.Name, user.LastName, user.DocumentType, user.DocumentNumber, user.Email,
 	).Scan(&id)
 	return id, err
 }
@@ -114,6 +113,17 @@ func (r *UserRepository) Revoke(ctx context.Context, tokenHash string) error {
 	return err
 }
 
+func (r *UserRepository) RevokeAllForUser(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `UPDATE sesiones SET revocada_en = now() WHERE usuario_id = $1 AND revocada_en IS NULL`, userID)
+	return err
+}
+
+// DeleteExpiredSessions removes rows that FindUserID would already reject.
+func (r *UserRepository) DeleteExpiredSessions(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM sesiones WHERE expira_en <= now() OR revocada_en IS NOT NULL`)
+	return err
+}
+
 func (r *UserRepository) CreateRecovery(ctx context.Context, userID, tokenHash string) error {
 	_, err := r.db.Exec(ctx, `INSERT INTO recuperaciones_password (usuario_id, token_hash, expira_en) VALUES ($1, $2, now() + interval '30 minutes')`, userID, tokenHash)
 	return err
@@ -123,6 +133,12 @@ func (r *UserRepository) Consume(ctx context.Context, tokenHash string) (string,
 	var id string
 	err := r.db.QueryRow(ctx, `UPDATE recuperaciones_password SET usado_en = now() WHERE token_hash = $1 AND usado_en IS NULL AND expira_en > now() RETURNING usuario_id`, tokenHash).Scan(&id)
 	return id, err
+}
+
+// DeleteExpiredRecoveries removes recovery tokens that are expired or already used.
+func (r *UserRepository) DeleteExpiredRecoveries(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM recuperaciones_password WHERE expira_en <= now() OR usado_en IS NOT NULL`)
+	return err
 }
 
 func (r *UserRepository) Ping(ctx context.Context) error {
