@@ -13,14 +13,16 @@ filas o marcar disponible solo con registro/handoff del backend.
 
 ## Auth (Go, `:8080`)
 
-Sesion por cookie HttpOnly. `POST /auth/register`: `Authorization: Bearer
-<FIREBASE_ID_TOKEN>`, cuerpo `{"nombre","apellido"}`; nunca password, dni ni
-tipo_dni. Rutas en `internal/adapters/inbound/http/handler.go`.
+Sesion por cookie HttpOnly. `POST /auth/register` crea o sincroniza la cuenta,
+independiente de las solicitudes del M3. Requiere `Authorization: Bearer
+<FIREBASE_ID_TOKEN>` y `{"nombre","apellido","tipo_dni","dni","email"}`;
+sin password ni rol, email igual al token. El rol nuevo es `visitante` y el
+re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/handler.go`.
 
 | Metodo | Ruta | Descripcion | Contrato | Uso |
 |---|---|---|---|---|
 | GET | `/health` | salud y bd | - | [ ] |
-| POST | `/auth/register` | alta por token | - | [ ] |
+| POST | `/auth/register` | alta por token | M1 | [ ] |
 | POST | `/auth/sessions` | crea sesion | M1 | [ ] |
 | DELETE | `/auth/sessions/current` | cierra sesion | M1 | [ ] |
 | GET | `/users/me` | perfil y roles | M1 | [ ] |
@@ -38,10 +40,9 @@ tipo_dni. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/seedbeds/{id}/members` | vincula | M2 | [ ] |
 | DELETE | `/seedbeds/{id}/members/{userId}` | retiro | M2 | [ ] |
 
-Fuera de contrato: `- /health` infraestructura · `- /auth/register` decision
-pendiente (el contrato define `POST /registration-requests`) · `-
-/admin/members` datos sensibles, decision pendiente · `- /find/user` alias
-legacy · `- /users/roles` alias de `PUT /users/{userId}/roles`.
+Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
+sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
+alias de `PUT /users/{userId}/roles`.
 
 ## PostgreSQL (Docker, host `5433`)
 
