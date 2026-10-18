@@ -45,6 +45,7 @@ type SeedbedRepository interface {
 	Create(ctx context.Context, seedbed domain.Seedbed) (domain.Seedbed, error)
 	List(ctx context.Context, query, researchLine string, page, pageSize int, includePrivate bool) ([]domain.Seedbed, error)
 	Find(ctx context.Context, id string) (domain.Seedbed, error)
+	Space(ctx context.Context, id string) (domain.SeedbedSpace, error)
 	Update(ctx context.Context, id string, seedbed domain.Seedbed) (domain.Seedbed, error)
 	SetVisibility(ctx context.Context, id, status string) (domain.Seedbed, error)
 	ListMembers(ctx context.Context, id string, includeHistory bool) ([]domain.SeedbedMember, error)

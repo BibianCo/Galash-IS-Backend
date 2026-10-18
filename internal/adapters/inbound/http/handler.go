@@ -62,6 +62,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /seedbeds", h.listSeedbeds)
 	mux.HandleFunc("POST /seedbeds", h.createSeedbed)
 	mux.HandleFunc("GET /seedbeds/{id}", h.getSeedbed)
+	mux.HandleFunc("GET /seedbeds/{id}/space", h.getSeedbedSpace)
 	mux.HandleFunc("PATCH /seedbeds/{id}", h.updateSeedbed)
 	mux.HandleFunc("PATCH /seedbeds/{id}/visibility", h.setSeedbedVisibility)
 	mux.HandleFunc("GET /seedbeds/{id}/members", h.listSeedbedMembers)
@@ -226,6 +227,38 @@ func (h *Handler) getSeedbed(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, 200, s)
+}
+
+func (h *Handler) getSeedbedSpace(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	id := r.PathValue("id")
+	seedbed, err := h.seedbeds.Find(r.Context(), id)
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	public := seedbed.Status == domain.SeedbedPublished && seedbed.Visibility == domain.SeedbedPublished
+	if !public {
+		actor, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		if err := h.seedbeds.CanManage(r.Context(), actor.ID, id); err != nil {
+			writeError(w, http.StatusNotFound, "semillero no encontrado")
+			return
+		}
+	}
+	space, err := h.seedbeds.Space(r.Context(), id)
+	if err != nil {
+		seedbedError(w, err)
+		return
+	}
+	if public {
+		space.Responsible.Email = ""
+	}
+	writeJSON(w, http.StatusOK, space)
 }
 func (h *Handler) updateSeedbed(w http.ResponseWriter, r *http.Request) {
 	if !h.seedbedReady(w) {

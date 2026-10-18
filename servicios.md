@@ -34,6 +34,7 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | GET | `/seedbeds` | lista | M2 | [ ] |
 | POST | `/seedbeds` | crea | M2 | [ ] |
 | GET | `/seedbeds/{id}` | detalle | M2 | [ ] |
+| GET | `/seedbeds/{id}/space` | vista compuesta | M2 | [ ] |
 | PATCH | `/seedbeds/{id}` | edita | M2 | [ ] |
 | PATCH | `/seedbeds/{id}/visibility` | estado | M2 | [ ] |
 | GET | `/seedbeds/{id}/members` | integrantes | M2 | [ ] |
@@ -56,8 +57,7 @@ al repositorio. Front consume via proxy `/api` -> `http://localhost:8080`.
 
 ## Pendiente en contrato (sin implementar)
 
-M1: password-recovery-requests, password-resets (S) | M2: `GET
-/seedbeds/{id}/space` | M3 solicitudes: 5 | M4 actividades/proyectos/
+M1: password-recovery-requests, password-resets (S) | M3 solicitudes: 5 | M4 actividades/proyectos/
 propuestas/resenas: 19 | M5 miembros: 5 (CRUD, status, publications) | M6
 eventos: 7 | M7 contenidos: 6 | M8 comunicados: 7 | M9 cronograma: 5 | M10
 enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,

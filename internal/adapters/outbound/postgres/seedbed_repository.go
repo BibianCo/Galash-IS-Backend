@@ -26,6 +26,56 @@ const seedbedFields = `id,nombre,COALESCE(descripcion,''),COALESCE(linea_investi
 func (r *SeedbedRepository) Find(ctx context.Context, id string) (domain.Seedbed, error) {
 	return scanSeedbed(r.db.QueryRow(ctx, `SELECT `+seedbedFields+` FROM semilleros WHERE id=$1`, id))
 }
+func (r *SeedbedRepository) Space(ctx context.Context, id string) (domain.SeedbedSpace, error) {
+	var space domain.SeedbedSpace
+	seedbed, err := r.Find(ctx, id)
+	if err != nil {
+		return space, err
+	}
+	space.Seedbed = seedbed
+	space.Purpose = seedbed.Objective
+	if err := r.db.QueryRow(ctx, `SELECT id,nombre,COALESCE(apellido,''),email FROM usuarios WHERE id=$1`, seedbed.ResponsibleTeacherID).
+		Scan(&space.Responsible.ID, &space.Responsible.Name, &space.Responsible.LastName, &space.Responsible.Email); err != nil {
+		return domain.SeedbedSpace{}, err
+	}
+	space.Activities = []domain.ActivitySummary{}
+	activityRows, err := r.db.Query(ctx, `SELECT id,titulo,COALESCE(descripcion,''),estado,fecha FROM actividades WHERE semillero_id=$1 ORDER BY fecha NULLS LAST,titulo`, id)
+	if err != nil {
+		return domain.SeedbedSpace{}, err
+	}
+	for activityRows.Next() {
+		var activity domain.ActivitySummary
+		if err := activityRows.Scan(&activity.ID, &activity.Title, &activity.Description, &activity.Status, &activity.Date); err != nil {
+			activityRows.Close()
+			return domain.SeedbedSpace{}, err
+		}
+		space.Activities = append(space.Activities, activity)
+	}
+	if err := activityRows.Err(); err != nil {
+		activityRows.Close()
+		return domain.SeedbedSpace{}, err
+	}
+	activityRows.Close()
+	space.Projects = []domain.ProjectSummary{}
+	projectRows, err := r.db.Query(ctx, `SELECT id,titulo,COALESCE(resumen,''),COALESCE(area_investigacion,''),fecha_inicio,fecha_fin FROM proyectos WHERE semillero_id=$1 ORDER BY fecha_inicio NULLS LAST,titulo`, id)
+	if err != nil {
+		return domain.SeedbedSpace{}, err
+	}
+	for projectRows.Next() {
+		var project domain.ProjectSummary
+		if err := projectRows.Scan(&project.ID, &project.Title, &project.Summary, &project.ResearchArea, &project.StartDate, &project.EndDate); err != nil {
+			projectRows.Close()
+			return domain.SeedbedSpace{}, err
+		}
+		space.Projects = append(space.Projects, project)
+	}
+	if err := projectRows.Err(); err != nil {
+		projectRows.Close()
+		return domain.SeedbedSpace{}, err
+	}
+	projectRows.Close()
+	return space, nil
+}
 func (r *SeedbedRepository) List(ctx context.Context, q, line string, page, size int, private bool) ([]domain.Seedbed, error) {
 	where := `WHERE estado='Publicado' AND visibilidad='Publicado'`
 	args := []any{}

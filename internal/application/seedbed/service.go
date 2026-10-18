@@ -84,6 +84,10 @@ func (s *Service) List(ctx context.Context, q, line string, page, size int, priv
 func (s *Service) Find(ctx context.Context, id string) (domain.Seedbed, error) {
 	return s.repo.Find(ctx, id)
 }
+
+func (s *Service) Space(ctx context.Context, id string) (domain.SeedbedSpace, error) {
+	return s.repo.Space(ctx, id)
+}
 func (s *Service) Visibility(ctx context.Context, actor, id, status string) (domain.Seedbed, error) {
 	if err := s.CanManage(ctx, actor, id); err != nil {
 		return domain.Seedbed{}, err

@@ -88,3 +88,9 @@
 {"v":1,"id":"X040","t":"result","run":"R023","test":"T023","s":"pass","ev":["go test -count=1 ./tests/auth/ con TEST_DATABASE_URL a base temporal galash_role_test (creada y eliminada)"]}
 {"v":1,"id":"R024","t":"run","at":"2026-10-17T16:54:12Z","build":"7f7513e","by":"agent","mode":"automated"}
 {"v":1,"id":"X041","t":"result","run":"R024","test":"T023","s":"pass","ev":["go test -count=1 ./..."]}
+{"v":1,"id":"T021","t":"test","area":"seedbeds","p":"must","name":"Seedbed membership migration creates semillero_miembros schema"}
+{"v":1,"id":"R022","t":"run","at":"2026-10-17T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X038","t":"result","run":"R022","test":"T021","s":"pass","ev":["docker compose exec postgres psql migration","psql \\dt semillero_miembros","docker run golang:1.22 go test ./...","git diff --check"]}
+{"v":1,"id":"T022","t":"test","area":"seedbeds","p":"must","name":"Composite seedbed space endpoint compiles and is registered"}
+{"v":1,"id":"R023","t":"run","at":"2026-10-17T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X039","t":"result","run":"R023","test":"T022","s":"pass","ev":["docker run golang:1.22 go test ./...","docker run golang:1.22 go vet ./...","git diff --check"]}
