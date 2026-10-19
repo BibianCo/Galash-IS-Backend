@@ -108,3 +108,51 @@
  {"v":1,"id":"T029","t":"test","area":"module-3-registration","p":"must","name":"Admin updates a valid registration status and writes its audit record"}
  {"v":1,"id":"R028","t":"run","at":"2026-10-19T17:05:00Z","by":"agent","mode":"manual-api"}
  {"v":1,"id":"X047","t":"result","run":"R028","test":"T029","s":"pass","ev":["PATCH /admin/registration-requests/{id}/status with admin session returned HTTP 200 and En revisión"]}
+{"v":1,"id":"T030","t":"test","area":"seedbeds","p":"must","name":"Create rejects seedbed without name, responsible or valid contact email"}
+{"v":1,"id":"T031","t":"test","area":"seedbeds","p":"must","name":"Create requires an active teacher as responsible"}
+{"v":1,"id":"T032","t":"test","area":"seedbeds","p":"must","name":"Create starts seedbed in Borrador with trimmed data"}
+{"v":1,"id":"T033","t":"test","area":"seedbeds","p":"must","name":"Visibility allows responsible or admin and only known states"}
+{"v":1,"id":"T034","t":"test","area":"seedbeds","p":"must","name":"AddMember links only active students or teachers by responsible"}
+{"v":1,"id":"T035","t":"test","area":"seedbeds","p":"must","name":"RemoveMember requires responsible teacher or admin"}
+{"v":1,"id":"T036","t":"test","area":"seedbeds","p":"must","name":"List bounds page and pageSize"}
+{"v":1,"id":"T037","t":"test","area":"seedbeds","p":"must","name":"POST /seedbeds requires teacher or admin session and returns id, Borrador and responsibleTeacherId"}
+{"v":1,"id":"T038","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds includeInactive restricted to admin"}
+{"v":1,"id":"T039","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds/{id} respects visibility"}
+{"v":1,"id":"T040","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds/{id}/space hides responsible email from public view"}
+{"v":1,"id":"T041","t":"test","area":"seedbeds","p":"must","name":"PATCH /seedbeds/{id} requires responsible teacher or admin"}
+{"v":1,"id":"T042","t":"test","area":"seedbeds","p":"must","name":"PATCH /seedbeds/{id}/visibility validates actor and state"}
+{"v":1,"id":"T043","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds/{id}/members restricts history and hidden seedbeds"}
+{"v":1,"id":"T044","t":"test","area":"seedbeds","p":"must","name":"POST and DELETE /seedbeds/{id}/members require responsible teacher or admin"}
+{"v":1,"id":"R029","t":"run","at":"2026-10-19T19:27:00Z","build":"a936832","env":"E002","by":"agent","mode":"automated","cmd":"go test ./tests/seedbed/ -v"}
+{"v":1,"id":"X048","t":"result","run":"R029","test":"T030","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X049","t":"result","run":"R029","test":"T031","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X050","t":"result","run":"R029","test":"T032","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X051","t":"result","run":"R029","test":"T033","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X052","t":"result","run":"R029","test":"T034","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X053","t":"result","run":"R029","test":"T035","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X054","t":"result","run":"R029","test":"T036","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X055","t":"result","run":"R029","test":"T037","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X056","t":"result","run":"R029","test":"T038","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X057","t":"result","run":"R029","test":"T039","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X058","t":"result","run":"R029","test":"T040","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X059","t":"result","run":"R029","test":"T041","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X060","t":"result","run":"R029","test":"T042","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X061","t":"result","run":"R029","test":"T043","s":"fail","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X062","t":"result","run":"R029","test":"T044","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"D001","t":"defect","test":"T043","run":"R029","sev":"medium","s":"open","name":"GET /seedbeds/{id}/members on hidden seedbed without session writes 401 and 404 error bodies in one response","ref":"internal/adapters/inbound/http/handler.go listSeedbedMembers"}
+{"v":1,"id":"T045","t":"test","area":"seedbeds","p":"must","name":"Live POST /seedbeds rejects duplicate name with 409"}
+{"v":1,"id":"T046","t":"test","area":"seedbeds","p":"must","name":"Live unknown seedbed id returns 404 on detail, space and members"}
+{"v":1,"id":"T047","t":"test","area":"seedbeds","p":"must","name":"Live visibility lifecycle controls public detail and list"}
+{"v":1,"id":"T048","t":"test","area":"seedbeds","p":"must","name":"Live hidden seedbed members without session returns a single 401 error"}
+{"v":1,"id":"T049","t":"test","area":"seedbeds","p":"must","name":"Live withdrawal keeps member history and non-member withdrawal returns 404"}
+{"v":1,"id":"E003","t":"env","os":"Linux","device":"development-shell","runtime":"Go module; API galash-auth on localhost:8080; PostgreSQL 16 (galash-postgres) on localhost:5433 with seeded test users and sessions"}
+{"v":1,"id":"R030","t":"run","at":"2026-10-19T19:55:00Z","build":"a936832","env":"E003","by":"agent","mode":"automated-live-api","cmd":"go test ./tests/seedbed/ -run TestLive -v -count=1"}
+{"v":1,"id":"X063","t":"result","run":"R030","test":"T045","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X064","t":"result","run":"R030","test":"T046","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X065","t":"result","run":"R030","test":"T047","s":"pass","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X066","t":"result","run":"R030","test":"T048","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X067","t":"result","run":"R030","test":"T049","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"D001","t":"defect","test":"T048","run":"R030","sev":"medium","s":"open","name":"Reproduced against running API: hidden seedbed members without session returns 401 with two error bodies"}
+{"v":1,"id":"D002","t":"defect","test":"T045","run":"R030","sev":"high","s":"open","name":"POST /seedbeds with duplicate name returns 500 instead of 409","ref":"internal/adapters/outbound/postgres/seedbed_repository.go Create"}
+{"v":1,"id":"D003","t":"defect","test":"T046","run":"R030","sev":"medium","s":"open","name":"Unknown seedbed id returns 500 instead of 404 on GET /seedbeds/{id}, /space and /members","ref":"internal/adapters/outbound/postgres/seedbed_repository.go Find"}
+{"v":1,"id":"D004","t":"defect","test":"T049","run":"R030","sev":"medium","s":"open","name":"DELETE /seedbeds/{id}/members/{userId} for non-member returns 500 instead of 404","ref":"internal/adapters/outbound/postgres/seedbed_repository.go RemoveMember"}

@@ -1,0 +1,35 @@
+=== RUN   TestCreateSeedbedRequiresTeacherOrAdminSession
+--- PASS: TestCreateSeedbedRequiresTeacherOrAdminSession (0.00s)
+=== RUN   TestListSeedbedsRestrictsPrivateViewToAdmin
+--- PASS: TestListSeedbedsRestrictsPrivateViewToAdmin (0.00s)
+=== RUN   TestGetSeedbedRespectsVisibility
+--- PASS: TestGetSeedbedRespectsVisibility (0.00s)
+=== RUN   TestSeedbedSpaceHidesPrivateData
+--- PASS: TestSeedbedSpaceHidesPrivateData (0.00s)
+=== RUN   TestUpdateSeedbedRequiresResponsibleOrAdmin
+--- PASS: TestUpdateSeedbedRequiresResponsibleOrAdmin (0.00s)
+=== RUN   TestSetSeedbedVisibilityValidatesActorAndState
+--- PASS: TestSetSeedbedVisibilityValidatesActorAndState (0.00s)
+=== RUN   TestSeedbedMemberHistoryIsRestricted
+    http_test.go:172: hidden members anonymous wrote several error bodies: {"error":"sesión requerida"}
+        {"error":"semillero no encontrado"}
+--- FAIL: TestSeedbedMemberHistoryIsRestricted (0.00s)
+=== RUN   TestLinkAndWithdrawMemberRequireResponsibleOrAdmin
+--- PASS: TestLinkAndWithdrawMemberRequireResponsibleOrAdmin (0.00s)
+=== RUN   TestCreateRejectsMissingRequiredFields
+--- PASS: TestCreateRejectsMissingRequiredFields (0.00s)
+=== RUN   TestCreateRequiresActiveTeacherAsResponsible
+--- PASS: TestCreateRequiresActiveTeacherAsResponsible (0.00s)
+=== RUN   TestCreateStartsAsDraftWithTrimmedData
+--- PASS: TestCreateStartsAsDraftWithTrimmedData (0.00s)
+=== RUN   TestVisibilityAllowsResponsibleOrAdminAndKnownStates
+--- PASS: TestVisibilityAllowsResponsibleOrAdminAndKnownStates (0.00s)
+=== RUN   TestAddMemberAcceptsOnlyActiveStudentsOrTeachers
+--- PASS: TestAddMemberAcceptsOnlyActiveStudentsOrTeachers (0.00s)
+=== RUN   TestRemoveMemberRequiresResponsibleOrAdmin
+--- PASS: TestRemoveMemberRequiresResponsibleOrAdmin (0.00s)
+=== RUN   TestListBoundsPagination
+--- PASS: TestListBoundsPagination (0.00s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/seedbed	0.003s
+FAIL
