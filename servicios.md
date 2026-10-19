@@ -40,6 +40,11 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | GET | `/seedbeds/{id}/members` | integrantes | M2 | [ ] |
 | POST | `/seedbeds/{id}/members` | vincula | M2 | [ ] |
 | DELETE | `/seedbeds/{id}/members/{userId}` | retiro | M2 | [ ] |
+| POST | `/registration-requests` | radica solicitud pública | M3 | [ ] |
+| GET | `/registration-requests/{id}/status` | consulta propia con token/sesión | M3 | [ ] |
+| GET | `/admin/registration-requests` | lista administrativa | M3 | [ ] |
+| GET | `/admin/registration-requests/{id}` | detalle e historial administrativo | M3 | [ ] |
+| PATCH | `/admin/registration-requests/{id}/status` | actualiza estado y auditoría | M3 | [ ] |
 
 Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
 sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
@@ -57,7 +62,7 @@ al repositorio. Front consume via proxy `/api` -> `http://localhost:8080`.
 
 ## Pendiente en contrato (sin implementar)
 
-M1: password-recovery-requests, password-resets (S) | M3 solicitudes: 5 | M4 actividades/proyectos/
+M1: password-recovery-requests, password-resets (S) | M4 actividades/proyectos/
 propuestas/resenas: 19 | M5 miembros: 5 (CRUD, status, publications) | M6
 eventos: 7 | M7 contenidos: 6 | M8 comunicados: 7 | M9 cronograma: 5 | M10
 enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,

@@ -72,7 +72,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/admin/registration-requests/{id}` | Consulta detalle e historial de cambios de una solicitud. | Must / `Admin` | HU-AUTH-06 |
 | `PATCH` | `/admin/registration-requests/{id}/status` | Actualiza estado, observaciones autorizadas y responsable; valida permisos y registra auditoría. | Must / `Admin` | HU-AUTH-05, HU-AUTH-06 |
 
-**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
+**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
 
 ### Módulo 4. Actividades, proyectos y propuestas de investigación
 

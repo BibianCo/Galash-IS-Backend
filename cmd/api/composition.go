@@ -13,6 +13,7 @@ import (
 	postgresadapter "github.com/galash-uptc/backend/internal/adapters/outbound/postgres"
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
+	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	"github.com/galash-uptc/backend/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/api/option"
@@ -44,8 +45,9 @@ func Run() error {
 
 	users := postgresadapter.NewUserRepository(db)
 	seedbeds := postgresadapter.NewSeedbedRepository(db)
+	registrations := postgresadapter.NewRegistrationRepository(db)
 	service := application.NewService(firebaseadapter.NewVerifier(firebaseAuth), users)
-	handler := httpadapter.NewHandler(service, users, seedbedapp.NewService(seedbeds, users))
+	handler := httpadapter.NewHandlerWithRegistrations(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations))
 	go purgeExpiredCredentials(ctx, service, time.Hour)
 	log.Printf("Auth escuchando en :%s", cfg.Port)
 	return http.ListenAndServe(":"+cfg.Port, handler.Routes())

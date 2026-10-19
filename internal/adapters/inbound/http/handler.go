@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -36,15 +38,24 @@ type resetRequest struct {
 type Handler struct {
 	service  *application.Service
 	seedbeds *seedbedapp.Service
+	registrations *registrationapp.Service
 	db       ports.HealthChecker
 }
 
 func NewHandler(service *application.Service, db ports.HealthChecker, seedbeds ...*seedbedapp.Service) *Handler {
+	return newHandler(service, db, seedbeds, nil)
+}
+
+func NewHandlerWithRegistrations(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service) *Handler {
+	return newHandler(service, db, []*seedbedapp.Service{seedbed}, registration)
+}
+
+func newHandler(service *application.Service, db ports.HealthChecker, seedbeds []*seedbedapp.Service, registration *registrationapp.Service) *Handler {
 	var sb *seedbedapp.Service
 	if len(seedbeds) > 0 {
 		sb = seedbeds[0]
 	}
-	return &Handler{service: service, seedbeds: sb, db: db}
+	return &Handler{service: service, seedbeds: sb, registrations: registration, db: db}
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -68,6 +79,11 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /seedbeds/{id}/members", h.listSeedbedMembers)
 	mux.HandleFunc("POST /seedbeds/{id}/members", h.addSeedbedMember)
 	mux.HandleFunc("DELETE /seedbeds/{id}/members/{userId}", h.removeSeedbedMember)
+	mux.HandleFunc("POST /registration-requests", h.createRegistration)
+	mux.HandleFunc("GET /registration-requests/{id}/status", h.registrationStatus)
+	mux.HandleFunc("GET /admin/registration-requests", h.listRegistrationRequests)
+	mux.HandleFunc("GET /admin/registration-requests/{id}", h.registrationDetail)
+	mux.HandleFunc("PATCH /admin/registration-requests/{id}/status", h.updateRegistrationStatus)
 	return localCORS(mux)
 }
 
@@ -375,6 +391,75 @@ func (h *Handler) removeSeedbedMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(204)
+}
+
+func (h *Handler) registrationReady(w http.ResponseWriter) bool {
+	if h.registrations == nil { writeError(w, 500, "módulo de solicitudes no configurado"); return false }
+	return true
+}
+
+func (h *Handler) createRegistration(w http.ResponseWriter, r *http.Request) {
+	if !h.registrationReady(w) { return }
+	var request domain.RegistrationRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil { writeError(w, 400, "cuerpo JSON inválido"); return }
+	userID := ""
+	if hasSessionCredential(r) {
+		actor, ok := h.actor(w, r); if !ok { return }; userID = actor.ID
+	}
+	created, trackingToken, err := h.registrations.Create(r.Context(), request, userID)
+	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrInvalidRegistrationData) { writeError(w, 400, err.Error()); return }
+	if errors.Is(err, domain.ErrSeedbedNotFound) { writeError(w, 400, err.Error()); return }
+	if err != nil { log.Printf("registration request create failed: %v", err); writeError(w, 500, "no fue posible radicar la solicitud"); return }
+	writeJSON(w, 201, map[string]any{"id": created.ID, "estado": created.Status, "fechaRadicacion": created.CreatedAt, "trackingToken": trackingToken})
+}
+
+func (h *Handler) registrationStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.registrationReady(w) { return }
+	trackingToken := strings.TrimSpace(r.URL.Query().Get("trackingToken"))
+	userID := ""
+	if trackingToken == "" && hasSessionCredential(r) {
+		actor, ok := h.actor(w, r); if !ok { return }; userID = actor.ID
+	}
+	item, err := h.registrations.Status(r.Context(), r.PathValue("id"), trackingToken, userID)
+	if errors.Is(err, domain.ErrInvalidTrackingToken) { writeError(w, 401, err.Error()); return }
+	if errors.Is(err, domain.ErrRegistrationNotFound) { writeError(w, 404, "solicitud no encontrada"); return }
+	if err != nil { writeError(w, 500, "no fue posible consultar la solicitud"); return }
+	writeJSON(w, 200, map[string]any{"id": item.ID, "estado": item.Status, "fechaActualizacion": item.UpdatedAt, "observacion": item.Observation})
+}
+
+type registrationStatusRequest struct { Status string `json:"estado"`; Observation string `json:"observacion"`; ResponsibleID string `json:"responsableId"` }
+
+func (h *Handler) adminRegistration(w http.ResponseWriter, r *http.Request) (domain.User, bool) {
+	a, ok := h.actor(w, r); if !ok { return domain.User{}, false }
+	if !strings.EqualFold(a.Role, "admin") { writeError(w, 403, "se requiere rol admin"); return domain.User{}, false }
+	return a, true
+}
+
+func (h *Handler) listRegistrationRequests(w http.ResponseWriter, r *http.Request) {
+	if !h.registrationReady(w) { return }; if _, ok := h.adminRegistration(w, r); !ok { return }
+	items, err := h.registrations.List(r.Context(), r.URL.Query().Get("estado"), r.URL.Query().Get("desde"), r.URL.Query().Get("hasta"), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("responsableId"))
+	if err != nil { writeError(w, 500, "no fue posible consultar las solicitudes"); return }; writeJSON(w, 200, map[string]any{"requests": items})
+}
+
+func (h *Handler) registrationDetail(w http.ResponseWriter, r *http.Request) {
+	if !h.registrationReady(w) { return }; if _, ok := h.adminRegistration(w, r); !ok { return }
+	item, err := h.registrations.Detail(r.Context(), r.PathValue("id"))
+	if errors.Is(err, domain.ErrRegistrationNotFound) { writeError(w, 404, err.Error()); return }; if err != nil { writeError(w, 500, "no fue posible consultar el detalle"); return }; writeJSON(w, 200, item)
+}
+
+func (h *Handler) updateRegistrationStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.registrationReady(w) { return }; actor, ok := h.adminRegistration(w, r); if !ok { return }
+	var request registrationStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil { writeError(w, 400, "cuerpo JSON inválido"); return }
+	responsible := request.ResponsibleID; if responsible == "" { responsible = actor.ID }
+	item, err := h.registrations.UpdateStatus(r.Context(), r.PathValue("id"), request.Status, request.Observation, responsible)
+	switch { case errors.Is(err, domain.ErrInvalidRegistrationStatus), errors.Is(err, domain.ErrInvalidRegistrationTransition): writeError(w, 400, err.Error()); case errors.Is(err, domain.ErrRegistrationNotFound): writeError(w, 404, err.Error()); case err != nil: writeError(w, 500, "no fue posible actualizar la solicitud"); default: writeJSON(w, 200, item) }
+}
+
+func hasSessionCredential(r *http.Request) bool {
+	if strings.TrimSpace(r.Header.Get("Authorization")) != "" { return true }
+	cookie, err := r.Cookie(sessionCookieName)
+	return err == nil && cookie.Value != ""
 }
 
 type roleRequest struct {

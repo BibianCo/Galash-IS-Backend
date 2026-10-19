@@ -93,4 +93,18 @@
 {"v":1,"id":"X038","t":"result","run":"R022","test":"T021","s":"pass","ev":["docker compose exec postgres psql migration","psql \\dt semillero_miembros","docker run golang:1.22 go test ./...","git diff --check"]}
 {"v":1,"id":"T022","t":"test","area":"seedbeds","p":"must","name":"Composite seedbed space endpoint compiles and is registered"}
 {"v":1,"id":"R023","t":"run","at":"2026-10-17T00:00:00Z","by":"agent","mode":"automated"}
-{"v":1,"id":"X039","t":"result","run":"R023","test":"T022","s":"pass","ev":["docker run golang:1.22 go test ./...","docker run golang:1.22 go vet ./...","git diff --check"]}
+ {"v":1,"id":"X039","t":"result","run":"R023","test":"T022","s":"pass","ev":["docker run golang:1.22 go test ./...","docker run golang:1.22 go vet ./...","git diff --check"]}
+ {"v":1,"id":"T026","t":"test","area":"module-3-registration","p":"must","name":"Registration rejects missing required fields"}
+ {"v":1,"id":"T027","t":"test","area":"module-3-registration","p":"must","name":"Registration returns an opaque tracking token and Radicada status"}
+ {"v":1,"id":"R025","t":"run","at":"2026-10-18T00:00:00Z","by":"agent","mode":"automated","note":"go test ./... could not start because go is not installed"}
+ {"v":1,"id":"X042","t":"result","run":"R025","test":"T026","s":"block"}
+ {"v":1,"id":"X043","t":"result","run":"R025","test":"T027","s":"block"}
+ {"v":1,"id":"R026","t":"run","at":"2026-10-18T00:05:00Z","by":"agent","mode":"automated","note":"Docker Go 1.22 used because host Go is unavailable"}
+ {"v":1,"id":"X044","t":"result","run":"R026","test":"T026","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."]}
+ {"v":1,"id":"X045","t":"result","run":"R026","test":"T027","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."]}
+ {"v":1,"id":"T028","t":"test","area":"module-3-registration","p":"must","name":"Public registration persists against the active PostgreSQL schema"}
+ {"v":1,"id":"R027","t":"run","at":"2026-10-19T03:31:00Z","by":"agent","mode":"manual-api"}
+ {"v":1,"id":"X046","t":"result","run":"R027","test":"T028","s":"pass","ev":["POST /registration-requests with valid seedbedId returned HTTP 201 and Radicada"]}
+ {"v":1,"id":"T029","t":"test","area":"module-3-registration","p":"must","name":"Admin updates a valid registration status and writes its audit record"}
+ {"v":1,"id":"R028","t":"run","at":"2026-10-19T17:05:00Z","by":"agent","mode":"manual-api"}
+ {"v":1,"id":"X047","t":"result","run":"R028","test":"T029","s":"pass","ev":["PATCH /admin/registration-requests/{id}/status with admin session returned HTTP 200 and En revisión"]}

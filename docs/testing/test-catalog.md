@@ -37,6 +37,10 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T017|user-management|`TestUpdateUserRoleRequiresAdminAndUsesTargetUID`|Accepts canonical `profesor` role and case-insensitive admin actor.|`tests/auth/service_test.go`|PT-TR-01|
 |T018|user-management|`TestUpdateUserRoleRejectsNonAdminAndInvalidRequests`|Rejects non-admin actor, missing UID, and unsupported role.|`tests/auth/service_test.go`|PT-TR-01|
 |T019|user-management|`TestSearchUsersRequiresQueryAndBoundsLimit`|Requires nonblank query and clamps result limit.|`tests/auth/service_test.go`|PT-INT-02|
+|T026|module-3-registration|`TestCreateRejectsMissingRequiredField`|Rejects a registration request when a required field is blank.|`tests/registration/service_test.go`|—|
+|T027|module-3-registration|`TestCreateReturnsOpaqueTrackingToken`|Creates a Radicada request and returns a token different from its persisted hash.|`tests/registration/service_test.go`|—|
+|T028|module-3-registration|`POST /registration-requests`|Persists a valid public registration against the active PostgreSQL schema.|Manual API smoke check|—|
+|T029|module-3-registration|`PATCH /admin/registration-requests/{id}/status`|Allows an Admin to transition Radicada to En revisión and records the responsible user.|Manual API smoke check|—|
 
 ## HTTP/API tests
 
