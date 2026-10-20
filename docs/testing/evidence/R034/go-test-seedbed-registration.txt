@@ -1,0 +1,53 @@
+=== RUN   TestCreateSeedbedRequiresTeacherOrAdminSession
+--- PASS: TestCreateSeedbedRequiresTeacherOrAdminSession (0.00s)
+=== RUN   TestListSeedbedsRestrictsPrivateViewToAdmin
+--- PASS: TestListSeedbedsRestrictsPrivateViewToAdmin (0.00s)
+=== RUN   TestGetSeedbedRespectsVisibility
+--- PASS: TestGetSeedbedRespectsVisibility (0.00s)
+=== RUN   TestSeedbedSpaceHidesPrivateData
+--- PASS: TestSeedbedSpaceHidesPrivateData (0.00s)
+=== RUN   TestUpdateSeedbedRequiresResponsibleOrAdmin
+--- PASS: TestUpdateSeedbedRequiresResponsibleOrAdmin (0.00s)
+=== RUN   TestSetSeedbedVisibilityValidatesActorAndState
+--- PASS: TestSetSeedbedVisibilityValidatesActorAndState (0.00s)
+=== RUN   TestSeedbedMemberHistoryIsRestricted
+--- PASS: TestSeedbedMemberHistoryIsRestricted (0.00s)
+=== RUN   TestLinkAndWithdrawMemberRequireResponsibleOrAdmin
+--- PASS: TestLinkAndWithdrawMemberRequireResponsibleOrAdmin (0.00s)
+=== RUN   TestLiveCreateRejectsDuplicateName
+    live_api_test.go:107: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveCreateRejectsDuplicateName (0.00s)
+=== RUN   TestLiveUnknownSeedbedReturnsNotFound
+    live_api_test.go:114: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveUnknownSeedbedReturnsNotFound (0.00s)
+=== RUN   TestLiveVisibilityControlsPublicAccess
+    live_api_test.go:122: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveVisibilityControlsPublicAccess (0.00s)
+=== RUN   TestLiveHiddenMembersAnonymousSingleError
+    live_api_test.go:143: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveHiddenMembersAnonymousSingleError (0.00s)
+=== RUN   TestLiveWithdrawKeepsHistory
+    live_api_test.go:152: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveWithdrawKeepsHistory (0.00s)
+=== RUN   TestCreateRejectsMissingRequiredFields
+--- PASS: TestCreateRejectsMissingRequiredFields (0.00s)
+=== RUN   TestCreateRequiresActiveTeacherAsResponsible
+--- PASS: TestCreateRequiresActiveTeacherAsResponsible (0.00s)
+=== RUN   TestCreateStartsAsDraftWithTrimmedData
+--- PASS: TestCreateStartsAsDraftWithTrimmedData (0.00s)
+=== RUN   TestVisibilityAllowsResponsibleOrAdminAndKnownStates
+--- PASS: TestVisibilityAllowsResponsibleOrAdminAndKnownStates (0.00s)
+=== RUN   TestAddMemberAcceptsOnlyActiveStudentsOrTeachers
+--- PASS: TestAddMemberAcceptsOnlyActiveStudentsOrTeachers (0.00s)
+=== RUN   TestRemoveMemberRequiresResponsibleOrAdmin
+--- PASS: TestRemoveMemberRequiresResponsibleOrAdmin (0.00s)
+=== RUN   TestListBoundsPagination
+--- PASS: TestListBoundsPagination (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/seedbed	0.005s
+=== RUN   TestCreateRejectsMissingRequiredField
+--- PASS: TestCreateRejectsMissingRequiredField (0.00s)
+=== RUN   TestCreateReturnsOpaqueTrackingToken
+--- PASS: TestCreateReturnsOpaqueTrackingToken (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/registration	0.002s

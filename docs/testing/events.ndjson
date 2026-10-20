@@ -165,3 +165,26 @@
 {"v":1,"id":"R033","t":"run","at":"2026-10-19T00:00:00Z","by":"agent","mode":"automated"}
 {"v":1,"id":"X072","t":"result","run":"R033","test":"T018","s":"not_run","ev":["go test -count=1 ./... no ejecutado: dependencias no disponibles por EOF"]}
 {"v":1,"id":"X073","t":"result","run":"R033","test":"T002","s":"pass","ev":["gofmt y git diff --check"]}
+{"v":1,"id":"R034","t":"run","at":"2026-10-20T00:00:00Z","build":"3d88c1d","env":"E002","by":"agent","mode":"automated","cmd":"go test -count=1 -v ./tests/seedbed/ ./tests/registration/","note":"feature/GSW-5-gestion-semilleros rebuilt in order: a936832, seedbed tests, then 7a4f5cc; live tests skipped without GALASH_API_URL and TEST_DATABASE_URL"}
+{"v":1,"id":"X074","t":"result","run":"R034","test":"T026","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X075","t":"result","run":"R034","test":"T027","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X076","t":"result","run":"R034","test":"T030","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X077","t":"result","run":"R034","test":"T031","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X078","t":"result","run":"R034","test":"T032","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X079","t":"result","run":"R034","test":"T033","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X080","t":"result","run":"R034","test":"T034","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X081","t":"result","run":"R034","test":"T035","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X082","t":"result","run":"R034","test":"T036","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X083","t":"result","run":"R034","test":"T037","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X084","t":"result","run":"R034","test":"T038","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X085","t":"result","run":"R034","test":"T039","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X086","t":"result","run":"R034","test":"T040","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X087","t":"result","run":"R034","test":"T041","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X088","t":"result","run":"R034","test":"T042","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X089","t":"result","run":"R034","test":"T043","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X090","t":"result","run":"R034","test":"T044","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X091","t":"result","run":"R034","test":"T045","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X092","t":"result","run":"R034","test":"T046","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X093","t":"result","run":"R034","test":"T047","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X094","t":"result","run":"R034","test":"T048","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X095","t":"result","run":"R034","test":"T049","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
