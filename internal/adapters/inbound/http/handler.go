@@ -157,6 +157,8 @@ func seedbedError(w http.ResponseWriter, err error) {
 		writeError(w, 403, err.Error())
 	case errors.Is(err, domain.ErrSeedbedNotFound):
 		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrMemberNotFound):
+		writeError(w, 404, err.Error())
 	case errors.Is(err, domain.ErrInvalidSeedbed), errors.Is(err, domain.ErrInvalidTeacher), errors.Is(err, domain.ErrInvalidSeedbedStatus):
 		writeError(w, 400, err.Error())
 	case errors.Is(err, domain.ErrDuplicateSeedbed):
@@ -337,7 +339,10 @@ func (h *Handler) listSeedbedMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	if !history && (seedbed.Status != domain.SeedbedPublished || seedbed.Visibility != domain.SeedbedPublished) {
 		actor, authenticated := h.actor(w, r)
-		if !authenticated || (!strings.EqualFold(actor.Role, "admin") && actor.ID != seedbed.ResponsibleTeacherID) {
+		if !authenticated {
+			return
+		}
+		if !strings.EqualFold(actor.Role, "admin") && actor.ID != seedbed.ResponsibleTeacherID {
 			writeError(w, http.StatusNotFound, "semillero no encontrado")
 			return
 		}

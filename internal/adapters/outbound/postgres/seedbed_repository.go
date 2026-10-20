@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"strings"
 )
@@ -13,11 +15,22 @@ type SeedbedRepository struct{ db *pgxpool.Pool }
 func NewSeedbedRepository(db *pgxpool.Pool) *SeedbedRepository { return &SeedbedRepository{db: db} }
 func (r *SeedbedRepository) Create(ctx context.Context, s domain.Seedbed) (domain.Seedbed, error) {
 	err := r.db.QueryRow(ctx, `INSERT INTO semilleros (nombre,descripcion,linea_investigacion,objetivo,lider_id,email_contacto,estado,visibilidad) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,creado_en,actualizado_en`, s.Name, s.Description, s.ResearchLine, s.Objective, s.ResponsibleTeacherID, s.ContactEmail, s.Status, s.Visibility).Scan(&s.ID, &s.CreatedAt, &s.UpdatedAt)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return domain.Seedbed{}, domain.ErrDuplicateSeedbed
+	}
 	return s, err
 }
 func scanSeedbed(row pgx.Row) (domain.Seedbed, error) {
 	var s domain.Seedbed
 	err := row.Scan(&s.ID, &s.Name, &s.Description, &s.ResearchLine, &s.Objective, &s.ResponsibleTeacherID, &s.ContactEmail, &s.Status, &s.Visibility, &s.CreatedAt, &s.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Seedbed{}, domain.ErrSeedbedNotFound
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "22P02" {
+		return domain.Seedbed{}, domain.ErrSeedbedNotFound
+	}
 	return s, err
 }
 
@@ -157,7 +170,7 @@ func (r *SeedbedRepository) AddMember(ctx context.Context, sid, uid string) erro
 func (r *SeedbedRepository) RemoveMember(ctx context.Context, sid, uid string) error {
 	res, err := r.db.Exec(ctx, `UPDATE semillero_miembros SET retirado_en=now() WHERE semillero_id=$1 AND usuario_id=$2 AND retirado_en IS NULL`, sid, uid)
 	if err == nil && res.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrMemberNotFound
 	}
 	return err
 }
