@@ -65,6 +65,11 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | GET | `/admin/seedbed-reviews` | lista reseñas | M4 | [ ] |
 | PATCH | `/admin/seedbed-reviews/{id}/moderation` | modera reseña | M4 | [ ] |
 
+Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
+`progress`, ...). `GET /research-proposals/{id}` incluye `history` y
+`projectId` (null hasta convertir); el estado de una propuesta solo lo cambia
+`Docente`/`Admin`.
+
 Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
 sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
 alias de `PUT /users/{userId}/roles`.
