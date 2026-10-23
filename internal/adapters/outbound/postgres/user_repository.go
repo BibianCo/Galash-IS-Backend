@@ -194,7 +194,7 @@ func (r *UserRepository) Update(ctx context.Context, id string, c memberapp.Upda
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($7,$1,$2,$3,$4,COALESCE($5,true)) ON CONFLICT(usuario_id) DO UPDATE SET area_investigacion=COALESCE(NULLIF($1,''),perfil_investigador.area_investigacion), formacion=COALESCE(NULLIF($2,''),perfil_investigador.formacion), orcid=COALESCE(NULLIF($3,''),perfil_investigador.orcid), cvlac=COALESCE(NULLIF($4,''),perfil_investigador.cvlac), visible_publicamente=COALESCE($5,perfil_investigador.visible_publicamente)`, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly, id)
+	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($6,$1,$2,$3,$4,COALESCE($5,true)) ON CONFLICT(usuario_id) DO UPDATE SET area_investigacion=COALESCE(NULLIF($1,''),perfil_investigador.area_investigacion), formacion=COALESCE(NULLIF($2,''),perfil_investigador.formacion), orcid=COALESCE(NULLIF($3,''),perfil_investigador.orcid), cvlac=COALESCE(NULLIF($4,''),perfil_investigador.cvlac), visible_publicamente=COALESCE($5,perfil_investigador.visible_publicamente)`, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly, id)
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
