@@ -52,6 +52,7 @@ type ResearchProposal struct {
 	Attachments    []string          `json:"attachments"`
 	AuthorID       string            `json:"authorId"`
 	Observations   string            `json:"observations"`
+	ProjectID      *string           `json:"projectId"`
 	CreatedAt      time.Time         `json:"createdAt"`
 	UpdatedAt      time.Time         `json:"updatedAt"`
 	History        []ProposalHistory `json:"history"`
