@@ -191,3 +191,120 @@
 {"v":1,"id":"R035","t":"run","at":"2026-10-23T00:00:00Z","build":"working-tree","by":"agent","mode":"automated","note":"Validación de módulo 5 con contenedor Go 1.22"}
 {"v":1,"id":"X096","t":"result","run":"R035","test":"T002","s":"pass","ev":["docs/testing/evidence/R035/go-test.txt"]}
 {"v":1,"id":"X097","t":"result","run":"R035","test":"T003","s":"pass","ev":["docs/testing/evidence/R035/go-test.txt"]}
+{"v":1,"id":"T050","t":"test","area":"module-4-research","p":"must","name":"Compilación y pruebas existentes del módulo 4"}
+{"v":1,"id":"R035","t":"run","at":"2026-10-23T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."}
+{"v":1,"id":"X096","t":"result","run":"R035","test":"T050","s":"pass","ev":["docker go test ./..."]}
+{"v":1,"id":"R036","t":"run","at":"2026-10-23T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."}
+{"v":1,"id":"X097","t":"result","run":"R036","test":"T050","s":"pass","ev":["docker go test ./...","git diff --check"]}
+{"v":1,"id":"R037","t":"run","at":"2026-10-23T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."}
+{"v":1,"id":"X098","t":"result","run":"R037","test":"T050","s":"pass","ev":["docker go test ./...","git diff --check","docker compose up -d --build auth"]}
+{"v":1,"id":"R038","t":"run","at":"2026-10-23T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."}
+{"v":1,"id":"X099","t":"result","run":"R038","test":"T050","s":"pass","ev":["docker go test ./...","git diff --check","docker compose up -d --build auth"]}
+{"v":1,"id":"E004","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local; ephemeral PostgreSQL 16 (postgres:16-alpine) on localhost:55433 initialized from database/init.sql"}
+{"v":1,"id":"T051","t":"test","area":"module-4-research","p":"must","name":"Activity create/update only by responsible teacher or admin; rejects empty title and unknown status"}
+{"v":1,"id":"T052","t":"test","area":"module-4-research","p":"must","name":"Project progress accepts 0..100 and minimum states only"}
+{"v":1,"id":"T053","t":"test","area":"module-4-research","p":"must","name":"PATCH /projects/{id} records actor and each changed relevant field"}
+{"v":1,"id":"T054","t":"test","area":"module-4-research","p":"must","name":"Progress update rejected for non-responsible teacher and student"}
+{"v":1,"id":"T055","t":"test","area":"module-4-research","p":"must","name":"New proposal is always Radicada regardless of requested status"}
+{"v":1,"id":"T056","t":"test","area":"module-4-research","p":"must","name":"Proposal author edits content only; reviewer sets status/observations; manual Convertida rejected"}
+{"v":1,"id":"T057","t":"test","area":"module-4-research","p":"must","name":"Proposal detail returns review history; stranger is forbidden"}
+{"v":1,"id":"T058","t":"test","area":"module-4-research","p":"must","name":"Conversion requires approved proposal and teacher/admin"}
+{"v":1,"id":"T059","t":"test","area":"module-4-research","p":"must","name":"Module 4 payloads serialize with camelCase keys"}
+{"v":1,"id":"T060","t":"test","area":"module-4-research","p":"must","name":"Project update and progress persist history with author and date atomically; invalid progress leaves no history"}
+{"v":1,"id":"T061","t":"test","area":"module-4-research","p":"must","name":"Conversion creates Radicado project, links proposal.projectId, keeps proposal history and attachments"}
+{"v":1,"id":"T062","t":"test","area":"module-4-research","p":"must","name":"Proposal without seedbed or optional lists is stored"}
+{"v":1,"id":"T063","t":"test","area":"module-4-research","p":"must","name":"Activity without responsibles or evidence is stored with empty lists"}
+{"v":1,"id":"R039","t":"run","at":"2026-10-23T19:15:00Z","build":"5d9342e+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/research/ -v -count=1"}
+{"v":1,"id":"X100","t":"result","run":"R039","test":"T051","s":"pass"}
+{"v":1,"id":"X101","t":"result","run":"R039","test":"T052","s":"pass"}
+{"v":1,"id":"X102","t":"result","run":"R039","test":"T053","s":"pass"}
+{"v":1,"id":"X103","t":"result","run":"R039","test":"T054","s":"pass"}
+{"v":1,"id":"X104","t":"result","run":"R039","test":"T055","s":"pass"}
+{"v":1,"id":"X105","t":"result","run":"R039","test":"T056","s":"pass"}
+{"v":1,"id":"X106","t":"result","run":"R039","test":"T057","s":"pass"}
+{"v":1,"id":"X107","t":"result","run":"R039","test":"T058","s":"pass"}
+{"v":1,"id":"X108","t":"result","run":"R039","test":"T059","s":"pass"}
+{"v":1,"id":"X109","t":"result","run":"R039","test":"T060","s":"fail"}
+{"v":1,"id":"X110","t":"result","run":"R039","test":"T061","s":"fail"}
+{"v":1,"id":"X111","t":"result","run":"R039","test":"T062","s":"fail"}
+{"v":1,"id":"D005","t":"defect","test":"T060","run":"R039","sev":"high","s":"open","name":"POST/PATCH of activities, projects and proposals without responsibleIds/memberIds/attachments/evidence returns 500 (NULL into NOT NULL text[])","ref":"internal/adapters/outbound/postgres/research_repository.go"}
+{"v":1,"id":"D006","t":"defect","test":"T056","sev":"high","s":"open","name":"Proposal author could create or edit proposal with status Aprobada (self-approval)","ref":"internal/application/research/service.go CreateProposal/UpdateProposal"}
+{"v":1,"id":"D007","t":"defect","test":"T059","sev":"high","s":"open","name":"Module 4 responses used PascalCase keys (ID, SeedbedID) instead of camelCase","ref":"internal/domain/research.go"}
+{"v":1,"id":"D008","t":"defect","test":"T061","sev":"high","s":"open","name":"Proposal conversion did not keep proposal history nor link proposal and project","ref":"internal/adapters/outbound/postgres/research_repository.go ConvertProposal"}
+{"v":1,"id":"D009","t":"defect","test":"T053","sev":"medium","s":"open","name":"PATCH /projects/{id} did not record author and date of the change","ref":"internal/application/research/service.go UpdateProject"}
+{"v":1,"id":"R040","t":"run","at":"2026-10-23T19:23:00Z","build":"5d9342e+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; git diff --check"}
+{"v":1,"id":"X112","t":"result","run":"R040","test":"T051","s":"pass"}
+{"v":1,"id":"X113","t":"result","run":"R040","test":"T052","s":"pass"}
+{"v":1,"id":"X114","t":"result","run":"R040","test":"T053","s":"pass"}
+{"v":1,"id":"X115","t":"result","run":"R040","test":"T054","s":"pass"}
+{"v":1,"id":"X116","t":"result","run":"R040","test":"T055","s":"pass"}
+{"v":1,"id":"X117","t":"result","run":"R040","test":"T056","s":"pass"}
+{"v":1,"id":"X118","t":"result","run":"R040","test":"T057","s":"pass"}
+{"v":1,"id":"X119","t":"result","run":"R040","test":"T058","s":"pass"}
+{"v":1,"id":"X120","t":"result","run":"R040","test":"T059","s":"pass"}
+{"v":1,"id":"X121","t":"result","run":"R040","test":"T060","s":"pass"}
+{"v":1,"id":"X122","t":"result","run":"R040","test":"T061","s":"pass"}
+{"v":1,"id":"X123","t":"result","run":"R040","test":"T062","s":"pass"}
+{"v":1,"id":"X124","t":"result","run":"R040","test":"T063","s":"pass"}
+{"v":1,"id":"D005","t":"defect","test":"T060","run":"R040","s":"closed","name":"Fixed and verified in R040"}
+{"v":1,"id":"D006","t":"defect","test":"T056","run":"R040","s":"closed","name":"Fixed and verified in R040"}
+{"v":1,"id":"D007","t":"defect","test":"T059","run":"R040","s":"closed","name":"Fixed and verified in R040"}
+{"v":1,"id":"D008","t":"defect","test":"T061","run":"R040","s":"closed","name":"Fixed and verified in R040"}
+{"v":1,"id":"D009","t":"defect","test":"T053","run":"R040","s":"closed","name":"Fixed and verified in R040"}
+{"v":1,"id":"T064","t":"test","area":"module-4-research","p":"must","name":"PATCH of project, activity and proposal keeps omitted fields and validates the merged record"}
+{"v":1,"id":"T065","t":"test","area":"module-4-research","p":"must","name":"Proposal list shows all to Admin/Docente and only own or responsible proposals to students"}
+{"v":1,"id":"T066","t":"test","area":"module-4-research","p":"must","name":"Review requires existing seedbed; admin list defaults to pendiente"}
+{"v":1,"id":"T067","t":"test","area":"module-4-research","p":"must","name":"New review notifies every active admin in the same transaction; empty list is []"}
+{"v":1,"id":"T068","t":"test","area":"module-4-research","p":"must","name":"Malformed ids and missing seedbeds map to not-found errors instead of 500; empty activity list is []"}
+{"v":1,"id":"D010","t":"defect","test":"T064","sev":"medium","s":"open","name":"PATCH of projects, activities and proposals replaced omitted fields with empty values","ref":"internal/adapters/inbound/http/handler.go update handlers"}
+{"v":1,"id":"D011","t":"defect","test":"T065","sev":"medium","s":"open","name":"GET /research-proposals showed Docente/Admin only their own proposals","ref":"internal/application/research/service.go Proposals"}
+{"v":1,"id":"D012","t":"defect","test":"T067","sev":"low","s":"open","name":"Seedbed review did not notify Admin and admin list did not default to pending","ref":"internal/adapters/outbound/postgres/research_repository.go CreateReview"}
+{"v":1,"id":"D013","t":"defect","test":"T068","sev":"medium","s":"open","name":"Malformed ids or missing seedbed returned 500 instead of 404 in module 4","ref":"internal/adapters/outbound/postgres/research_repository.go"}
+{"v":1,"id":"D014","t":"defect","test":"T068","sev":"low","s":"open","name":"Empty activity and review lists returned null instead of []","ref":"internal/adapters/outbound/postgres/research_repository.go"}
+{"v":1,"id":"R041","t":"run","at":"2026-10-23T20:05:00Z","build":"4adf520+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/research/ -v -count=1"}
+{"v":1,"id":"X125","t":"result","run":"R041","test":"T068","s":"fail","note":"ProjectHistory with malformed id still returned SQLSTATE 22P02; error surfaced from rows.Err()"}
+{"v":1,"id":"R042","t":"run","at":"2026-10-23T20:10:00Z","build":"4adf520+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; git diff --check"}
+{"v":1,"id":"X126","t":"result","run":"R042","test":"T051","s":"pass"}
+{"v":1,"id":"X127","t":"result","run":"R042","test":"T052","s":"pass"}
+{"v":1,"id":"X128","t":"result","run":"R042","test":"T053","s":"pass"}
+{"v":1,"id":"X129","t":"result","run":"R042","test":"T054","s":"pass"}
+{"v":1,"id":"X130","t":"result","run":"R042","test":"T055","s":"pass"}
+{"v":1,"id":"X131","t":"result","run":"R042","test":"T056","s":"pass"}
+{"v":1,"id":"X132","t":"result","run":"R042","test":"T057","s":"pass"}
+{"v":1,"id":"X133","t":"result","run":"R042","test":"T058","s":"pass"}
+{"v":1,"id":"X134","t":"result","run":"R042","test":"T059","s":"pass"}
+{"v":1,"id":"X135","t":"result","run":"R042","test":"T060","s":"pass"}
+{"v":1,"id":"X136","t":"result","run":"R042","test":"T061","s":"pass"}
+{"v":1,"id":"X137","t":"result","run":"R042","test":"T062","s":"pass"}
+{"v":1,"id":"X138","t":"result","run":"R042","test":"T063","s":"pass"}
+{"v":1,"id":"X139","t":"result","run":"R042","test":"T064","s":"pass"}
+{"v":1,"id":"X140","t":"result","run":"R042","test":"T065","s":"pass"}
+{"v":1,"id":"X141","t":"result","run":"R042","test":"T066","s":"pass"}
+{"v":1,"id":"X142","t":"result","run":"R042","test":"T067","s":"pass"}
+{"v":1,"id":"X143","t":"result","run":"R042","test":"T068","s":"pass"}
+{"v":1,"id":"D010","t":"defect","test":"T064","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D011","t":"defect","test":"T065","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D012","t":"defect","test":"T067","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D013","t":"defect","test":"T068","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D014","t":"defect","test":"T068","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"T069","t":"test","area":"module-4-research","p":"must","name":"Omitted activity status is derived from the date; explicit status wins"}
+{"v":1,"id":"R043","t":"run","at":"2026-10-23T20:30:00Z","build":"4adf520+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; git diff --check"}
+{"v":1,"id":"X144","t":"result","run":"R043","test":"T051","s":"pass"}
+{"v":1,"id":"X145","t":"result","run":"R043","test":"T052","s":"pass"}
+{"v":1,"id":"X146","t":"result","run":"R043","test":"T053","s":"pass"}
+{"v":1,"id":"X147","t":"result","run":"R043","test":"T054","s":"pass"}
+{"v":1,"id":"X148","t":"result","run":"R043","test":"T055","s":"pass"}
+{"v":1,"id":"X149","t":"result","run":"R043","test":"T056","s":"pass"}
+{"v":1,"id":"X150","t":"result","run":"R043","test":"T057","s":"pass"}
+{"v":1,"id":"X151","t":"result","run":"R043","test":"T058","s":"pass"}
+{"v":1,"id":"X152","t":"result","run":"R043","test":"T059","s":"pass"}
+{"v":1,"id":"X153","t":"result","run":"R043","test":"T060","s":"pass"}
+{"v":1,"id":"X154","t":"result","run":"R043","test":"T061","s":"pass"}
+{"v":1,"id":"X155","t":"result","run":"R043","test":"T062","s":"pass"}
+{"v":1,"id":"X156","t":"result","run":"R043","test":"T063","s":"pass"}
+{"v":1,"id":"X157","t":"result","run":"R043","test":"T064","s":"pass"}
+{"v":1,"id":"X158","t":"result","run":"R043","test":"T065","s":"pass"}
+{"v":1,"id":"X159","t":"result","run":"R043","test":"T066","s":"pass"}
+{"v":1,"id":"X160","t":"result","run":"R043","test":"T067","s":"pass"}
+{"v":1,"id":"X161","t":"result","run":"R043","test":"T068","s":"pass"}
+{"v":1,"id":"X162","t":"result","run":"R043","test":"T069","s":"pass"}
