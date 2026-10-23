@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -15,16 +17,27 @@ type ResearchRepository struct{ db *pgxpool.Pool }
 
 func NewResearchRepository(db *pgxpool.Pool) *ResearchRepository { return &ResearchRepository{db} }
 
+// dbErr maps missing rows and malformed ids to not found, and a missing referenced seedbed to ErrSeedbedNotFound.
+func dbErr(e error) error {
+	var pgErr *pgconn.PgError
+	switch {
+	case errors.Is(e, pgx.ErrNoRows), errors.As(e, &pgErr) && pgErr.Code == "22P02":
+		return domain.ErrResearchNotFound
+	case errors.As(e, &pgErr) && pgErr.Code == "23503" && strings.Contains(pgErr.ConstraintName, "semillero_id"):
+		return domain.ErrSeedbedNotFound
+	}
+	return e
+}
+
 func act(row pgx.Row) (domain.Activity, error) {
 	var a domain.Activity
 	e := row.Scan(&a.ID, &a.SeedbedID, &a.Title, &a.Description, &a.Status, &a.Date, &a.ResponsibleIDs, &a.Evidence, &a.CreatedAt, &a.UpdatedAt)
-	if errors.Is(e, pgx.ErrNoRows) {
-		e = domain.ErrResearchNotFound
-	}
+	e = dbErr(e)
 	return a, e
 }
 
 func (r *ResearchRepository) ListActivities(c context.Context, s, q, st string) (out []domain.Activity, e error) {
+	out = make([]domain.Activity, 0)
 	rows, e := r.db.Query(c, `SELECT id,semillero_id,titulo,COALESCE(descripcion,''),estado,fecha,responsables,evidencias,creado_en,actualizado_en FROM actividades WHERE semillero_id=$1 AND ($2='' OR estado=$2) AND ($3='' OR fecha::text LIKE '%'||$3||'%') ORDER BY fecha NULLS LAST,titulo`, s, st, q)
 	if e != nil {
 		return
@@ -55,9 +68,7 @@ func (r *ResearchRepository) UpdateActivity(c context.Context, id string, a doma
 func proj(row pgx.Row) (domain.Project, error) {
 	var p domain.Project
 	e := row.Scan(&p.ID, &p.SeedbedID, &p.Title, &p.Summary, &p.ResearchLine, &p.Status, &p.ResponsibleIDs, &p.MemberIDs, &p.StartDate, &p.EndDate, &p.Progress, &p.CreatedBy, &p.UpdatedAt)
-	if errors.Is(e, pgx.ErrNoRows) {
-		e = domain.ErrResearchNotFound
-	}
+	e = dbErr(e)
 	return p, e
 }
 
@@ -145,15 +156,13 @@ func (r *ResearchRepository) ProjectHistory(c context.Context, id string) (out [
 		}
 		out = append(out, h)
 	}
-	return out, rows.Err()
+	return out, dbErr(rows.Err())
 }
 
 func prop(row pgx.Row) (domain.ResearchProposal, error) {
 	var p domain.ResearchProposal
 	e := row.Scan(&p.ID, &p.SeedbedID, &p.Title, &p.Problem, &p.Objectives, &p.Methodology, &p.Status, &p.ResponsibleIDs, &p.Attachments, &p.AuthorID, &p.Observations, &p.ProjectID, &p.CreatedAt, &p.UpdatedAt)
-	if errors.Is(e, pgx.ErrNoRows) {
-		e = domain.ErrResearchNotFound
-	}
+	e = dbErr(e)
 	return p, e
 }
 
@@ -260,17 +269,29 @@ func (r *ResearchRepository) ConvertProposal(c context.Context, id, actor string
 func review(row pgx.Row) (domain.SeedbedReview, error) {
 	var v domain.SeedbedReview
 	e := row.Scan(&v.ID, &v.SeedbedID, &v.AuthorID, &v.Text, &v.Status, &v.ModerationNote, &v.CreatedAt, &v.ModeratedAt)
-	if errors.Is(e, pgx.ErrNoRows) {
-		e = domain.ErrResearchNotFound
-	}
+	e = dbErr(e)
 	return v, e
 }
 
+// CreateReview stores the review and notifies every active admin in the same transaction.
 func (r *ResearchRepository) CreateReview(c context.Context, v domain.SeedbedReview) (domain.SeedbedReview, error) {
-	return review(r.db.QueryRow(c, `INSERT INTO semillero_resenas(semillero_id,autor_id,texto) VALUES($1,$2,$3) RETURNING id,semillero_id,autor_id,texto,estado,COALESCE(nota_moderacion,''),creado_en,moderado_en`, v.SeedbedID, v.AuthorID, v.Text))
+	tx, e := r.db.Begin(c)
+	if e != nil {
+		return v, e
+	}
+	defer tx.Rollback(c)
+	out, e := review(tx.QueryRow(c, `INSERT INTO semillero_resenas(semillero_id,autor_id,texto) VALUES($1,$2,$3) RETURNING id,semillero_id,autor_id,texto,estado,COALESCE(nota_moderacion,''),creado_en,moderado_en`, v.SeedbedID, v.AuthorID, v.Text))
+	if e == nil {
+		_, e = tx.Exec(c, `INSERT INTO notificaciones(usuario_id,tipo,mensaje) SELECT id,'seedbed-review','Nueva reseña '||$1||' pendiente de moderación' FROM usuarios WHERE lower(rol)='admin' AND estado='activo'`, out.ID)
+	}
+	if e == nil {
+		e = tx.Commit(c)
+	}
+	return out, e
 }
 
 func (r *ResearchRepository) ListReviews(c context.Context, s string) (out []domain.SeedbedReview, e error) {
+	out = make([]domain.SeedbedReview, 0)
 	rows, e := r.db.Query(c, `SELECT id,semillero_id,autor_id,texto,estado,COALESCE(nota_moderacion,''),creado_en,moderado_en FROM semillero_resenas WHERE $1='' OR estado=$1 ORDER BY creado_en`, s)
 	if e != nil {
 		return

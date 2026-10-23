@@ -2,6 +2,7 @@ package research_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -38,6 +39,7 @@ func seed(t *testing.T) (*postgresadapter.ResearchRepository, *pgxpool.Pool, str
 			{`DELETE FROM proyecto_historial WHERE autor_id=$1`, user},
 			{`DELETE FROM proyectos WHERE semillero_id=$1`, seedbed},
 			{`DELETE FROM actividades WHERE semillero_id=$1`, seedbed},
+			{`DELETE FROM semillero_resenas WHERE semillero_id=$1`, seedbed},
 			{`DELETE FROM semilleros WHERE id=$1`, seedbed},
 			{`DELETE FROM usuarios WHERE id=$1`, user},
 		} {
@@ -127,5 +129,52 @@ func TestActivityWithoutOptionalListsIsStored(t *testing.T) {
 	a, err := r.CreateActivity(context.Background(), domain.Activity{SeedbedID: seedbed, Title: "Taller", Status: "próxima"})
 	if err != nil || a.ResponsibleIDs == nil || a.Evidence == nil {
 		t.Fatalf("activity=%+v err=%v", a, err)
+	}
+}
+
+func TestReviewNotifiesActiveAdmins(t *testing.T) {
+	r, db, user, seedbed := seed(t)
+	ctx := context.Background()
+	var admin string
+	if err := db.QueryRow(ctx, `INSERT INTO usuarios (firebase_uid,nombre,email,rol) VALUES ($1,'Admin',$1||'@example.test','admin') RETURNING id`, fmt.Sprintf("research-admin-%d", time.Now().UnixNano())).Scan(&admin); err != nil {
+		t.Fatalf("seed admin: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.Exec(ctx, `DELETE FROM notificaciones WHERE usuario_id=$1`, admin)
+		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE id=$1`, admin)
+	})
+	v, err := r.CreateReview(ctx, domain.SeedbedReview{SeedbedID: seedbed, AuthorID: user, Text: "Buen semillero"})
+	if err != nil || v.Status != "pendiente" {
+		t.Fatalf("review=%+v err=%v", v, err)
+	}
+	var n int
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM notificaciones WHERE usuario_id=$1 AND tipo='seedbed-review' AND mensaje LIKE '%'||$2||'%'`, admin, v.ID).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("admin notifications=%d err=%v", n, err)
+	}
+	pending, err := r.ListReviews(ctx, "publicada")
+	if err != nil || pending == nil {
+		t.Fatalf("empty list must be [] not nil: %v err=%v", pending, err)
+	}
+}
+
+func TestMalformedOrMissingReferencesAreNotFound(t *testing.T) {
+	r, _, user, _ := seed(t)
+	ctx := context.Background()
+	if _, err := r.FindProject(ctx, "not-a-uuid"); !errors.Is(err, domain.ErrResearchNotFound) {
+		t.Fatalf("malformed project id: %v", err)
+	}
+	if _, err := r.ProjectHistory(ctx, "not-a-uuid"); !errors.Is(err, domain.ErrResearchNotFound) {
+		t.Fatalf("malformed history id: %v", err)
+	}
+	missing := "00000000-0000-0000-0000-000000000000"
+	if _, err := r.CreateProject(ctx, domain.Project{SeedbedID: missing, Title: "P", Status: "Radicado", CreatedBy: user}); !errors.Is(err, domain.ErrSeedbedNotFound) {
+		t.Fatalf("missing seedbed project: %v", err)
+	}
+	if _, err := r.CreateReview(ctx, domain.SeedbedReview{SeedbedID: missing, AuthorID: user, Text: "x"}); !errors.Is(err, domain.ErrSeedbedNotFound) {
+		t.Fatalf("missing seedbed review: %v", err)
+	}
+	activities, err := r.ListActivities(ctx, missing, "", "")
+	if err != nil || activities == nil {
+		t.Fatalf("empty activities must be [] not nil: %v err=%v", activities, err)
 	}
 }

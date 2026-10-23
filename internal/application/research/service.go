@@ -261,10 +261,17 @@ func (s *Service) Review(c context.Context, v domain.SeedbedReview) (domain.Seed
 	if e != nil || !role(u, "admin", "estudiante", "docente", "profesor") {
 		return v, domain.ErrForbidden
 	}
+	if _, e := s.seedbeds.Find(c, v.SeedbedID); e != nil {
+		return v, domain.ErrSeedbedNotFound
+	}
 	return s.repo.CreateReview(c, v)
 }
 
+// Reviews defaults to the moderation queue (pendiente) when no status is given.
 func (s *Service) Reviews(c context.Context, status string) ([]domain.SeedbedReview, error) {
+	if status == "" {
+		status = "pendiente"
+	}
 	return s.repo.ListReviews(c, status)
 }
 

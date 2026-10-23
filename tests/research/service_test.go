@@ -96,6 +96,14 @@ func (r *repository) ListProposals(_ context.Context, actor string) ([]domain.Re
 	r.actor = actor
 	return []domain.ResearchProposal{}, nil
 }
+func (r *repository) CreateReview(_ context.Context, v domain.SeedbedReview) (domain.SeedbedReview, error) {
+	v.ID, v.Status = "rev", "pendiente"
+	return v, nil
+}
+func (r *repository) ListReviews(_ context.Context, status string) ([]domain.SeedbedReview, error) {
+	r.actor = status
+	return []domain.SeedbedReview{}, nil
+}
 func (r *repository) ProposalHistory(context.Context, string) ([]domain.ProposalHistory, error) {
 	return []domain.ProposalHistory{{Status: "Radicada"}}, nil
 }
@@ -285,5 +293,22 @@ func TestProposalListScopesByRole(t *testing.T) {
 	}
 	if _, err := s.Proposals(ctx, "missing"); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("unknown user: want forbidden, got %v", err)
+	}
+}
+
+func TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending(t *testing.T) {
+	s, r := fixtures()
+	ctx := context.Background()
+	if _, err := s.Review(ctx, domain.SeedbedReview{SeedbedID: "nope", AuthorID: "student", Text: "x"}); !errors.Is(err, domain.ErrSeedbedNotFound) {
+		t.Fatalf("unknown seedbed: want not found, got %v", err)
+	}
+	if v, err := s.Review(ctx, domain.SeedbedReview{SeedbedID: "sb", AuthorID: "student", Text: "x"}); err != nil || v.Status != "pendiente" {
+		t.Fatalf("review=%+v err=%v", v, err)
+	}
+	if _, err := s.Reviews(ctx, ""); err != nil || r.actor != "pendiente" {
+		t.Fatalf("default status=%q err=%v", r.actor, err)
+	}
+	if _, err := s.Reviews(ctx, "publicada"); err != nil || r.actor != "publicada" {
+		t.Fatalf("explicit status=%q err=%v", r.actor, err)
 	}
 }
