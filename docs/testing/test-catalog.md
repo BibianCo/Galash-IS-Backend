@@ -48,6 +48,15 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T034|seedbeds|`TestAddMemberAcceptsOnlyActiveStudentsOrTeachers`|Links only active students or teachers, by responsible only.|`tests/seedbed/service_test.go`|PT-SEM-03|
 |T035|seedbeds|`TestRemoveMemberRequiresResponsibleOrAdmin`|Rejects withdrawal by student; admin withdraws.|`tests/seedbed/service_test.go`|PT-SEM-03|
 |T036|seedbeds|`TestListBoundsPagination`|Defaults page to 1 and clamps pageSize to 1..100.|`tests/seedbed/service_test.go`|—|
+|T051|module-4-research|`TestActivityRequiresResponsibleTeacherOrAdmin`|Activity create/update only by responsible teacher or admin; rejects empty title and unknown status.|`tests/research/service_test.go`|PT-SEM-04|
+|T052|module-4-research|`TestProjectProgressMustBeBetween0And100`|Project progress accepts 0..100 and minimum states only.|`tests/research/service_test.go`|PT-SEM-05|
+|T053|module-4-research|`TestProjectUpdateRecordsActorAndChangedFields`|PATCH /projects/{id} records actor and each changed relevant field.|`tests/research/service_test.go`|PT-SEM-05|
+|T054|module-4-research|`TestProgressOnlyByResponsibleOrAdmin`|Progress update rejected for non-responsible teacher and student.|`tests/research/service_test.go`|PT-SEM-07|
+|T055|module-4-research|`TestProposalCreateAlwaysStartsRadicada`|New proposal is always Radicada regardless of requested status.|`tests/research/service_test.go`|PT-SEM-06|
+|T056|module-4-research|`TestProposalAuthorCannotApproveOrReview`|Proposal author edits content only; reviewer sets status/observations; manual Convertida rejected.|`tests/research/service_test.go`|PT-SEM-06|
+|T057|module-4-research|`TestProposalDetailIncludesHistory`|Proposal detail returns review history; stranger is forbidden.|`tests/research/service_test.go`|PT-SEM-06|
+|T058|module-4-research|`TestConvertRequiresApprovedProposalAndReviewer`|Conversion requires approved proposal and teacher/admin.|`tests/research/service_test.go`|PT-SEM-06|
+|T059|module-4-research|`TestResearchJSONUsesCamelCase`|Module 4 payloads serialize with camelCase keys.|`tests/research/service_test.go`|PT-SEM-04, PT-SEM-05, PT-SEM-06, PT-SEM-07|
 
 ## HTTP/API tests
 
@@ -78,6 +87,10 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T047|seedbeds|`TestLiveVisibilityControlsPublicAccess`|Publish, hide and inactivate change public detail and list; admin sees inactive.|`tests/seedbed/live_api_test.go`|PT-SEM-01, PT-SEM-02|
 |T048|seedbeds|`TestLiveHiddenMembersAnonymousSingleError`|Hidden seedbed members without session returns one 401 error body.|`tests/seedbed/live_api_test.go`|PT-SEM-02|
 |T049|seedbeds|`TestLiveWithdrawKeepsHistory`|Withdrawal removes current member, keeps history with `leftAt`; non-member withdrawal is 404.|`tests/seedbed/live_api_test.go`|PT-SEM-03|
+|T060|module-4-research|`TestProjectUpdatesKeepAuthorAndDateHistory`|Project update and progress persist history with author and date atomically; invalid progress leaves no history.|`tests/research/repository_test.go`|PT-SEM-05, PT-SEM-07, TDB-T07|
+|T061|module-4-research|`TestConvertProposalKeepsHistoryAndLinksProject`|Conversion creates Radicado project, links proposal.projectId, keeps proposal history and attachments.|`tests/research/repository_test.go`|PT-SEM-06, TDB-T07|
+|T062|module-4-research|`TestProposalWithoutSeedbedIsStored`|Proposal without seedbed or optional lists is stored.|`tests/research/repository_test.go`|PT-SEM-06|
+|T063|module-4-research|`TestActivityWithoutOptionalListsIsStored`|Activity without responsibles or evidence is stored with empty lists.|`tests/research/repository_test.go`|PT-SEM-04|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.
