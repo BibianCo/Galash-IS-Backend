@@ -92,6 +92,10 @@ func (r *repository) UpdateProposal(_ context.Context, _ string, p domain.Resear
 	r.saved, r.actor = p, actor
 	return p, nil
 }
+func (r *repository) ListProposals(_ context.Context, actor string) ([]domain.ResearchProposal, error) {
+	r.actor = actor
+	return []domain.ResearchProposal{}, nil
+}
 func (r *repository) ProposalHistory(context.Context, string) ([]domain.ProposalHistory, error) {
 	return []domain.ProposalHistory{{Status: "Radicada"}}, nil
 }
@@ -267,5 +271,19 @@ func TestResearchJSONUsesCamelCase(t *testing.T) {
 		if !strings.Contains(string(raw), `"id":`) || strings.Contains(string(raw), `"ID"`) || strings.Contains(string(raw), `"SeedbedID"`) {
 			t.Fatalf("%T JSON not camelCase: %s", v, raw)
 		}
+	}
+}
+
+func TestProposalListScopesByRole(t *testing.T) {
+	s, r := fixtures()
+	ctx := context.Background()
+	for actor, scope := range map[string]string{"admin": "", "teacher": "", "student": "student"} {
+		r.actor = "unset"
+		if _, err := s.Proposals(ctx, actor); err != nil || r.actor != scope {
+			t.Fatalf("%s: scope=%q err=%v", actor, r.actor, err)
+		}
+	}
+	if _, err := s.Proposals(ctx, "missing"); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("unknown user: want forbidden, got %v", err)
 	}
 }

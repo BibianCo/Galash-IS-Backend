@@ -216,7 +216,15 @@ func (s *Service) History(c context.Context, id string) ([]domain.ProjectHistory
 	return s.repo.ProjectHistory(c, id)
 }
 
+// Proposals lists every proposal for reviewers; others see only proposals they author or are responsible for.
 func (s *Service) Proposals(c context.Context, actor string) ([]domain.ResearchProposal, error) {
+	u, e := s.users.FindByID(c, actor)
+	if e != nil || !role(u, "admin", "docente", "profesor", "estudiante") {
+		return nil, domain.ErrForbidden
+	}
+	if role(u, "admin", "docente", "profesor") {
+		actor = ""
+	}
 	return s.repo.ListProposals(c, actor)
 }
 
