@@ -57,3 +57,134 @@
 {"v":1,"id":"X027","t":"result","run":"R014","test":"T012","s":"pass","ev":["TEST_DATABASE_URL=PostgreSQL 16; go test -count=1 ./..."]}
 {"v":1,"id":"X028","t":"result","run":"R014","test":"T013","s":"pass","ev":["go test -count=1 ./tests/auth"]}
 {"v":1,"id":"X029","t":"result","run":"R014","test":"T014","s":"pass","ev":["go test -count=1 ./tests/auth"]}
+{"v":1,"id":"T015","t":"test","area":"user-management","p":"must","name":"Admin role updates use a selected Firebase UID and reject self role changes"}
+{"v":1,"id":"R015","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X030","t":"result","run":"R015","test":"T015","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./...","git diff --check"]}
+{"v":1,"id":"T016","t":"test","area":"user-management","p":"must","name":"Admin member search rejects an authenticated non-admin session"}
+{"v":1,"id":"R016","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X031","t":"result","run":"R016","test":"T016","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./...","git diff --check"]}
+{"v":1,"id":"T017","t":"test","area":"user-management","p":"must","name":"Role assignment uses canonical profesor value and accepts case-insensitive admin actors"}
+{"v":1,"id":"R017","t":"run","at":"2026-10-11T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X032","t":"result","run":"R017","test":"T017","s":"pass","ev":["docker run --rm golang:1.22-alpine go test -count=1 ./..."]}
+{"v":1,"id":"T018","t":"test","area":"seedbeds","p":"must","name":"Seedbed module compilation and authorization paths"}
+{"v":1,"id":"R018","t":"run","at":"2026-10-15T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X033","t":"result","run":"R018","test":"T018","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22 go test ./...","git diff --check"]}
+{"v":1,"id":"T019","t":"test","area":"auth","p":"must","name":"Firebase-only user receives registration-required response"}
+{"v":1,"id":"R019","t":"run","at":"2026-10-16T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X034","t":"result","run":"R019","test":"T019","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22 go test ./...","git diff --check"]}
+{"v":1,"id":"T020","t":"test","area":"auth-http","p":"must","name":"Local frontend preflight and Authorization precedence reach session-protected endpoints"}
+{"v":1,"id":"R020","t":"run","at":"2026-10-16T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X035","t":"result","run":"R020","test":"T020","s":"pass","ev":["docker run --rm -v project:/app -w /app golang:1.22-alpine go test ./...","git diff --check"]}
+{"v":1,"id":"T021","t":"test","area":"auth-runtime","p":"must","name":"Running auth container serves POST /auth/sessions (not 404) and answers the local frontend CORS preflight"}
+{"v":1,"id":"R021","t":"run","at":"2026-10-17T01:15:00Z","build":"ecb8d99","by":"agent","mode":"automated"}
+{"v":1,"id":"X036","t":"result","run":"R021","test":"T021","s":"pass","ev":["docker compose up -d --build auth (image rebuilt; previous image dated 2026-09-27)","OPTIONS http://localhost:8080/auth/sessions Origin localhost:4200 (204, credentials true)","OPTIONS and POST via http://localhost:4200/api/auth/sessions (204, 401)","POST /auth/sessions without valid credentials (401, not 404)"]}
+{"v":1,"id":"X037","t":"result","run":"R021","test":"T020","s":"pass","ev":["docker run --rm -v project:/app -w /app golang:1.22-alpine go test -count=1 ./..."]}
+{"v":1,"id":"T022","t":"test","area":"auth","p":"must","name":"Sesiones: logout revoca la cookie aunque Authorization sea obsoleto, login rota la sesión previa, 401 limpia cookie vencida, reset revoca sesiones y purga de filas vencidas"}
+{"v":1,"id":"R022","t":"run","at":"2026-10-17T01:44:00Z","build":"ecb8d99+wip","by":"agent","mode":"automated"}
+{"v":1,"id":"X038","t":"result","run":"R022","test":"T022","s":"pass","ev":["go test -count=1 ./... (tests/auth, 0.218s)"]}
+{"v":1,"id":"T023","t":"test","area":"auth","p":"must","name":"Registro: el rol siempre es visitante, el rol enviado por el cliente se ignora y un re-registro no cambia el rol asignado"}
+{"v":1,"id":"R023","t":"run","at":"2026-10-17T15:13:10Z","build":"ecb8d99+wip","by":"agent","mode":"automated"}
+{"v":1,"id":"X039","t":"result","run":"R023","test":"T023","s":"pass","ev":["go test -count=1 ./tests/auth/ (sin TEST_DATABASE_URL)"]}
+{"v":1,"id":"X040","t":"result","run":"R023","test":"T023","s":"pass","ev":["go test -count=1 ./tests/auth/ con TEST_DATABASE_URL a base temporal galash_role_test (creada y eliminada)"]}
+{"v":1,"id":"R024","t":"run","at":"2026-10-17T16:54:12Z","build":"7f7513e","by":"agent","mode":"automated"}
+{"v":1,"id":"X041","t":"result","run":"R024","test":"T023","s":"pass","ev":["go test -count=1 ./..."]}
+{"v":1,"id":"T021","t":"test","area":"seedbeds","p":"must","name":"Seedbed membership migration creates semillero_miembros schema"}
+{"v":1,"id":"R022","t":"run","at":"2026-10-17T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X038","t":"result","run":"R022","test":"T021","s":"pass","ev":["docker compose exec postgres psql migration","psql \\dt semillero_miembros","docker run golang:1.22 go test ./...","git diff --check"]}
+{"v":1,"id":"T022","t":"test","area":"seedbeds","p":"must","name":"Composite seedbed space endpoint compiles and is registered"}
+{"v":1,"id":"R023","t":"run","at":"2026-10-17T00:00:00Z","by":"agent","mode":"automated"}
+ {"v":1,"id":"X039","t":"result","run":"R023","test":"T022","s":"pass","ev":["docker run golang:1.22 go test ./...","docker run golang:1.22 go vet ./...","git diff --check"]}
+ {"v":1,"id":"T026","t":"test","area":"module-3-registration","p":"must","name":"Registration rejects missing required fields"}
+ {"v":1,"id":"T027","t":"test","area":"module-3-registration","p":"must","name":"Registration returns an opaque tracking token and Radicada status"}
+ {"v":1,"id":"R025","t":"run","at":"2026-10-18T00:00:00Z","by":"agent","mode":"automated","note":"go test ./... could not start because go is not installed"}
+ {"v":1,"id":"X042","t":"result","run":"R025","test":"T026","s":"block"}
+ {"v":1,"id":"X043","t":"result","run":"R025","test":"T027","s":"block"}
+ {"v":1,"id":"R026","t":"run","at":"2026-10-18T00:05:00Z","by":"agent","mode":"automated","note":"Docker Go 1.22 used because host Go is unavailable"}
+ {"v":1,"id":"X044","t":"result","run":"R026","test":"T026","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."]}
+ {"v":1,"id":"X045","t":"result","run":"R026","test":"T027","s":"pass","ev":["docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."]}
+ {"v":1,"id":"T028","t":"test","area":"module-3-registration","p":"must","name":"Public registration persists against the active PostgreSQL schema"}
+ {"v":1,"id":"R027","t":"run","at":"2026-10-19T03:31:00Z","by":"agent","mode":"manual-api"}
+ {"v":1,"id":"X046","t":"result","run":"R027","test":"T028","s":"pass","ev":["POST /registration-requests with valid seedbedId returned HTTP 201 and Radicada"]}
+ {"v":1,"id":"T029","t":"test","area":"module-3-registration","p":"must","name":"Admin updates a valid registration status and writes its audit record"}
+ {"v":1,"id":"R028","t":"run","at":"2026-10-19T17:05:00Z","by":"agent","mode":"manual-api"}
+ {"v":1,"id":"X047","t":"result","run":"R028","test":"T029","s":"pass","ev":["PATCH /admin/registration-requests/{id}/status with admin session returned HTTP 200 and En revisión"]}
+{"v":1,"id":"T030","t":"test","area":"seedbeds","p":"must","name":"Create rejects seedbed without name, responsible or valid contact email"}
+{"v":1,"id":"T031","t":"test","area":"seedbeds","p":"must","name":"Create requires an active teacher as responsible"}
+{"v":1,"id":"T032","t":"test","area":"seedbeds","p":"must","name":"Create starts seedbed in Borrador with trimmed data"}
+{"v":1,"id":"T033","t":"test","area":"seedbeds","p":"must","name":"Visibility allows responsible or admin and only known states"}
+{"v":1,"id":"T034","t":"test","area":"seedbeds","p":"must","name":"AddMember links only active students or teachers by responsible"}
+{"v":1,"id":"T035","t":"test","area":"seedbeds","p":"must","name":"RemoveMember requires responsible teacher or admin"}
+{"v":1,"id":"T036","t":"test","area":"seedbeds","p":"must","name":"List bounds page and pageSize"}
+{"v":1,"id":"T037","t":"test","area":"seedbeds","p":"must","name":"POST /seedbeds requires teacher or admin session and returns id, Borrador and responsibleTeacherId"}
+{"v":1,"id":"T038","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds includeInactive restricted to admin"}
+{"v":1,"id":"T039","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds/{id} respects visibility"}
+{"v":1,"id":"T040","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds/{id}/space hides responsible email from public view"}
+{"v":1,"id":"T041","t":"test","area":"seedbeds","p":"must","name":"PATCH /seedbeds/{id} requires responsible teacher or admin"}
+{"v":1,"id":"T042","t":"test","area":"seedbeds","p":"must","name":"PATCH /seedbeds/{id}/visibility validates actor and state"}
+{"v":1,"id":"T043","t":"test","area":"seedbeds","p":"must","name":"GET /seedbeds/{id}/members restricts history and hidden seedbeds"}
+{"v":1,"id":"T044","t":"test","area":"seedbeds","p":"must","name":"POST and DELETE /seedbeds/{id}/members require responsible teacher or admin"}
+{"v":1,"id":"R029","t":"run","at":"2026-10-19T19:27:00Z","build":"a936832","env":"E002","by":"agent","mode":"automated","cmd":"go test ./tests/seedbed/ -v"}
+{"v":1,"id":"X048","t":"result","run":"R029","test":"T030","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X049","t":"result","run":"R029","test":"T031","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X050","t":"result","run":"R029","test":"T032","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X051","t":"result","run":"R029","test":"T033","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X052","t":"result","run":"R029","test":"T034","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X053","t":"result","run":"R029","test":"T035","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X054","t":"result","run":"R029","test":"T036","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X055","t":"result","run":"R029","test":"T037","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X056","t":"result","run":"R029","test":"T038","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X057","t":"result","run":"R029","test":"T039","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X058","t":"result","run":"R029","test":"T040","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X059","t":"result","run":"R029","test":"T041","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X060","t":"result","run":"R029","test":"T042","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X061","t":"result","run":"R029","test":"T043","s":"fail","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"X062","t":"result","run":"R029","test":"T044","s":"pass","ev":["docs/testing/evidence/R029/go-test-seedbed.txt"]}
+{"v":1,"id":"D001","t":"defect","test":"T043","run":"R029","sev":"medium","s":"open","name":"GET /seedbeds/{id}/members on hidden seedbed without session writes 401 and 404 error bodies in one response","ref":"internal/adapters/inbound/http/handler.go listSeedbedMembers"}
+{"v":1,"id":"T045","t":"test","area":"seedbeds","p":"must","name":"Live POST /seedbeds rejects duplicate name with 409"}
+{"v":1,"id":"T046","t":"test","area":"seedbeds","p":"must","name":"Live unknown seedbed id returns 404 on detail, space and members"}
+{"v":1,"id":"T047","t":"test","area":"seedbeds","p":"must","name":"Live visibility lifecycle controls public detail and list"}
+{"v":1,"id":"T048","t":"test","area":"seedbeds","p":"must","name":"Live hidden seedbed members without session returns a single 401 error"}
+{"v":1,"id":"T049","t":"test","area":"seedbeds","p":"must","name":"Live withdrawal keeps member history and non-member withdrawal returns 404"}
+{"v":1,"id":"E003","t":"env","os":"Linux","device":"development-shell","runtime":"Go module; API galash-auth on localhost:8080; PostgreSQL 16 (galash-postgres) on localhost:5433 with seeded test users and sessions"}
+{"v":1,"id":"R030","t":"run","at":"2026-10-19T19:55:00Z","build":"a936832","env":"E003","by":"agent","mode":"automated-live-api","cmd":"go test ./tests/seedbed/ -run TestLive -v -count=1"}
+{"v":1,"id":"X063","t":"result","run":"R030","test":"T045","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X064","t":"result","run":"R030","test":"T046","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X065","t":"result","run":"R030","test":"T047","s":"pass","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X066","t":"result","run":"R030","test":"T048","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"X067","t":"result","run":"R030","test":"T049","s":"fail","ev":["docs/testing/evidence/R030/go-test-seedbed-live.txt"]}
+{"v":1,"id":"D001","t":"defect","test":"T048","run":"R030","sev":"medium","s":"open","name":"Reproduced against running API: hidden seedbed members without session returns 401 with two error bodies"}
+{"v":1,"id":"D002","t":"defect","test":"T045","run":"R030","sev":"high","s":"open","name":"POST /seedbeds with duplicate name returns 500 instead of 409","ref":"internal/adapters/outbound/postgres/seedbed_repository.go Create"}
+{"v":1,"id":"D003","t":"defect","test":"T046","run":"R030","sev":"medium","s":"open","name":"Unknown seedbed id returns 500 instead of 404 on GET /seedbeds/{id}, /space and /members","ref":"internal/adapters/outbound/postgres/seedbed_repository.go Find"}
+{"v":1,"id":"D004","t":"defect","test":"T049","run":"R030","sev":"medium","s":"open","name":"DELETE /seedbeds/{id}/members/{userId} for non-member returns 500 instead of 404","ref":"internal/adapters/outbound/postgres/seedbed_repository.go RemoveMember"}
+{"v":1,"id":"R031","t":"run","at":"2026-10-19T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X068","t":"result","run":"R031","test":"T018","s":"not_run","ev":["docker run --rm -v project:/app -w /app golang:1.22-alpine go test -count=1 ./...: dependency downloads failed with EOF"]}
+{"v":1,"id":"X069","t":"result","run":"R031","test":"T002","s":"pass","ev":["git diff --check"]}
+{"v":1,"id":"R032","t":"run","at":"2026-10-19T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X070","t":"result","run":"R032","test":"T018","s":"not_run","ev":["go test -count=1 ./... no ejecutado: las dependencias no pudieron descargarse por EOF"]}
+{"v":1,"id":"X071","t":"result","run":"R032","test":"T002","s":"pass","ev":["gofmt y git diff --check"]}
+{"v":1,"id":"R033","t":"run","at":"2026-10-19T00:00:00Z","by":"agent","mode":"automated"}
+{"v":1,"id":"X072","t":"result","run":"R033","test":"T018","s":"not_run","ev":["go test -count=1 ./... no ejecutado: dependencias no disponibles por EOF"]}
+{"v":1,"id":"X073","t":"result","run":"R033","test":"T002","s":"pass","ev":["gofmt y git diff --check"]}
+{"v":1,"id":"R034","t":"run","at":"2026-10-20T00:00:00Z","build":"3d88c1d","env":"E002","by":"agent","mode":"automated","cmd":"go test -count=1 -v ./tests/seedbed/ ./tests/registration/","note":"feature/GSW-5-gestion-semilleros rebuilt in order: a936832, seedbed tests, then 7a4f5cc; live tests skipped without GALASH_API_URL and TEST_DATABASE_URL"}
+{"v":1,"id":"X074","t":"result","run":"R034","test":"T026","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X075","t":"result","run":"R034","test":"T027","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X076","t":"result","run":"R034","test":"T030","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X077","t":"result","run":"R034","test":"T031","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X078","t":"result","run":"R034","test":"T032","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X079","t":"result","run":"R034","test":"T033","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X080","t":"result","run":"R034","test":"T034","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X081","t":"result","run":"R034","test":"T035","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X082","t":"result","run":"R034","test":"T036","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X083","t":"result","run":"R034","test":"T037","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X084","t":"result","run":"R034","test":"T038","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X085","t":"result","run":"R034","test":"T039","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X086","t":"result","run":"R034","test":"T040","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X087","t":"result","run":"R034","test":"T041","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X088","t":"result","run":"R034","test":"T042","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X089","t":"result","run":"R034","test":"T043","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X090","t":"result","run":"R034","test":"T044","s":"pass","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X091","t":"result","run":"R034","test":"T045","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X092","t":"result","run":"R034","test":"T046","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X093","t":"result","run":"R034","test":"T047","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X094","t":"result","run":"R034","test":"T048","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"X095","t":"result","run":"R034","test":"T049","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}

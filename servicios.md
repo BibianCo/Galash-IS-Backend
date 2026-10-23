@@ -1,132 +1,69 @@
-# Servicios disponibles
+# Servicios
 
-Este archivo resume los servicios existentes para que otro agente pueda
-integrarlos sin tener que reconstruir el contexto del proyecto.
+Registro compartido backend <-> front. Diseno objetivo:
+`planificacion_modulos_y_endpoints_galash_is_2026.md` (contrato).
+Desviaciones: `docs/mapeo_estado_vs_contrato.md`. Mantenimiento y handoff:
+`AGENTS.md` -> Shared contract.
 
-## 1. Auth
+Columnas: `Contrato` = modulo del contrato, `-` = fuera de contrato (motivos al
+pie). `Uso` = consumo del front: `[ ]` sin usar, `[x]` usado. Todo endpoint del
+contrato ausente de esta tabla NO existe: no construir UI que lo llame; si la
+tarea lo necesita, reportar bloqueo. Marcar `[x]` solo al consumir. Agregar
+filas o marcar disponible solo con registro/handoff del backend.
 
-**Ubicación:** raíz del backend Go
-**Tecnología:** Go 1.22, Firebase Admin SDK y PostgreSQL  
-**Puerto predeterminado:** `8080`
+## Auth (Go, `:8080`)
 
-El servicio es un monolito con arquitectura hexagonal. `cmd/api` realiza la
-composición; `internal/application` contiene los casos de uso; `internal/domain`
-define entidades y errores de negocio; `internal/ports` define interfaces; y
-`internal/adapters` contiene los adaptadores HTTP, Firebase y PostgreSQL. El
-único `main.go` y el único `Dockerfile` están en la raíz del backend.
+Sesion por cookie HttpOnly. `POST /auth/register` crea o sincroniza la cuenta,
+independiente de las solicitudes del M3. Requiere `Authorization: Bearer
+<FIREBASE_ID_TOKEN>` y `{"nombre","apellido","tipo_dni","dni","email"}`;
+sin password ni rol, email igual al token. El rol nuevo es `visitante` y el
+re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/handler.go`.
 
-### Responsabilidad
+| Metodo | Ruta | Descripcion | Contrato | Uso |
+|---|---|---|---|---|
+| GET | `/health` | salud y bd | - | [ ] |
+| POST | `/auth/register` | alta por token | M1 | [ ] |
+| POST | `/auth/sessions` | crea sesion | M1 | [ ] |
+| DELETE | `/auth/sessions/current` | cierra sesion | M1 | [ ] |
+| GET | `/users/me` | perfil y roles | M1 | [ ] |
+| GET | `/members` | dir. publico | M5 | [ ] |
+| GET | `/admin/members` | busq. admin | - | [ ] |
+| GET | `/find/user` | alias busq. | - | [ ] |
+| PUT | `/users/roles` | alias rol | - | [ ] |
+| PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [ ] |
+| GET | `/seedbeds` | lista | M2 | [ ] |
+| POST | `/seedbeds` | crea | M2 | [ ] |
+| GET | `/seedbeds/{id}` | detalle | M2 | [ ] |
+| GET | `/seedbeds/{id}/space` | vista compuesta | M2 | [ ] |
+| PATCH | `/seedbeds/{id}` | edita | M2 | [ ] |
+| PATCH | `/seedbeds/{id}/visibility` | estado | M2 | [ ] |
+| GET | `/seedbeds/{id}/members` | integrantes | M2 | [ ] |
+| POST | `/seedbeds/{id}/members` | vincula | M2 | [ ] |
+| DELETE | `/seedbeds/{id}/members/{userId}` | retiro | M2 | [ ] |
+| POST | `/registration-requests` | radica solicitud pública | M3 | [ ] |
+| GET | `/registration-requests/{id}/status` | consulta propia con token/sesión | M3 | [ ] |
+| GET | `/admin/registration-requests` | lista administrativa | M3 | [ ] |
+| GET | `/admin/registration-requests/{id}` | detalle e historial administrativo | M3 | [ ] |
+| PATCH | `/admin/registration-requests/{id}/status` | actualiza estado y auditoría | M3 | [ ] |
 
-Valida los ID tokens emitidos por Firebase y sincroniza el usuario con la
-tabla `usuarios` de PostgreSQL. El `uid` de Firebase se guarda en la columna
-`firebase_uid`, que es única y sirve como referencia externa del usuario.
+Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
+sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
+alias de `PUT /users/{userId}/roles`.
 
-### Endpoints
+## PostgreSQL (Docker, host `5433`)
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/health` | Comprueba que el servicio y la conexión a PostgreSQL estén disponibles. |
-| `POST` | `/auth/register` | Valida el token de Firebase y crea o actualiza el usuario local. |
+`database/init.sql` al crear el volumen; vars en `database/.env.example`.
 
-El registro requiere el header:
+## Ejecucion (backend)
 
-```text
-Authorization: Bearer <FIREBASE_ID_TOKEN>
-```
+`.env` en la raiz (ver `deploy/auth/.env.example`). `go mod tidy && go run .`
+(Auth) o `docker compose up -d --build` (todo). Credencial de Firebase: nunca
+al repositorio. Front consume via proxy `/api` -> `http://localhost:8080`.
 
-El cuerpo JSON acepta:
+## Pendiente en contrato (sin implementar)
 
-```json
-{
-  "nombre": "Ana",
-  "apellido": "Gómez"
-}
-```
-
-El servicio obtiene el correo y el `uid` desde el token de Firebase. No se
-envían contraseñas, `dni` ni `tipo_dni` al endpoint.
-
-### Configuración
-
-Copiar `deploy/auth/.env.example` como referencia y definir las variables en
-`.env` en la raíz del proyecto:
-
-```env
-PORT=8080
-DATABASE_URL=postgres://galash:galash@localhost:5432/galash?sslmode=disable
-FIREBASE_CREDENTIALS_FILE=/ruta/segura/firebase-service-account.json
-```
-
-El archivo de cuenta de servicio de Firebase es secreto y no debe subirse al
-repositorio.
-
-### Ejecución
-
-```bash
-cd .
-go mod tidy
-go run .
-```
-
-Alternativa con Docker, sin instalar Go:
-
-```bash
-# Levanta PostgreSQL y Auth desde la raíz del proyecto
-cd ..
-docker compose up -d --build
-```
-
-## 2. Base de datos PostgreSQL
-
-**Ubicación:** `database/`  
-**Tecnología:** Docker Compose y PostgreSQL 16  
-**Puerto predeterminado del host:** `5433` (PostgreSQL escucha en `5432` dentro de Docker)
-
-### Responsabilidad
-
-Levanta la instancia PostgreSQL local y carga `database/init.sql` cuando se
-crea el volumen por primera vez. El esquema contiene `usuarios` y las tablas
-relacionadas con líneas de investigación, semilleros, solicitudes, proyectos,
-actividades, eventos, noticias y colaboradores.
-
-### Configuración y ejecución
-
-```bash
-cd ..
-docker compose up -d postgres
-```
-
-Variables disponibles en `database/.env.example`:
-
-```env
-POSTGRES_DB=galash
-POSTGRES_USER=galash
-POSTGRES_PASSWORD=galash
-POSTGRES_PORT=5432
-```
-
-Para reiniciar la base de datos desde cero:
-
-```bash
-docker compose down -v
-docker compose up -d
-```
-
-## Orden recomendado de inicio
-
-1. Configurar las credenciales de Firebase Admin para `deploy/auth/`.
-2. Ejecutar `docker compose up -d --build` desde la raíz.
-4. Consumir `POST /auth/register` con un ID token válido de Firebase.
-
-## Relación entre servicios
-
-```text
-Cliente / Frontend
-        │
-        │ Firebase ID token
-        ▼
-Auth (Go)
-        │ valida token y guarda firebase_uid
-        ▼
-PostgreSQL (Docker)
-```
+M1: password-recovery-requests, password-resets (S) | M4 actividades/proyectos/
+propuestas/resenas: 19 | M5 miembros: 5 (CRUD, status, publications) | M6
+eventos: 7 | M7 contenidos: 6 | M8 comunicados: 7 | M9 cronograma: 5 | M10
+enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,
+users/me/dashboard) | M12: audit-logs | M13 files: 2

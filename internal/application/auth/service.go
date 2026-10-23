@@ -19,7 +19,6 @@ type RegisterCommand struct {
 	DocumentType   string
 	DocumentNumber string
 	Email          string
-	Role           string
 }
 
 type RegisterResult struct {
@@ -35,39 +34,46 @@ type Service struct {
 	recovery   ports.RecoveryTokenRepository
 }
 
+// Roles are persisted in their canonical lowercase form.
+var allowedRoles = map[string]bool{"visitante": true, "estudiante": true, "profesor": true, "admin": true}
+
 func NewService(identities ports.IdentityVerifier, users ports.UserRepository) *Service {
 	s := &Service{identities: identities, users: users}
-	if reader, ok := users.(ports.UserReader); ok { s.userReader = reader }
-	if repository, ok := users.(ports.SessionRepository); ok { s.sessions = repository }
-	if repository, ok := users.(ports.RecoveryTokenRepository); ok { s.recovery = repository }
+	if reader, ok := users.(ports.UserReader); ok {
+		s.userReader = reader
+	}
+	if repository, ok := users.(ports.SessionRepository); ok {
+		s.sessions = repository
+	}
+	if repository, ok := users.(ports.RecoveryTokenRepository); ok {
+		s.recovery = repository
+	}
 	return s
 }
 
+// Self-registration never chooses a role: every new account starts as visitante.
+// Other roles are assigned later through UpdateUserRole by an admin.
 func (s *Service) Register(ctx context.Context, token string, command RegisterCommand) (RegisterResult, error) {
 	identity, err := s.identities.Verify(ctx, token)
 	if err != nil {
 		return RegisterResult{}, errors.Join(domain.ErrInvalidIdentity, err)
 	}
 
-	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || command.Role == "" || identity.Email == "" {
+	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || identity.Email == "" {
 		return RegisterResult{}, domain.ErrIncompleteIdentity
 	}
 	if !strings.EqualFold(strings.TrimSpace(command.Email), identity.Email) {
 		return RegisterResult{}, domain.ErrIncompleteIdentity
 	}
-	if command.Role != "estudiante" && command.Role != "profesor" {
-		return RegisterResult{}, domain.ErrIncompleteIdentity
-	}
 
 	id, err := s.users.Upsert(ctx, domain.User{
-		FirebaseUID: identity.UID,
-		Name:        command.Name,
-		LastName:    command.LastName,
-		Email:       strings.TrimSpace(command.Email),
-		DocumentType: command.DocumentType,
+		FirebaseUID:    identity.UID,
+		Name:           command.Name,
+		LastName:       command.LastName,
+		Email:          strings.TrimSpace(command.Email),
+		DocumentType:   command.DocumentType,
 		DocumentNumber: command.DocumentNumber,
-		Role:        command.Role,
-		Status:      "activo",
+		Status:         "activo",
 	})
 	if err != nil {
 		return RegisterResult{}, err
@@ -75,58 +81,167 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 	return RegisterResult{ID: id, FirebaseUID: identity.UID}, nil
 }
 
-type LoginResult struct { Token string; User domain.User }
+type LoginResult struct {
+	Token string
+	User  domain.User
+}
 
 // Login accepts the Firebase ID token produced by the client, verifies it, and
 // creates an opaque server-side session. The Firebase token is never stored.
 func (s *Service) Login(ctx context.Context, token string) (LoginResult, error) {
-	if s.sessions == nil { return LoginResult{}, errors.New("sesiones no configuradas") }
+	if s.sessions == nil {
+		return LoginResult{}, errors.New("sesiones no configuradas")
+	}
 	identity, err := s.identities.Verify(ctx, strings.TrimSpace(token))
-	if err != nil || identity.UID == "" || identity.Email == "" { return LoginResult{}, domain.ErrInvalidCredentials }
-	if s.userReader == nil { return LoginResult{}, domain.ErrUserNotRegistered }
+	if err != nil || identity.UID == "" || identity.Email == "" {
+		return LoginResult{}, domain.ErrInvalidCredentials
+	}
+	if s.userReader == nil {
+		return LoginResult{}, domain.ErrUserNotRegistered
+	}
 	user, err := s.userReader.FindByFirebaseUID(ctx, identity.UID)
-	if err != nil { return LoginResult{}, domain.ErrUserNotRegistered }
-	if user.Status != "" && user.Status != "activo" { return LoginResult{}, domain.ErrInactiveUser }
+	if err != nil {
+		return LoginResult{}, domain.ErrUserNotRegistered
+	}
+	if user.Status != "" && user.Status != "activo" {
+		return LoginResult{}, domain.ErrInactiveUser
+	}
 	plain, err := randomToken()
-	if err != nil { return LoginResult{}, err }
-	if err := s.sessions.Create(ctx, user.ID, hashToken(plain)); err != nil { return LoginResult{}, err }
+	if err != nil {
+		return LoginResult{}, err
+	}
+	if err := s.sessions.Create(ctx, user.ID, hashToken(plain)); err != nil {
+		return LoginResult{}, err
+	}
 	return LoginResult{Token: plain, User: user}, nil
 }
 
 func (s *Service) CurrentUser(ctx context.Context, token string) (domain.User, error) {
-	if s.sessions == nil || s.userReader == nil { return domain.User{}, domain.ErrInvalidSession }
+	if s.sessions == nil || s.userReader == nil {
+		return domain.User{}, domain.ErrInvalidSession
+	}
 	id, err := s.sessions.FindUserID(ctx, hashToken(token))
-	if err != nil || id == "" { return domain.User{}, domain.ErrInvalidSession }
+	if err != nil || id == "" {
+		return domain.User{}, domain.ErrInvalidSession
+	}
 	user, err := s.userReader.FindByID(ctx, id)
-	if err != nil || (user.Status != "" && user.Status != "activo") { return domain.User{}, domain.ErrInvalidSession }
+	if err != nil || (user.Status != "" && user.Status != "activo") {
+		return domain.User{}, domain.ErrInvalidSession
+	}
 	return user, nil
 }
 
+func (s *Service) SearchUsers(ctx context.Context, query string, limit int) ([]domain.User, error) {
+	if s.userReader == nil || strings.TrimSpace(query) == "" {
+		return nil, domain.ErrIncompleteIdentity
+	}
+	if limit < 5 {
+		limit = 5
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	return s.userReader.Search(ctx, strings.TrimSpace(query), limit)
+}
+
+func (s *Service) SearchAdminUsers(ctx context.Context, token, query string, limit int) ([]domain.User, error) {
+	actor, err := s.CurrentUser(ctx, token)
+	if err != nil {
+		return nil, domain.ErrInvalidSession
+	}
+	if !strings.EqualFold(strings.TrimSpace(actor.Role), "admin") {
+		return nil, domain.ErrForbidden
+	}
+	return s.SearchUsers(ctx, query, limit)
+}
+
+func (s *Service) UpdateUserRole(ctx context.Context, token, targetUID, role string) error {
+	if s.userReader == nil {
+		return domain.ErrInvalidSession
+	}
+	actor, err := s.CurrentUser(ctx, token)
+	if err != nil {
+		return domain.ErrInvalidSession
+	}
+	if !strings.EqualFold(strings.TrimSpace(actor.Role), "admin") {
+		return domain.ErrForbidden
+	}
+	targetUID = strings.TrimSpace(targetUID)
+	role = strings.ToLower(strings.TrimSpace(role))
+	if targetUID == "" || !allowedRoles[role] {
+		if targetUID == "" {
+			return domain.ErrIncompleteIdentity
+		}
+		return domain.ErrInvalidRole
+	}
+	if actor.FirebaseUID != "" && actor.FirebaseUID == targetUID {
+		return domain.ErrSelfRoleChange
+	}
+	return s.userReader.UpdateRole(ctx, targetUID, role)
+}
+
 func (s *Service) Logout(ctx context.Context, token string) error {
-	if s.sessions == nil { return domain.ErrInvalidSession }
+	if s.sessions == nil {
+		return domain.ErrInvalidSession
+	}
 	return s.sessions.Revoke(ctx, hashToken(token))
 }
 
 func (s *Service) RequestPasswordRecovery(ctx context.Context, email string) error {
-	if s.recovery == nil || s.userReader == nil { return nil }
+	if s.recovery == nil || s.userReader == nil {
+		return nil
+	}
 	user, err := s.userReader.FindByEmail(ctx, strings.TrimSpace(strings.ToLower(email)))
-	if err != nil { return nil } // Deliberately indistinguishable to callers.
-	plain, err := randomToken(); if err != nil { return err }
+	if err != nil {
+		return nil
+	} // Deliberately indistinguishable to callers.
+	plain, err := randomToken()
+	if err != nil {
+		return err
+	}
 	return s.recovery.CreateRecovery(ctx, user.ID, hashToken(plain))
 }
 
 func (s *Service) ResetPassword(ctx context.Context, token, password string) error {
-	if s.recovery == nil || s.userReader == nil || len(password) < 8 { return domain.ErrInvalidRecoveryToken }
+	if s.recovery == nil || s.userReader == nil || len(password) < 8 {
+		return domain.ErrInvalidRecoveryToken
+	}
 	id, err := s.recovery.Consume(ctx, hashToken(token))
-	if err != nil { return domain.ErrInvalidRecoveryToken }
+	if err != nil {
+		return domain.ErrInvalidRecoveryToken
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
+	// A password reset ends every session that was opened with the old credentials.
+	// Revoke first: if this fails, the password is unchanged and nothing is half-applied.
+	if s.sessions != nil {
+		if err := s.sessions.RevokeAllForUser(ctx, id); err != nil {
+			return err
+		}
+	}
 	return s.userReader.SetPassword(ctx, id, string(hash))
+}
+
+// PurgeExpiredCredentials deletes sessions and recovery tokens that can no longer be used.
+func (s *Service) PurgeExpiredCredentials(ctx context.Context) error {
+	if s.sessions != nil {
+		if err := s.sessions.DeleteExpiredSessions(ctx); err != nil {
+			return err
+		}
+	}
+	if s.recovery != nil {
+		return s.recovery.DeleteExpiredRecoveries(ctx)
+	}
+	return nil
 }
 
 func randomToken() (string, error) {
 	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil { return "", err }
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 

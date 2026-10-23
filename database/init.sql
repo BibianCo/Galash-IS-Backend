@@ -9,7 +9,7 @@ CREATE TABLE usuarios (
     dni TEXT UNIQUE,
     email TEXT NOT NULL,
     password_hash TEXT,
-    rol TEXT NOT NULL DEFAULT 'estudiante',
+    rol TEXT NOT NULL DEFAULT 'visitante',
     estado TEXT NOT NULL DEFAULT 'activo',
     semillero_id UUID,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -46,18 +46,80 @@ CREATE TABLE semilleros (
     palabras_clave TEXT[]
 );
 
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS linea_investigacion TEXT;
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS objetivo TEXT;
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS email_contacto TEXT;
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Borrador';
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS visibilidad TEXT NOT NULL DEFAULT 'Borrador';
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+CREATE TABLE IF NOT EXISTS semillero_miembros (
+    semillero_id UUID NOT NULL REFERENCES semilleros(id),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    ingreso_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    retirado_en TIMESTAMPTZ,
+    PRIMARY KEY (semillero_id, usuario_id)
+);
+CREATE INDEX IF NOT EXISTS semillero_miembros_usuario_idx ON semillero_miembros(usuario_id);
+
 ALTER TABLE usuarios
     ADD CONSTRAINT usuarios_semillero_fk
     FOREIGN KEY (semillero_id) REFERENCES semilleros(id);
 
 CREATE TABLE solicitudes_registro (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id UUID NOT NULL REFERENCES usuarios(id),
-    semillero_id UUID NOT NULL REFERENCES semilleros(id),
-    estado TEXT NOT NULL DEFAULT 'pendiente',
-    motivo TEXT,
-    fecha_envio TIMESTAMPTZ NOT NULL DEFAULT now()
+    usuario_id UUID REFERENCES usuarios(id),
+    semillero_id UUID REFERENCES semilleros(id),
+    nombre TEXT NOT NULL,
+    cc TEXT NOT NULL,
+    cod TEXT NOT NULL,
+    telefono TEXT NOT NULL,
+    fecha_nacimiento DATE NOT NULL,
+    lugar_nacimiento TEXT NOT NULL,
+    direccion_residencia TEXT NOT NULL,
+    link_cvlac TEXT NOT NULL,
+    link_orcid TEXT NOT NULL,
+    maximo_nivel_estudio TEXT NOT NULL,
+    titulo_maximo_nivel_estudio TEXT NOT NULL,
+    titulo_pregrado TEXT NOT NULL,
+    vinculacion TEXT NOT NULL,
+    categoria_actual_investigador TEXT NOT NULL,
+    convocatoria_minciencias TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'Radicada',
+    observacion TEXT,
+    token_hash TEXT NOT NULL UNIQUE,
+    responsable_id UUID REFERENCES usuarios(id),
+    fecha_radicacion TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS nombre TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS cc TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS cod TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS telefono TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS lugar_nacimiento TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS direccion_residencia TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS link_cvlac TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS link_orcid TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS maximo_nivel_estudio TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS titulo_maximo_nivel_estudio TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS titulo_pregrado TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS vinculacion TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS categoria_actual_investigador TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS convocatoria_minciencias TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS observacion TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS token_hash TEXT;
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS responsable_id UUID REFERENCES usuarios(id);
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS fecha_radicacion TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE solicitudes_registro ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE solicitudes_registro ALTER COLUMN usuario_id DROP NOT NULL;
+ALTER TABLE solicitudes_registro ALTER COLUMN semillero_id DROP NOT NULL;
+ALTER TABLE solicitudes_registro ALTER COLUMN estado SET DEFAULT 'Radicada';
+UPDATE solicitudes_registro SET estado='Radicada' WHERE estado='pendiente';
+UPDATE solicitudes_registro SET estado='En revisión' WHERE estado='Informada';
+UPDATE solicitudes_registro SET estado='Pendiente de información' WHERE estado='Detenida';
 
 CREATE TABLE perfil_investigador (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -86,6 +148,16 @@ CREATE TABLE seguimiento_solicitud (
     comentario TEXT,
     responsable_id UUID NOT NULL REFERENCES usuarios(id),
     fecha TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE seguimiento_solicitud ALTER COLUMN responsable_id DROP NOT NULL;
+
+CREATE TABLE IF NOT EXISTS notificaciones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    tipo TEXT NOT NULL,
+    mensaje TEXT NOT NULL,
+    leida_en TIMESTAMPTZ,
+    creada_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE proyectos (
@@ -138,4 +210,6 @@ CREATE TABLE colaboradores_externos (
 
 CREATE INDEX usuarios_email_idx ON usuarios(email);
 CREATE INDEX solicitudes_usuario_idx ON solicitudes_registro(usuario_id);
+CREATE INDEX solicitudes_estado_idx ON solicitudes_registro(estado);
+CREATE INDEX solicitudes_fecha_idx ON solicitudes_registro(fecha_radicacion DESC);
 CREATE INDEX noticias_fecha_idx ON noticias(fecha_publicacion DESC);

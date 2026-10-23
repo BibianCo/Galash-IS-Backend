@@ -25,15 +25,18 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 ### Módulo 1. Autenticación y sesión
 
-**Objetivo:** controlar el inicio y cierre de sesión y la recuperación segura de acceso.
+**Objetivo:** registrar cuentas, controlar el inicio y cierre de sesión y recuperar el acceso de forma segura.
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
+| `POST` | `/auth/register` | Crea o sincroniza la cuenta local desde una identidad Firebase válida; no crea una solicitud del Módulo 3. | Must / Identidad Firebase válida | — |
 | `POST` | `/auth/sessions` | Valida credenciales de una cuenta activa y crea la sesión. Ante credenciales inválidas devuelve un mensaje genérico. | Must / Visitante | HU-AUTH-01 |
 | `DELETE` | `/auth/sessions/current` | Invalida la sesión actual. | Must / Estudiante, Docente o Admin | HU-AUTH-02 |
 | `GET` | `/users/me` | Devuelve el perfil mínimo y los roles y permisos efectivos del usuario autenticado. | Must / Estudiante, Docente o Admin | HU-AUTH-01, HU-TR-02 |
 | `POST` | `/auth/password-recovery-requests` | Solicita recuperación por correo; la respuesta no revela si el correo está registrado. | Should / Visitante | HU-AUTH-03 |
 | `POST` | `/auth/password-resets` | Cambia la contraseña con un token vigente, de un solo uso. | Should / Visitante con token | HU-AUTH-03 |
+
+**Alta de cuenta independiente de solicitudes:** `POST /auth/register` requiere `Authorization: Bearer <FIREBASE_ID_TOKEN>` y un cuerpo JSON con `nombre`, `apellido`, `tipo_dni`, `dni` y `email` (todos obligatorios); el correo debe coincidir con el del token, ignorando mayúsculas y minúsculas y espacios exteriores. No acepta contraseña ni rol. Una cuenta nueva recibe el rol `visitante`; repetir el alta sincroniza los datos de perfil y conserva el rol existente. Responde `201` con `{"id":"<user-id>","firebase_uid":"<firebase-uid>"}`. Errores: `400` para JSON inválido o perfil incompleto/correo distinto, `401` para Bearer ausente o token inválido/revocado y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
 
 **Reglas clave:** las contraseñas se almacenan con hash seguro; las sesiones expiran y se revocan al cerrar sesión. Solo `Admin` puede asignar o retirar los cuatro roles permitidos.
 
@@ -69,7 +72,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/admin/registration-requests/{id}` | Consulta detalle e historial de cambios de una solicitud. | Must / `Admin` | HU-AUTH-06 |
 | `PATCH` | `/admin/registration-requests/{id}/status` | Actualiza estado, observaciones autorizadas y responsable; valida permisos y registra auditoría. | Must / `Admin` | HU-AUTH-05, HU-AUTH-06 |
 
-**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
+**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
 
 ### Módulo 4. Actividades, proyectos y propuestas de investigación
 

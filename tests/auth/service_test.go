@@ -2,6 +2,8 @@ package auth_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"testing"
 
@@ -24,6 +26,10 @@ type repository struct {
 	upsertedUser         domain.User
 	createdHash          string
 	revokedHash          string
+	revoked              map[string]bool
+	revokedAllUserID     string
+	sessionsPurged       bool
+	recoveriesPurged     bool
 	sessionID            string
 	findErr              error
 	findUIDErr           error
@@ -34,6 +40,13 @@ type repository struct {
 	recoveryConsumed     bool
 	recoveryConsumeErr   error
 	passwordHash         string
+	updatedUID           string
+	updatedRole          string
+	updateRoleErr        error
+	searchQuery          string
+	searchLimit          int
+	searchUsers          []domain.User
+	searchErr            error
 }
 
 func (r *repository) Upsert(_ context.Context, user domain.User) (string, error) {
@@ -65,6 +78,20 @@ func (r *repository) SetPassword(_ context.Context, _ string, hash string) error
 	r.passwordHash = hash
 	return nil
 }
+func (r *repository) Search(_ context.Context, query string, limit int) ([]domain.User, error) {
+	r.searchQuery, r.searchLimit = query, limit
+	if r.searchErr != nil {
+		return nil, r.searchErr
+	}
+	if r.searchUsers != nil {
+		return r.searchUsers, nil
+	}
+	return []domain.User{r.user}, nil
+}
+func (r *repository) UpdateRole(_ context.Context, uid, role string) error {
+	r.updatedUID, r.updatedRole = uid, role
+	return r.updateRoleErr
+}
 
 func (r *repository) Create(_ context.Context, userID, tokenHash string) error {
 	if userID != r.user.ID {
@@ -75,14 +102,44 @@ func (r *repository) Create(_ context.Context, userID, tokenHash string) error {
 	return nil
 }
 func (r *repository) FindUserID(_ context.Context, tokenHash string) (string, error) {
-	if r.findErr != nil || tokenHash == "" || tokenHash != r.createdHash || tokenHash == r.revokedHash {
+	if r.findErr != nil || tokenHash == "" || tokenHash != r.createdHash || tokenHash == r.revokedHash || r.revoked[tokenHash] {
 		return "", errors.New("session not found")
 	}
 	return r.sessionID, nil
 }
 func (r *repository) Revoke(_ context.Context, tokenHash string) error {
 	r.revokedHash = tokenHash
+	r.markRevoked(tokenHash)
 	return nil
+}
+
+func (r *repository) RevokeAllForUser(_ context.Context, userID string) error {
+	r.revokedAllUserID = userID
+	r.markRevoked(r.createdHash)
+	return nil
+}
+
+func (r *repository) DeleteExpiredSessions(context.Context) error {
+	r.sessionsPurged = true
+	return nil
+}
+
+func (r *repository) DeleteExpiredRecoveries(context.Context) error {
+	r.recoveriesPurged = true
+	return nil
+}
+
+func (r *repository) markRevoked(tokenHash string) {
+	if r.revoked == nil {
+		r.revoked = map[string]bool{}
+	}
+	r.revoked[tokenHash] = true
+}
+
+// sessionHash mirrors the server-side hashing so tests can assert on stored hashes.
+func sessionHash(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
 func (r *repository) CreateRecovery(_ context.Context, userID, tokenHash string) error {
@@ -104,7 +161,7 @@ func (r *repository) Consume(_ context.Context, tokenHash string) (string, error
 func validRegistration() application.RegisterCommand {
 	return application.RegisterCommand{
 		Name: "Ana", LastName: "Pérez", DocumentType: "CC", DocumentNumber: "123",
-		Email: "ana@example.com", Role: "estudiante",
+		Email: "ana@example.com",
 	}
 }
 
@@ -118,7 +175,7 @@ func TestRegisterPersistsIdentityFields(t *testing.T) {
 	}
 	want := domain.User{
 		FirebaseUID: "firebase-id", Name: "Ana", LastName: "Pérez", Email: "ana@example.com",
-		DocumentType: "CC", DocumentNumber: "123", Role: "estudiante", Status: "activo",
+		DocumentType: "CC", DocumentNumber: "123", Status: "activo",
 	}
 	if repository.upsertedUser != want {
 		t.Fatalf("Upsert() user=%+v, want %+v", repository.upsertedUser, want)
@@ -134,7 +191,6 @@ func TestRegisterRejectsInvalidInput(t *testing.T) {
 		{"missing name", func(c *application.RegisterCommand) { c.Name = "" }},
 		{"missing last name", func(c *application.RegisterCommand) { c.LastName = "" }},
 		{"email mismatch", func(c *application.RegisterCommand) { c.Email = "other@example.com" }},
-		{"invalid role", func(c *application.RegisterCommand) { c.Role = "administrador" }},
 	}
 	for _, input := range inputs {
 		t.Run(input.name, func(t *testing.T) {
@@ -157,7 +213,6 @@ func TestRegisterRejectsMissingProfileFields(t *testing.T) {
 		{"missing document type", func(c *application.RegisterCommand) { c.DocumentType = "" }},
 		{"missing document number", func(c *application.RegisterCommand) { c.DocumentNumber = "" }},
 		{"missing email", func(c *application.RegisterCommand) { c.Email = "" }},
-		{"missing role", func(c *application.RegisterCommand) { c.Role = "" }},
 	}
 	for _, input := range inputs {
 		t.Run(input.name, func(t *testing.T) {
@@ -313,6 +368,28 @@ func TestResetPasswordHashesPasswordAndConsumesTokenOnce(t *testing.T) {
 	}
 }
 
+func TestResetPasswordRevokesAllUserSessions(t *testing.T) {
+	repository := &repository{recoveryUserID: "user-id"}
+	service := application.NewService(identityVerifier{}, repository)
+
+	if err := service.ResetPassword(context.Background(), "recovery-token", "new-password-123"); err != nil {
+		t.Fatalf("ResetPassword() error=%v", err)
+	}
+	if repository.revokedAllUserID != "user-id" {
+		t.Fatalf("sessions revoked for %q, want user-id", repository.revokedAllUserID)
+	}
+}
+
+func TestPurgeExpiredCredentialsRemovesSessionsAndRecoveryTokens(t *testing.T) {
+	repository := &repository{}
+	if err := application.NewService(identityVerifier{}, repository).PurgeExpiredCredentials(context.Background()); err != nil {
+		t.Fatalf("PurgeExpiredCredentials() error=%v", err)
+	}
+	if !repository.sessionsPurged || !repository.recoveriesPurged {
+		t.Fatalf("purge flags sessions=%v recoveries=%v, want both true", repository.sessionsPurged, repository.recoveriesPurged)
+	}
+}
+
 func TestResetPasswordRejectsShortPasswordAndInvalidToken(t *testing.T) {
 	t.Run("short password", func(t *testing.T) {
 		repository := &repository{recoveryUserID: "user-id"}
@@ -332,4 +409,90 @@ func TestResetPasswordRejectsShortPasswordAndInvalidToken(t *testing.T) {
 			t.Fatalf("ResetPassword() error=%v, want ErrInvalidRecoveryToken", err)
 		}
 	})
+}
+
+func TestUpdateUserRoleRequiresAdminAndUsesTargetUID(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "Admin", Status: "activo"}}
+	service := application.NewService(identityVerifier{identity: domain.Identity{UID: "admin-uid", Email: "admin@example.com"}}, repository)
+	login, err := service.Login(context.Background(), "firebase-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.UpdateUserRole(context.Background(), login.Token, "target-uid", "profesor"); err != nil {
+		t.Fatalf("UpdateUserRole() error=%v", err)
+	}
+	if repository.updatedUID != "target-uid" || repository.updatedRole != "profesor" {
+		t.Fatalf("updated target=%q role=%q", repository.updatedUID, repository.updatedRole)
+	}
+	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "profesor"); !errors.Is(err, domain.ErrSelfRoleChange) {
+		t.Fatalf("self role change error=%v", err)
+	}
+}
+
+func TestUpdateUserRoleRejectsNonAdminAndInvalidRequests(t *testing.T) {
+	tests := []struct {
+		name    string
+		actor   domain.User
+		target  string
+		role    string
+		wantErr error
+	}{
+		{
+			name:    "non-admin actor",
+			actor:   domain.User{ID: "user-id", FirebaseUID: "user-uid", Role: "estudiante", Status: "activo"},
+			target:  "target-uid",
+			role:    "profesor",
+			wantErr: domain.ErrForbidden,
+		},
+		{
+			name:    "missing target uid",
+			actor:   domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "admin", Status: "activo"},
+			role:    "profesor",
+			wantErr: domain.ErrIncompleteIdentity,
+		},
+		{
+			name:    "unsupported role",
+			actor:   domain.User{ID: "admin-id", FirebaseUID: "admin-uid", Role: "admin", Status: "activo"},
+			target:  "target-uid",
+			role:    "coordinador",
+			wantErr: domain.ErrInvalidRole,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			repository := &repository{user: test.actor}
+			service := application.NewService(identityVerifier{identity: domain.Identity{UID: test.actor.FirebaseUID, Email: "user@example.com"}}, repository)
+			login, err := service.Login(context.Background(), "firebase-token")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := service.UpdateUserRole(context.Background(), login.Token, test.target, test.role); !errors.Is(err, test.wantErr) {
+				t.Fatalf("UpdateUserRole() error=%v, want %v", err, test.wantErr)
+			}
+			if repository.updatedUID != "" {
+				t.Fatalf("invalid role update reached repository for UID %q", repository.updatedUID)
+			}
+		})
+	}
+}
+
+func TestSearchUsersRequiresQueryAndBoundsLimit(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id"}}
+	service := application.NewService(identityVerifier{}, repository)
+
+	if _, err := service.SearchUsers(context.Background(), "  ", 10); !errors.Is(err, domain.ErrIncompleteIdentity) {
+		t.Fatalf("SearchUsers() with blank query error=%v, want ErrIncompleteIdentity", err)
+	}
+	if _, err := service.SearchUsers(context.Background(), " ana ", 1); err != nil {
+		t.Fatalf("SearchUsers() error=%v", err)
+	}
+	if repository.searchQuery != "ana" || repository.searchLimit != 5 {
+		t.Fatalf("Search() query=%q limit=%d, want query ana and minimum limit 5", repository.searchQuery, repository.searchLimit)
+	}
+	if _, err := service.SearchUsers(context.Background(), "ana", 100); err != nil {
+		t.Fatalf("SearchUsers() with large limit error=%v", err)
+	}
+	if repository.searchLimit != 50 {
+		t.Fatalf("Search() limit=%d, want maximum limit 50", repository.searchLimit)
+	}
 }

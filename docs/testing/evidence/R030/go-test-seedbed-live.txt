@@ -1,0 +1,15 @@
+    live_api_test.go:110: duplicate name: POST /seedbeds status=500, want 409: {"error":"no fue posible procesar el semillero"}
+--- FAIL: TestLiveCreateRejectsDuplicateName (0.03s)
+    live_api_test.go:117: unknown seedbed: GET /seedbeds/00000000-0000-0000-0000-000000000000 status=500, want 404: {"error":"no fue posible procesar el semillero"}
+    live_api_test.go:117: unknown seedbed: GET /seedbeds/00000000-0000-0000-0000-000000000000/space status=500, want 404: {"error":"no fue posible procesar el semillero"}
+    live_api_test.go:117: unknown seedbed: GET /seedbeds/00000000-0000-0000-0000-000000000000/members status=500, want 404: {"error":"no fue posible procesar el semillero"}
+--- FAIL: TestLiveUnknownSeedbedReturnsNotFound (0.02s)
+--- PASS: TestLiveVisibilityControlsPublicAccess (0.03s)
+    live_api_test.go:147: hidden members anonymous wrote several error bodies: {"error":"sesión requerida"}
+        {"error":"semillero no encontrado"}
+--- FAIL: TestLiveHiddenMembersAnonymousSingleError (0.02s)
+    live_api_test.go:167: withdraw non-member: DELETE /seedbeds/014c0d10-ae4e-424f-9bae-7e1e1293295e/members/0930737b-283f-4b57-893a-be24ea28a8a5 status=500, want 404: {"error":"no fue posible procesar el semillero"}
+--- FAIL: TestLiveWithdrawKeepsHistory (0.03s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/seedbed	0.129s
+FAIL

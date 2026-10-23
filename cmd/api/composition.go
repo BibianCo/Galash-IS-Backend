@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	firebase "firebase.google.com/go/v4"
 	httpadapter "github.com/galash-uptc/backend/internal/adapters/inbound/http"
 	firebaseadapter "github.com/galash-uptc/backend/internal/adapters/outbound/firebase"
 	postgresadapter "github.com/galash-uptc/backend/internal/adapters/outbound/postgres"
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
+	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	"github.com/galash-uptc/backend/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/api/option"
@@ -41,8 +44,28 @@ func Run() error {
 	}
 
 	users := postgresadapter.NewUserRepository(db)
+	seedbeds := postgresadapter.NewSeedbedRepository(db)
+	registrations := postgresadapter.NewRegistrationRepository(db)
 	service := application.NewService(firebaseadapter.NewVerifier(firebaseAuth), users)
-	handler := httpadapter.NewHandler(service, users)
+	handler := httpadapter.NewHandlerWithRegistrations(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations))
+	go purgeExpiredCredentials(ctx, service, time.Hour)
 	log.Printf("Auth escuchando en :%s", cfg.Port)
 	return http.ListenAndServe(":"+cfg.Port, handler.Routes())
+}
+
+// purgeExpiredCredentials runs once at startup and then periodically, so expired
+// or revoked sessions and recovery tokens do not accumulate in the database.
+func purgeExpiredCredentials(ctx context.Context, service *application.Service, every time.Duration) {
+	ticker := time.NewTicker(every)
+	defer ticker.Stop()
+	for {
+		if err := service.PurgeExpiredCredentials(ctx); err != nil {
+			log.Printf("limpieza de sesiones: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
