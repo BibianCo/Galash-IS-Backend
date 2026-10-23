@@ -57,6 +57,9 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T057|module-4-research|`TestProposalDetailIncludesHistory`|Proposal detail returns review history; stranger is forbidden.|`tests/research/service_test.go`|PT-SEM-06|
 |T058|module-4-research|`TestConvertRequiresApprovedProposalAndReviewer`|Conversion requires approved proposal and teacher/admin.|`tests/research/service_test.go`|PT-SEM-06|
 |T059|module-4-research|`TestResearchJSONUsesCamelCase`|Module 4 payloads serialize with camelCase keys.|`tests/research/service_test.go`|PT-SEM-04, PT-SEM-05, PT-SEM-06, PT-SEM-07|
+|T065|module-4-research|`TestProposalListScopesByRole`|Proposal list shows all to Admin/Docente and only own or responsible proposals to students.|`tests/research/service_test.go`|PT-SEM-06|
+|T069|module-4-research|`TestActivityStatusDerivedFromDateWhenOmitted`|Omitted activity status is derived from the date (future próxima, today en curso, past finalizada); explicit status wins.|`tests/research/service_test.go`|PT-SEM-04|
+|T066|module-4-research|`TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending`|Review requires existing seedbed; admin list defaults to pendiente.|`tests/research/service_test.go`|PT-SEM-08|
 
 ## HTTP/API tests
 
@@ -75,6 +78,7 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T042|seedbeds|`TestSetSeedbedVisibilityValidatesActorAndState`|Visibility change validates actor and state.|`tests/seedbed/http_test.go`|PT-SEM-01|
 |T043|seedbeds|`TestSeedbedMemberHistoryIsRestricted`|Withdrawal history only for responsible or admin; hidden members not exposed.|`tests/seedbed/http_test.go`|PT-SEM-02, PT-SEM-03|
 |T044|seedbeds|`TestLinkAndWithdrawMemberRequireResponsibleOrAdmin`|Link and withdraw member require responsible or admin.|`tests/seedbed/http_test.go`|PT-SEM-03|
+|T064|module-4-research|`TestPatchKeepsOmittedFields`|PATCH of project, activity and proposal keeps omitted fields and validates the merged record.|`tests/research/http_test.go`|PT-SEM-04, PT-SEM-05, PT-SEM-06|
 
 ## Database integration tests
 
@@ -91,6 +95,8 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T061|module-4-research|`TestConvertProposalKeepsHistoryAndLinksProject`|Conversion creates Radicado project, links proposal.projectId, keeps proposal history and attachments.|`tests/research/repository_test.go`|PT-SEM-06, TDB-T07|
 |T062|module-4-research|`TestProposalWithoutSeedbedIsStored`|Proposal without seedbed or optional lists is stored.|`tests/research/repository_test.go`|PT-SEM-06|
 |T063|module-4-research|`TestActivityWithoutOptionalListsIsStored`|Activity without responsibles or evidence is stored with empty lists.|`tests/research/repository_test.go`|PT-SEM-04|
+|T067|module-4-research|`TestReviewNotifiesActiveAdmins`|New review notifies every active admin in the same transaction; empty list is [].|`tests/research/repository_test.go`|PT-SEM-08|
+|T068|module-4-research|`TestMalformedOrMissingReferencesAreNotFound`|Malformed ids and missing seedbeds map to not-found errors instead of 500; empty activity list is [].|`tests/research/repository_test.go`|PT-SEM-04, PT-SEM-05|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.

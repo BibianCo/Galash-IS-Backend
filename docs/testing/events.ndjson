@@ -248,3 +248,60 @@
 {"v":1,"id":"D007","t":"defect","test":"T059","run":"R040","s":"closed","name":"Fixed and verified in R040"}
 {"v":1,"id":"D008","t":"defect","test":"T061","run":"R040","s":"closed","name":"Fixed and verified in R040"}
 {"v":1,"id":"D009","t":"defect","test":"T053","run":"R040","s":"closed","name":"Fixed and verified in R040"}
+{"v":1,"id":"T064","t":"test","area":"module-4-research","p":"must","name":"PATCH of project, activity and proposal keeps omitted fields and validates the merged record"}
+{"v":1,"id":"T065","t":"test","area":"module-4-research","p":"must","name":"Proposal list shows all to Admin/Docente and only own or responsible proposals to students"}
+{"v":1,"id":"T066","t":"test","area":"module-4-research","p":"must","name":"Review requires existing seedbed; admin list defaults to pendiente"}
+{"v":1,"id":"T067","t":"test","area":"module-4-research","p":"must","name":"New review notifies every active admin in the same transaction; empty list is []"}
+{"v":1,"id":"T068","t":"test","area":"module-4-research","p":"must","name":"Malformed ids and missing seedbeds map to not-found errors instead of 500; empty activity list is []"}
+{"v":1,"id":"D010","t":"defect","test":"T064","sev":"medium","s":"open","name":"PATCH of projects, activities and proposals replaced omitted fields with empty values","ref":"internal/adapters/inbound/http/handler.go update handlers"}
+{"v":1,"id":"D011","t":"defect","test":"T065","sev":"medium","s":"open","name":"GET /research-proposals showed Docente/Admin only their own proposals","ref":"internal/application/research/service.go Proposals"}
+{"v":1,"id":"D012","t":"defect","test":"T067","sev":"low","s":"open","name":"Seedbed review did not notify Admin and admin list did not default to pending","ref":"internal/adapters/outbound/postgres/research_repository.go CreateReview"}
+{"v":1,"id":"D013","t":"defect","test":"T068","sev":"medium","s":"open","name":"Malformed ids or missing seedbed returned 500 instead of 404 in module 4","ref":"internal/adapters/outbound/postgres/research_repository.go"}
+{"v":1,"id":"D014","t":"defect","test":"T068","sev":"low","s":"open","name":"Empty activity and review lists returned null instead of []","ref":"internal/adapters/outbound/postgres/research_repository.go"}
+{"v":1,"id":"R041","t":"run","at":"2026-10-23T20:05:00Z","build":"4adf520+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/research/ -v -count=1"}
+{"v":1,"id":"X125","t":"result","run":"R041","test":"T068","s":"fail","note":"ProjectHistory with malformed id still returned SQLSTATE 22P02; error surfaced from rows.Err()"}
+{"v":1,"id":"R042","t":"run","at":"2026-10-23T20:10:00Z","build":"4adf520+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; git diff --check"}
+{"v":1,"id":"X126","t":"result","run":"R042","test":"T051","s":"pass"}
+{"v":1,"id":"X127","t":"result","run":"R042","test":"T052","s":"pass"}
+{"v":1,"id":"X128","t":"result","run":"R042","test":"T053","s":"pass"}
+{"v":1,"id":"X129","t":"result","run":"R042","test":"T054","s":"pass"}
+{"v":1,"id":"X130","t":"result","run":"R042","test":"T055","s":"pass"}
+{"v":1,"id":"X131","t":"result","run":"R042","test":"T056","s":"pass"}
+{"v":1,"id":"X132","t":"result","run":"R042","test":"T057","s":"pass"}
+{"v":1,"id":"X133","t":"result","run":"R042","test":"T058","s":"pass"}
+{"v":1,"id":"X134","t":"result","run":"R042","test":"T059","s":"pass"}
+{"v":1,"id":"X135","t":"result","run":"R042","test":"T060","s":"pass"}
+{"v":1,"id":"X136","t":"result","run":"R042","test":"T061","s":"pass"}
+{"v":1,"id":"X137","t":"result","run":"R042","test":"T062","s":"pass"}
+{"v":1,"id":"X138","t":"result","run":"R042","test":"T063","s":"pass"}
+{"v":1,"id":"X139","t":"result","run":"R042","test":"T064","s":"pass"}
+{"v":1,"id":"X140","t":"result","run":"R042","test":"T065","s":"pass"}
+{"v":1,"id":"X141","t":"result","run":"R042","test":"T066","s":"pass"}
+{"v":1,"id":"X142","t":"result","run":"R042","test":"T067","s":"pass"}
+{"v":1,"id":"X143","t":"result","run":"R042","test":"T068","s":"pass"}
+{"v":1,"id":"D010","t":"defect","test":"T064","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D011","t":"defect","test":"T065","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D012","t":"defect","test":"T067","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D013","t":"defect","test":"T068","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"D014","t":"defect","test":"T068","run":"R042","s":"closed","name":"Fixed and verified in R042"}
+{"v":1,"id":"T069","t":"test","area":"module-4-research","p":"must","name":"Omitted activity status is derived from the date; explicit status wins"}
+{"v":1,"id":"R043","t":"run","at":"2026-10-23T20:30:00Z","build":"4adf520+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; git diff --check"}
+{"v":1,"id":"X144","t":"result","run":"R043","test":"T051","s":"pass"}
+{"v":1,"id":"X145","t":"result","run":"R043","test":"T052","s":"pass"}
+{"v":1,"id":"X146","t":"result","run":"R043","test":"T053","s":"pass"}
+{"v":1,"id":"X147","t":"result","run":"R043","test":"T054","s":"pass"}
+{"v":1,"id":"X148","t":"result","run":"R043","test":"T055","s":"pass"}
+{"v":1,"id":"X149","t":"result","run":"R043","test":"T056","s":"pass"}
+{"v":1,"id":"X150","t":"result","run":"R043","test":"T057","s":"pass"}
+{"v":1,"id":"X151","t":"result","run":"R043","test":"T058","s":"pass"}
+{"v":1,"id":"X152","t":"result","run":"R043","test":"T059","s":"pass"}
+{"v":1,"id":"X153","t":"result","run":"R043","test":"T060","s":"pass"}
+{"v":1,"id":"X154","t":"result","run":"R043","test":"T061","s":"pass"}
+{"v":1,"id":"X155","t":"result","run":"R043","test":"T062","s":"pass"}
+{"v":1,"id":"X156","t":"result","run":"R043","test":"T063","s":"pass"}
+{"v":1,"id":"X157","t":"result","run":"R043","test":"T064","s":"pass"}
+{"v":1,"id":"X158","t":"result","run":"R043","test":"T065","s":"pass"}
+{"v":1,"id":"X159","t":"result","run":"R043","test":"T066","s":"pass"}
+{"v":1,"id":"X160","t":"result","run":"R043","test":"T067","s":"pass"}
+{"v":1,"id":"X161","t":"result","run":"R043","test":"T068","s":"pass"}
+{"v":1,"id":"X162","t":"result","run":"R043","test":"T069","s":"pass"}
