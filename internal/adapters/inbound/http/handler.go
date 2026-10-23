@@ -8,9 +8,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
+	researchapp "github.com/galash-uptc/backend/internal/application/research"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -39,6 +41,7 @@ type Handler struct {
 	service  *application.Service
 	seedbeds *seedbedapp.Service
 	registrations *registrationapp.Service
+	research *researchapp.Service
 	db       ports.HealthChecker
 }
 
@@ -49,6 +52,7 @@ func NewHandler(service *application.Service, db ports.HealthChecker, seedbeds .
 func NewHandlerWithRegistrations(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service) *Handler {
 	return newHandler(service, db, []*seedbedapp.Service{seedbed}, registration)
 }
+func NewHandlerWithResearch(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service) *Handler { h:=newHandler(service,db,[]*seedbedapp.Service{seedbed},registration); h.research=research; return h }
 
 func newHandler(service *application.Service, db ports.HealthChecker, seedbeds []*seedbedapp.Service, registration *registrationapp.Service) *Handler {
 	var sb *seedbedapp.Service
@@ -84,6 +88,25 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/registration-requests", h.listRegistrationRequests)
 	mux.HandleFunc("GET /admin/registration-requests/{id}", h.registrationDetail)
 	mux.HandleFunc("PATCH /admin/registration-requests/{id}/status", h.updateRegistrationStatus)
+	mux.HandleFunc("GET /seedbeds/{seedbedId}/activities", h.listActivities)
+	mux.HandleFunc("POST /seedbeds/{seedbedId}/activities", h.createActivity)
+	mux.HandleFunc("GET /activities/{id}", h.getActivity)
+	mux.HandleFunc("PATCH /activities/{id}", h.updateActivity)
+	mux.HandleFunc("GET /projects", h.listProjects)
+	mux.HandleFunc("POST /projects", h.createProject)
+	mux.HandleFunc("GET /projects/progress", h.projectProgress)
+	mux.HandleFunc("GET /projects/{id}", h.getProject)
+	mux.HandleFunc("PATCH /projects/{id}", h.updateProject)
+	mux.HandleFunc("PATCH /projects/{id}/progress", h.updateProgress)
+	mux.HandleFunc("GET /projects/{id}/history", h.projectHistory)
+	mux.HandleFunc("GET /research-proposals", h.listProposals)
+	mux.HandleFunc("POST /research-proposals", h.createProposal)
+	mux.HandleFunc("GET /research-proposals/{id}", h.getProposal)
+	mux.HandleFunc("PATCH /research-proposals/{id}", h.updateProposal)
+	mux.HandleFunc("POST /research-proposals/{id}/convert-to-project", h.convertProposal)
+	mux.HandleFunc("POST /seedbeds/{seedbedId}/reviews", h.createReview)
+	mux.HandleFunc("GET /admin/seedbed-reviews", h.listReviews)
+	mux.HandleFunc("PATCH /admin/seedbed-reviews/{id}/moderation", h.moderateReview)
 	return localCORS(mux)
 }
 
@@ -460,6 +483,35 @@ func (h *Handler) updateRegistrationStatus(w http.ResponseWriter, r *http.Reques
 	item, err := h.registrations.UpdateStatus(r.Context(), r.PathValue("id"), request.Status, request.Observation, responsible)
 	switch { case errors.Is(err, domain.ErrInvalidRegistrationStatus), errors.Is(err, domain.ErrInvalidRegistrationTransition): writeError(w, 400, err.Error()); case errors.Is(err, domain.ErrRegistrationNotFound): writeError(w, 404, err.Error()); case err != nil: writeError(w, 500, "no fue posible actualizar la solicitud"); default: writeJSON(w, 200, item) }
 }
+
+func (h *Handler) researchReady(w http.ResponseWriter) bool { if h.research==nil { writeError(w,500,"módulo de investigación no configurado"); return false }; return true }
+type activityRequest struct { Title string `json:"title"`; Description string `json:"description"`; Status string `json:"status"`; Date *time.Time `json:"date"`; ResponsibleIDs []string `json:"responsibleIds"`; Evidence []string `json:"evidence"` }
+type projectRequest struct { SeedbedID string `json:"seedbedId"`; Title,Summary,ResearchLine,Status string; ResponsibleIDs,MemberIDs []string; StartDate,EndDate *time.Time; Progress int }
+type proposalRequest struct { SeedbedID,Title,Problem,Objectives,Methodology,Status,Observations string; ResponsibleIDs,Attachments []string }
+func actorRole(a domain.User, roles ...string)bool{for _,x:=range roles{if strings.EqualFold(a.Role,x){return true}};return false}
+func researchError(w http.ResponseWriter,e error){switch{case errors.Is(e,domain.ErrForbidden):writeError(w,403,e.Error());case errors.Is(e,domain.ErrResearchNotFound),errors.Is(e,domain.ErrSeedbedNotFound):writeError(w,404,mapResearchNotFound(e));case errors.Is(e,domain.ErrInvalidResearch),errors.Is(e,domain.ErrInvalidProjectStatus):writeError(w,400,e.Error());default:writeError(w,500,"no fue posible procesar la investigación")}}
+func mapResearchNotFound(e error)string{if errors.Is(e,domain.ErrSeedbedNotFound){return "semillero no encontrado"};return e.Error()}
+func(h *Handler) listActivities(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};v,e:=h.research.ListActivities(r.Context(),r.PathValue("seedbedId"),r.URL.Query().Get("period"),r.URL.Query().Get("status"));if e!=nil{researchError(w,e);return};writeJSON(w,200,map[string]any{"activities":v})}
+func(h *Handler) createActivity(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};var q activityRequest;if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.CreateActivity(r.Context(),domain.Activity{SeedbedID:r.PathValue("seedbedId"),Title:q.Title,Description:q.Description,Status:q.Status,Date:q.Date,ResponsibleIDs:q.ResponsibleIDs,Evidence:q.Evidence},a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,201,v)}
+func(h *Handler) getActivity(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};v,e:=h.research.FindActivity(r.Context(),r.PathValue("id"));if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+// PATCH handlers decode the body over the stored record so omitted fields keep their value.
+func(h *Handler) updateActivity(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};q,e:=h.research.FindActivity(r.Context(),r.PathValue("id"));if e!=nil{researchError(w,e);return};if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.UpdateActivity(r.Context(),r.PathValue("id"),q,a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+func toProject(q projectRequest)domain.Project{return domain.Project{SeedbedID:q.SeedbedID,Title:q.Title,Summary:q.Summary,ResearchLine:q.ResearchLine,Status:q.Status,ResponsibleIDs:q.ResponsibleIDs,MemberIDs:q.MemberIDs,StartDate:q.StartDate,EndDate:q.EndDate,Progress:q.Progress}}
+func(h *Handler) listProjects(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};v,e:=h.research.ListProjects(r.Context(),r.URL.Query().Get("seedbedId"),r.URL.Query().Get("status"),r.URL.Query().Get("period"));if e!=nil{researchError(w,e);return};writeJSON(w,200,map[string]any{"projects":v})}
+func(h *Handler) createProject(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};var q projectRequest;if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.CreateProject(r.Context(),toProject(q),a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,201,v)}
+func(h *Handler) getProject(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};v,e:=h.research.FindProject(r.Context(),r.PathValue("id"));if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+func(h *Handler) updateProject(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};q,e:=h.research.FindProject(r.Context(),r.PathValue("id"));if e!=nil{researchError(w,e);return};if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.UpdateProject(r.Context(),r.PathValue("id"),q,a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+func(h *Handler) updateProgress(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};var q struct{Progress int `json:"progress"`};if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.Progress(r.Context(),r.PathValue("id"),q.Progress,a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+func(h *Handler) projectProgress(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok||!actorRole(a,"estudiante","docente","profesor","admin"){if ok{writeError(w,403,"rol no autorizado")};return};v,e:=h.research.ProgressList(r.Context(),r.URL.Query().Get("seedbedId"),r.URL.Query().Get("period"));if e!=nil{researchError(w,e);return};writeJSON(w,200,map[string]any{"projects":v})}
+func(h *Handler) projectHistory(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok||!actorRole(a,"estudiante","docente","profesor","admin"){if ok{writeError(w,403,"rol no autorizado")};return};v,e:=h.research.History(r.Context(),r.PathValue("id"));if e!=nil{researchError(w,e);return};writeJSON(w,200,map[string]any{"history":v})}
+func(h *Handler) listProposals(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};v,e:=h.research.Proposals(r.Context(),a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,200,map[string]any{"proposals":v})}
+func(h *Handler) createProposal(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};var q proposalRequest;if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.CreateProposal(r.Context(),domain.ResearchProposal{SeedbedID:q.SeedbedID,Title:q.Title,Problem:q.Problem,Objectives:q.Objectives,Methodology:q.Methodology,Status:q.Status,ResponsibleIDs:q.ResponsibleIDs,Attachments:q.Attachments},a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,201,v)}
+func(h *Handler) getProposal(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};v,e:=h.research.Proposal(r.Context(),r.PathValue("id"),a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+func(h *Handler) updateProposal(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};q,e:=h.research.Proposal(r.Context(),r.PathValue("id"),a.ID);if e!=nil{researchError(w,e);return};if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.UpdateProposal(r.Context(),r.PathValue("id"),q,a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
+func(h *Handler) convertProposal(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};v,e:=h.research.Convert(r.Context(),r.PathValue("id"),a.ID);if e!=nil{researchError(w,e);return};writeJSON(w,201,v)}
+func(h *Handler) createReview(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};a,ok:=h.actor(w,r);if !ok{return};var q struct{Text string `json:"text"`};if json.NewDecoder(r.Body).Decode(&q)!=nil||strings.TrimSpace(q.Text)==""{writeError(w,400,"reseña inválida");return};v,e:=h.research.Review(r.Context(),domain.SeedbedReview{SeedbedID:r.PathValue("seedbedId"),AuthorID:a.ID,Text:q.Text});if e!=nil{researchError(w,e);return};writeJSON(w,201,v)}
+func(h *Handler) listReviews(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};if _,ok:=h.adminRegistration(w,r);!ok{return};v,e:=h.research.Reviews(r.Context(),r.URL.Query().Get("status"));if e!=nil{researchError(w,e);return};writeJSON(w,200,map[string]any{"reviews":v})}
+func(h *Handler) moderateReview(w http.ResponseWriter,r *http.Request){if !h.researchReady(w){return};if _,ok:=h.adminRegistration(w,r);!ok{return};var q struct{Status,Note string};if json.NewDecoder(r.Body).Decode(&q)!=nil{writeError(w,400,"cuerpo JSON inválido");return};v,e:=h.research.Moderate(r.Context(),r.PathValue("id"),q.Status,q.Note);if e!=nil{researchError(w,e);return};writeJSON(w,200,v)}
 
 func hasSessionCredential(r *http.Request) bool {
 	if strings.TrimSpace(r.Header.Get("Authorization")) != "" { return true }
