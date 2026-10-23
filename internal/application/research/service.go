@@ -53,10 +53,14 @@ func (s *Service) CreateActivity(ctx context.Context, a domain.Activity, actor s
 	if e := s.manage(ctx, actor, a.SeedbedID); e != nil {
 		return a, e
 	}
-	if strings.TrimSpace(a.Title) == "" || a.Status != "próxima" && a.Status != "en curso" && a.Status != "finalizada" {
+	if !validActivity(a) {
 		return a, domain.ErrInvalidResearch
 	}
 	return s.repo.CreateActivity(ctx, a)
+}
+
+func validActivity(a domain.Activity) bool {
+	return strings.TrimSpace(a.Title) != "" && (a.Status == "próxima" || a.Status == "en curso" || a.Status == "finalizada")
 }
 
 func (s *Service) UpdateActivity(ctx context.Context, id string, a domain.Activity, actor string) (domain.Activity, error) {
@@ -68,6 +72,9 @@ func (s *Service) UpdateActivity(ctx context.Context, id string, a domain.Activi
 		return a, e
 	}
 	a.SeedbedID = old.SeedbedID
+	if !validActivity(a) {
+		return a, domain.ErrInvalidResearch
+	}
 	return s.repo.UpdateActivity(ctx, id, a)
 }
 
@@ -118,7 +125,7 @@ func (s *Service) UpdateProject(ctx context.Context, id string, p domain.Project
 		return p, e
 	}
 	p.SeedbedID = old.SeedbedID
-	if !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 {
+	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 {
 		return p, domain.ErrInvalidResearch
 	}
 	return s.repo.UpdateProject(ctx, id, p, actor, projectChanges(old, p))
@@ -143,7 +150,7 @@ func (s *Service) CreateProposal(ctx context.Context, p domain.ResearchProposal,
 	if e != nil || !role(u, "estudiante", "docente", "profesor", "admin") {
 		return p, domain.ErrForbidden
 	}
-	if strings.TrimSpace(p.Title) == "" || strings.TrimSpace(p.Problem) == "" || strings.TrimSpace(p.Objectives) == "" || strings.TrimSpace(p.Methodology) == "" {
+	if !validProposal(p) {
 		return p, domain.ErrInvalidResearch
 	}
 	// Every proposal enters review as Radicada; only reviewers change it later.
@@ -171,8 +178,15 @@ func (s *Service) UpdateProposal(ctx context.Context, id string, p domain.Resear
 	if p.Status != old.Status && (p.Status == "Convertida" || old.Status == "Convertida") {
 		return p, domain.ErrInvalidResearch
 	}
+	if !validProposal(p) {
+		return p, domain.ErrInvalidResearch
+	}
 	p.AuthorID = old.AuthorID
 	return s.repo.UpdateProposal(ctx, id, p, actor)
+}
+
+func validProposal(p domain.ResearchProposal) bool {
+	return strings.TrimSpace(p.Title) != "" && strings.TrimSpace(p.Problem) != "" && strings.TrimSpace(p.Objectives) != "" && strings.TrimSpace(p.Methodology) != ""
 }
 
 func (s *Service) ListActivities(c context.Context, id, q, st string) ([]domain.Activity, error) {

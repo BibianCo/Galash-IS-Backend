@@ -57,7 +57,7 @@ func (r *repository) CreateActivity(_ context.Context, a domain.Activity) (domai
 	return a, nil
 }
 func (r *repository) FindActivity(context.Context, string) (domain.Activity, error) {
-	return domain.Activity{ID: "act", SeedbedID: "sb"}, nil
+	return domain.Activity{ID: "act", SeedbedID: "sb", Title: "Taller", Status: "próxima"}, nil
 }
 func (r *repository) UpdateActivity(_ context.Context, id string, a domain.Activity) (domain.Activity, error) {
 	a.ID = id
@@ -101,6 +101,11 @@ func (r *repository) ConvertProposal(_ context.Context, _ string, actor string) 
 }
 
 func fixtures() (*application.Service, *repository) {
+	s, r, _ := fixturesWithUsers()
+	return s, r
+}
+
+func fixturesWithUsers() (*application.Service, *repository, users) {
 	u := users{
 		"admin":   {ID: "admin", Role: "admin"},
 		"teacher": {ID: "teacher", Role: "profesor"},
@@ -109,9 +114,9 @@ func fixtures() (*application.Service, *repository) {
 	}
 	r := &repository{
 		project:  domain.Project{ID: "proj", SeedbedID: "sb", Title: "P", Status: "Radicado", Progress: 10},
-		proposal: domain.ResearchProposal{ID: "prop", SeedbedID: "sb", AuthorID: "student", Status: "Radicada", Observations: "revisar"},
+		proposal: domain.ResearchProposal{ID: "prop", SeedbedID: "sb", Title: "T", Problem: "P", Objectives: "O", Methodology: "M", AuthorID: "student", Status: "Radicada", Observations: "revisar"},
 	}
-	return application.NewService(r, seedbeds{}, u), r
+	return application.NewService(r, seedbeds{}, u), r, u
 }
 
 func TestActivityRequiresResponsibleTeacherOrAdmin(t *testing.T) {
