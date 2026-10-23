@@ -188,3 +188,6 @@
 {"v":1,"id":"X093","t":"result","run":"R034","test":"T047","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
 {"v":1,"id":"X094","t":"result","run":"R034","test":"T048","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
 {"v":1,"id":"X095","t":"result","run":"R034","test":"T049","s":"skip","ev":["docs/testing/evidence/R034/go-test-seedbed-registration.txt"]}
+{"v":1,"id":"R035","t":"run","at":"2026-10-23T00:00:00Z","build":"working-tree","by":"agent","mode":"automated","note":"Validación de módulo 5 con contenedor Go 1.22"}
+{"v":1,"id":"X096","t":"result","run":"R035","test":"T002","s":"pass","ev":["docs/testing/evidence/R035/go-test.txt"]}
+{"v":1,"id":"X097","t":"result","run":"R035","test":"T003","s":"pass","ev":["docs/testing/evidence/R035/go-test.txt"]}

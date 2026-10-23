@@ -35,6 +35,7 @@ GALASH-UPTC web system for academic management, research, and communication.
 - El módulo 3 implementa las cinco rutas de solicitudes de registro: radicación pública con token opaco, consulta propia, listado y detalle administrativo, y actualización auditada de estados; la aprobación asigna el rol `estudiante` a la cuenta asociada por sesión o documento.
 - Las consultas de semilleros inexistentes, los duplicados de nombre y los retiros de integrantes no activos se traducen a errores HTTP controlados; el listado de integrantes no continúa después de responder una sesión anónima requerida.
 - El adaptador HTTP acepta preflight CORS desde interfaces locales (`localhost`, `127.0.0.1` y `::1`) y prioriza `Authorization` sobre una cookie de sesión antigua.
+- El módulo 5 implementa el directorio de integrantes: listado público filtrable, creación y edición administrativa, detalle con campos internos para Admin o el propio integrante, cambio de estado sin borrar relaciones y publicaciones visibles.
 
 ## Record
 

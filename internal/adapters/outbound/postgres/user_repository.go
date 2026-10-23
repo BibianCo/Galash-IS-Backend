@@ -2,9 +2,12 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
+	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	"github.com/galash-uptc/backend/internal/domain"
+	"github.com/galash-uptc/backend/internal/ports"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -95,6 +98,147 @@ func (r *UserRepository) UpdateRole(ctx context.Context, firebaseUID, role strin
 		return pgx.ErrNoRows
 	}
 	return nil
+}
+
+func memberSelect() string {
+	return `SELECT u.id, u.firebase_uid, u.nombre, COALESCE(u.apellido,''), u.email, COALESCE(u.tipo_dni,''), COALESCE(u.dni,''), u.rol, u.estado, COALESCE(p.area_investigacion,''), COALESCE(p.formacion,''), COALESCE(p.orcid,''), COALESCE(p.cvlac,''), COALESCE(p.visible_publicamente, true), COALESCE((SELECT array_agg(sm.semillero_id::text ORDER BY sm.semillero_id) FROM semillero_miembros sm WHERE sm.usuario_id = u.id AND sm.retirado_en IS NULL), ARRAY[]::text[]) FROM usuarios u LEFT JOIN perfil_investigador p ON p.usuario_id = u.id `
+}
+
+func scanMember(row interface{ Scan(...any) error }) (domain.MemberProfile, error) {
+	var p domain.MemberProfile
+	err := row.Scan(&p.ID, &p.FirebaseUID, &p.Name, &p.LastName, &p.Email, &p.DocumentType, &p.DocumentNumber, &p.Role, &p.Status, &p.Area, &p.Formation, &p.ORCID, &p.CvLAC, &p.VisiblePublicly, &p.SeedbedIDs)
+	return p, err
+}
+
+func (r *UserRepository) List(ctx context.Context, f ports.MemberFilter) ([]domain.MemberProfile, error) {
+	where := []string{"u.estado = 'activo'", "COALESCE(p.visible_publicamente, true) = true"}
+	args := []any{}
+	if q := strings.TrimSpace(f.Query); q != "" {
+		args = append(args, "%"+strings.ToLower(q)+"%")
+		where = append(where, "lower(u.nombre || ' ' || COALESCE(u.apellido,'')) LIKE $"+fmt.Sprint(len(args))+" OR lower(u.email) LIKE $"+fmt.Sprint(len(args)))
+	}
+	if f.Role != "" {
+		args = append(args, f.Role)
+		where = append(where, "lower(u.rol) = lower($"+fmt.Sprint(len(args))+")")
+	}
+	if f.Area != "" {
+		args = append(args, "%"+strings.ToLower(f.Area)+"%")
+		where = append(where, "lower(COALESCE(p.area_investigacion,'')) LIKE $"+fmt.Sprint(len(args)))
+	}
+	if f.SeedbedID != "" {
+		args = append(args, f.SeedbedID)
+		where = append(where, "EXISTS (SELECT 1 FROM semillero_miembros smf WHERE smf.usuario_id=u.id AND smf.semillero_id=$"+fmt.Sprint(len(args))+" AND smf.retirado_en IS NULL)")
+	}
+	args = append(args, f.Limit)
+	rows, err := r.db.Query(ctx, memberSelect()+"WHERE "+strings.Join(where, " AND ")+" ORDER BY u.nombre, u.apellido LIMIT $"+fmt.Sprint(len(args)), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]domain.MemberProfile, 0)
+	for rows.Next() {
+		p, err := scanMember(rows)
+		if err != nil {
+			return nil, err
+		}
+		p.FirebaseUID = ""
+		p.Email = ""
+		p.DocumentType = ""
+		p.DocumentNumber = ""
+		items = append(items, p)
+	}
+	return items, rows.Err()
+}
+
+func (r *UserRepository) Find(ctx context.Context, id string) (domain.MemberProfile, error) {
+	p, err := scanMember(r.db.QueryRow(ctx, memberSelect()+"WHERE u.id=$1", id))
+	if err == pgx.ErrNoRows {
+		return domain.MemberProfile{}, domain.ErrMemberNotFound
+	}
+	return p, err
+}
+
+func (r *UserRepository) CreateMember(ctx context.Context, c memberapp.CreateCommand) (domain.MemberProfile, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	defer tx.Rollback(ctx)
+	var id string
+	err = tx.QueryRow(ctx, `INSERT INTO usuarios(firebase_uid,nombre,apellido,tipo_dni,dni,email,rol) VALUES($1,$2,$3,NULLIF($4,''),NULLIF($5,''),$6,$7) RETURNING id`, c.FirebaseUID, c.Name, c.LastName, c.DocumentType, c.DocumentNumber, c.Email, strings.ToLower(c.Role)).Scan(&id)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($1,$2,$3,$4,$5,$6)`, id, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	for _, seedbedID := range c.SeedbedIDs {
+		if _, err = tx.Exec(ctx, `INSERT INTO semillero_miembros(semillero_id,usuario_id) VALUES($1,$2)`, seedbedID, id); err != nil {
+			return domain.MemberProfile{}, err
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return domain.MemberProfile{}, err
+	}
+	return r.Find(ctx, id)
+}
+
+func (r *UserRepository) Update(ctx context.Context, id string, c memberapp.UpdateCommand) (domain.MemberProfile, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	defer tx.Rollback(ctx)
+	_, err = tx.Exec(ctx, `UPDATE usuarios SET nombre=COALESCE(NULLIF($1,''),nombre), apellido=COALESCE(NULLIF($2,''),apellido), email=COALESCE(NULLIF($3,''),email), tipo_dni=COALESCE(NULLIF($4,''),tipo_dni), dni=COALESCE(NULLIF($5,''),dni), rol=COALESCE(NULLIF($6,''),rol) WHERE id=$7`, c.Name, c.LastName, c.Email, c.DocumentType, c.DocumentNumber, strings.ToLower(c.Role), id)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($7,$1,$2,$3,$4,COALESCE($5,true)) ON CONFLICT(usuario_id) DO UPDATE SET area_investigacion=COALESCE(NULLIF($1,''),perfil_investigador.area_investigacion), formacion=COALESCE(NULLIF($2,''),perfil_investigador.formacion), orcid=COALESCE(NULLIF($3,''),perfil_investigador.orcid), cvlac=COALESCE(NULLIF($4,''),perfil_investigador.cvlac), visible_publicamente=COALESCE($5,perfil_investigador.visible_publicamente)`, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly, id)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	if c.SeedbedIDs != nil {
+		if _, err = tx.Exec(ctx, `DELETE FROM semillero_miembros WHERE usuario_id=$1 AND retirado_en IS NULL`, id); err != nil {
+			return domain.MemberProfile{}, err
+		}
+		for _, sid := range c.SeedbedIDs {
+			if _, err = tx.Exec(ctx, `INSERT INTO semillero_miembros(semillero_id,usuario_id) VALUES($1,$2)`, sid, id); err != nil {
+				return domain.MemberProfile{}, err
+			}
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return domain.MemberProfile{}, err
+	}
+	return r.Find(ctx, id)
+}
+
+func (r *UserRepository) SetStatus(ctx context.Context, id, status string) (domain.MemberProfile, error) {
+	result, err := r.db.Exec(ctx, `UPDATE usuarios SET estado=$1 WHERE id=$2`, status, id)
+	if err != nil {
+		return domain.MemberProfile{}, err
+	}
+	if result.RowsAffected() == 0 {
+		return domain.MemberProfile{}, pgx.ErrNoRows
+	}
+	return r.Find(ctx, id)
+}
+func (r *UserRepository) Publications(ctx context.Context, id string) ([]domain.Publication, error) {
+	rows, err := r.db.Query(ctx, `SELECT id,titulo,COALESCE(descripcion,''),COALESCE(url,''),publicado_en FROM publicaciones WHERE usuario_id=$1 AND visible=true ORDER BY publicado_en DESC`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []domain.Publication{}
+	for rows.Next() {
+		var p domain.Publication
+		if err := rows.Scan(&p.ID, &p.Title, &p.Description, &p.URL, &p.PublishedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
 }
 
 func (r *UserRepository) Create(ctx context.Context, userID, tokenHash string) error {

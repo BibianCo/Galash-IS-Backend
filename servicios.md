@@ -27,6 +27,11 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | DELETE | `/auth/sessions/current` | cierra sesion | M1 | [ ] |
 | GET | `/users/me` | perfil y roles | M1 | [ ] |
 | GET | `/members` | dir. publico | M5 | [ ] |
+| POST | `/members` | crea perfil | M5 | [ ] |
+| GET | `/members/{id}` | detalle público/privado autorizado | M5 | [ ] |
+| PATCH | `/members/{id}` | edita perfil | M5 | [ ] |
+| PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [ ] |
+| GET | `/members/{id}/publications` | publicaciones visibles | M5 | [ ] |
 | GET | `/admin/members` | busq. admin | - | [ ] |
 | GET | `/find/user` | alias busq. | - | [ ] |
 | PUT | `/users/roles` | alias rol | - | [ ] |
@@ -63,7 +68,7 @@ al repositorio. Front consume via proxy `/api` -> `http://localhost:8080`.
 ## Pendiente en contrato (sin implementar)
 
 M1: password-recovery-requests, password-resets (S) | M4 actividades/proyectos/
-propuestas/resenas: 19 | M5 miembros: 5 (CRUD, status, publications) | M6
+propuestas/resenas: 19 | M5 completado | M6
 eventos: 7 | M7 contenidos: 6 | M8 comunicados: 7 | M9 cronograma: 5 | M10
 enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,
 users/me/dashboard) | M12: audit-logs | M13 files: 2
