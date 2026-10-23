@@ -68,7 +68,13 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y
 `projectId` (null hasta convertir); el estado de una propuesta solo lo cambia
-`Docente`/`Admin`.
+`Docente`/`Admin`. Los `PATCH` de M4 son parciales: los campos omitidos
+conservan su valor. `GET /research-proposals` devuelve todas a
+`Docente`/`Admin` y solo propias o como responsable a `Estudiante`.
+`GET /admin/seedbed-reviews` lista `pendiente` salvo `?status=`. Ids
+malformados o semillero inexistente responden `404`. En `POST
+/seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se
+calcula (`próxima`, `en curso`, `finalizada`).
 
 Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
 sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
