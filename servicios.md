@@ -45,6 +45,25 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | GET | `/admin/registration-requests` | lista administrativa | M3 | [ ] |
 | GET | `/admin/registration-requests/{id}` | detalle e historial administrativo | M3 | [ ] |
 | PATCH | `/admin/registration-requests/{id}/status` | actualiza estado y auditoría | M3 | [ ] |
+| GET | `/seedbeds/{seedbedId}/activities` | lista actividades | M4 | [ ] |
+| POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [ ] |
+| GET | `/activities/{id}` | detalle de actividad | M4 | [ ] |
+| PATCH | `/activities/{id}` | modifica actividad | M4 | [ ] |
+| GET | `/projects` | lista proyectos | M4 | [ ] |
+| POST | `/projects` | registra proyecto | M4 | [ ] |
+| GET | `/projects/{id}` | detalle de proyecto | M4 | [ ] |
+| PATCH | `/projects/{id}` | modifica proyecto | M4 | [ ] |
+| PATCH | `/projects/{id}/progress` | actualiza avance | M4 | [ ] |
+| GET | `/projects/progress` | resumen de avance | M4 | [ ] |
+| GET | `/projects/{id}/history` | historial de proyecto | M4 | [ ] |
+| GET | `/research-proposals` | lista propuestas | M4 | [ ] |
+| POST | `/research-proposals` | registra propuesta | M4 | [ ] |
+| GET | `/research-proposals/{id}` | detalle de propuesta | M4 | [ ] |
+| PATCH | `/research-proposals/{id}` | modifica propuesta | M4 | [ ] |
+| POST | `/research-proposals/{id}/convert-to-project` | convierte propuesta aprobada | M4 | [ ] |
+| POST | `/seedbeds/{seedbedId}/reviews` | crea reseña | M4 | [ ] |
+| GET | `/admin/seedbed-reviews` | lista reseñas | M4 | [ ] |
+| PATCH | `/admin/seedbed-reviews/{id}/moderation` | modera reseña | M4 | [ ] |
 
 Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
 sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
