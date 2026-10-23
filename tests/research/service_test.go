@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	application "github.com/galash-uptc/backend/internal/application/research"
 	"github.com/galash-uptc/backend/internal/domain"
@@ -312,3 +313,27 @@ func TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending(t *testing.T) {
 		t.Fatalf("explicit status=%q err=%v", r.actor, err)
 	}
 }
+
+func TestActivityStatusDerivedFromDateWhenOmitted(t *testing.T) {
+	s, _ := fixtures()
+	ctx := context.Background()
+	now := time.Now()
+	for _, c := range []struct {
+		date *time.Time
+		want string
+	}{{ptr(now.AddDate(0, 0, 3)), "próxima"}, {ptr(now), "en curso"}, {ptr(now.AddDate(0, 0, -3)), "finalizada"}} {
+		a, err := s.CreateActivity(ctx, domain.Activity{SeedbedID: "sb", Title: "T", Date: c.date}, "teacher")
+		if err != nil || a.Status != c.want {
+			t.Fatalf("date %v: status=%q err=%v", c.date, a.Status, err)
+		}
+	}
+	a, err := s.CreateActivity(ctx, domain.Activity{SeedbedID: "sb", Title: "T", Date: ptr(now.AddDate(0, 0, 3)), Status: "finalizada"}, "teacher")
+	if err != nil || a.Status != "finalizada" {
+		t.Fatalf("explicit status overridden: %q err=%v", a.Status, err)
+	}
+	if _, err := s.CreateActivity(ctx, domain.Activity{SeedbedID: "sb", Title: "T"}, "teacher"); !errors.Is(err, domain.ErrInvalidResearch) {
+		t.Fatalf("no date and no status: want invalid, got %v", err)
+	}
+}
+
+func ptr(t time.Time) *time.Time { return &t }

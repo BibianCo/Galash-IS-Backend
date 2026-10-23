@@ -53,10 +53,29 @@ func (s *Service) CreateActivity(ctx context.Context, a domain.Activity, actor s
 	if e := s.manage(ctx, actor, a.SeedbedID); e != nil {
 		return a, e
 	}
+	if a.Status == "" {
+		a.Status = activityStatus(a.Date)
+	}
 	if !validActivity(a) {
 		return a, domain.ErrInvalidResearch
 	}
 	return s.repo.CreateActivity(ctx, a)
+}
+
+// activityStatus derives the status from the activity day; an explicit status always wins.
+// shortcut: compares against the server clock day, set TZ=America/Bogota on deploy if the server runs in UTC.
+func activityStatus(date *time.Time) string {
+	if date == nil {
+		return ""
+	}
+	day, today := date.Format("2006-01-02"), time.Now().Format("2006-01-02")
+	switch {
+	case day > today:
+		return "próxima"
+	case day == today:
+		return "en curso"
+	}
+	return "finalizada"
 }
 
 func validActivity(a domain.Activity) bool {
