@@ -14,6 +14,7 @@ import (
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	researchapp "github.com/galash-uptc/backend/internal/application/research"
+	roleapp "github.com/galash-uptc/backend/internal/application/role"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -44,6 +45,7 @@ type Handler struct {
 	registrations *registrationapp.Service
 	research      *researchapp.Service
 	members       *memberapp.Service
+	roles         *roleapp.Service
 	db            ports.HealthChecker
 }
 
@@ -128,6 +130,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /seedbeds/{seedbedId}/reviews", h.createReview)
 	mux.HandleFunc("GET /admin/seedbed-reviews", h.listReviews)
 	mux.HandleFunc("PATCH /admin/seedbed-reviews/{id}/moderation", h.moderateReview)
+	h.roleRoutes(mux)
 	return localCORS(mux)
 }
 

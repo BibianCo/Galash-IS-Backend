@@ -28,3 +28,11 @@ creada, ejecuta:
 docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
   -d "${POSTGRES_DB:-galash}" < database/migrations/004_member_publications.sql
 ```
+
+Para habilitar los permisos por rol del módulo 11 en una base ya creada,
+ejecuta:
+
+```bash
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
+  -d "${POSTGRES_DB:-galash}" < database/migrations/005_roles_permisos.sql
+```
