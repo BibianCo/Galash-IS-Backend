@@ -43,7 +43,7 @@ reemplaza; no crece indefinidamente.
 - Módulo 1: `POST /auth/register`, `POST /auth/sessions`, `DELETE /auth/sessions/current`, `GET /users/me`.
 - Módulo 2: `GET /seedbeds`, `POST /seedbeds`, `GET /seedbeds/{id}`, `PATCH /seedbeds/{id}`, `PATCH /seedbeds/{id}/visibility`, `GET /seedbeds/{id}/members`, `POST /seedbeds/{id}/members`, `DELETE /seedbeds/{id}/members/{userId}`.
 - Módulo 5: `GET /members`.
-- Módulo 11: `PUT /users/{userId}/roles` (ver nota sobre identificador).
+- Módulo 11: `GET /roles`, `GET /permissions`, `GET`/`PUT /roles/{roleId}/permissions`, `GET`/`PUT /users/{userId}/roles` (ver nota sobre identificador), `GET /users/me/dashboard`.
 
 ## Desviaciones detectadas (acción requerida)
 

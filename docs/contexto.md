@@ -37,6 +37,7 @@ GALASH-UPTC web system for academic management, research, and communication.
 - El módulo 4 (actividades, proyectos, propuestas y reseñas) responde en camelCase; las propuestas inician siempre `Radicada` y solo `Docente`/`Admin` cambian estado u observaciones; cada edición de proyecto o propuesta queda en historial con autor y fecha, y la conversión enlaza propuesta (`projectId`) y proyecto conservando el historial. Los `PATCH` del módulo son parciales; las reseñas nuevas notifican a cada `Admin` activo y su listado administrativo muestra por defecto las pendientes. Una actividad creada sin estado lo deriva de su fecha.
 - El adaptador HTTP acepta preflight CORS desde interfaces locales (`localhost`, `127.0.0.1` y `::1`) y prioriza `Authorization` sobre una cookie de sesión antigua.
 - El módulo 5 implementa el directorio de integrantes: listado público filtrable, creación y edición administrativa, detalle con campos internos para Admin o el propio integrante, cambio de estado sin borrar relaciones y publicaciones visibles.
+- El módulo 11 expone el catálogo fijo de cuatro roles (`profesor` se presenta como `Docente`), el catálogo de permisos (`permisos`), los permisos por rol (`rol_permisos`, reemplazables solo por `Admin` y nunca sobre su propio rol, con historial en `rol_permisos_historial`), los roles de un usuario por Firebase UID y el panel `/users/me/dashboard` con rol y permisos efectivos. La autorización de los demás módulos sigue basada en el rol; los permisos aún no se aplican fuera del módulo 11.
 
 ## Record
 

@@ -36,6 +36,12 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | GET | `/find/user` | alias busq. | - | [ ] |
 | PUT | `/users/roles` | alias rol | - | [ ] |
 | PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [ ] |
+| GET | `/users/{userId}/roles` | roles del usuario (id = Firebase UID) | M11 | [ ] |
+| GET | `/roles` | catalogo fijo de roles | M11 | [ ] |
+| GET | `/permissions` | catalogo de permisos | M11 | [ ] |
+| GET | `/roles/{roleId}/permissions` | permisos del rol | M11 | [ ] |
+| PUT | `/roles/{roleId}/permissions` | reemplaza permisos del rol | M11 | [ ] |
+| GET | `/users/me/dashboard` | rol y permisos efectivos | M11 | [ ] |
 | GET | `/seedbeds` | lista | M2 | [ ] |
 | POST | `/seedbeds` | crea | M2 | [ ] |
 | GET | `/seedbeds/{id}` | detalle | M2 | [ ] |
@@ -81,6 +87,18 @@ malformados o semillero inexistente responden `404`. En `POST
 /seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se
 calcula (`próxima`, `en curso`, `finalizada`).
 
+M11: todo es `Admin` salvo `GET /users/me/dashboard` (`Estudiante`, `Docente`,
+`Admin`; `Visitante` 403). Rol = `{"id","name"}`; `id` es el valor guardado
+(`visitante`, `estudiante`, `profesor`, `admin`) y `name` la etiqueta del
+contrato (`Docente` para `profesor`); `{roleId}` acepta ambos. Permiso =
+`{"id","description"}`. Respuestas: `{"roles":[...]}`, `{"permissions":[...]}`,
+`{"role","permissions"}`, `{"userId","roles"}` y `{"user","role","permissions"}`.
+`PUT /roles/{roleId}/permissions` recibe `{"permissions":["<id>"]}` (lista
+vacia retira todos; campo ausente 400), reemplaza el conjunto y guarda
+historial. Errores: permiso desconocido 400, rol o usuario inexistente 404,
+modificar el rol propio 409. Los endpoints siguen autorizando por rol; los
+permisos aun no se aplican en los demas modulos.
+
 Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
 sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
 alias de `PUT /users/{userId}/roles`.
@@ -100,5 +118,4 @@ al repositorio. Front consume via proxy `/api` -> `http://localhost:8080`.
 M1: password-recovery-requests, password-resets (S) | M4 actividades/proyectos/
 propuestas/resenas: 19 | M5 completado | M6
 eventos: 7 | M7 contenidos: 6 | M8 comunicados: 7 | M9 cronograma: 5 | M10
-enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,
-users/me/dashboard) | M12: audit-logs | M13 files: 2
+enlaces: 4 | M11 completado | M12: audit-logs | M13 files: 2
