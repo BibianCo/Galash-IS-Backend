@@ -1,0 +1,295 @@
+=== RUN   TestCreateSessionSetsSecureCookie
+--- PASS: TestCreateSessionSetsSecureCookie (0.00s)
+=== RUN   TestCreateSessionAcceptsAuthorizationHeaderWithoutBody
+--- PASS: TestCreateSessionAcceptsAuthorizationHeaderWithoutBody (0.00s)
+=== RUN   TestCurrentUserRequiresSession
+--- PASS: TestCurrentUserRequiresSession (0.00s)
+=== RUN   TestLocalFrontendPreflightIsAccepted
+--- PASS: TestLocalFrontendPreflightIsAccepted (0.00s)
+=== RUN   TestAuthorizationHeaderTakesPrecedenceOverStaleSessionCookie
+--- PASS: TestAuthorizationHeaderTakesPrecedenceOverStaleSessionCookie (0.00s)
+=== RUN   TestAdminMembersRejectsAuthenticatedNonAdmin
+--- PASS: TestAdminMembersRejectsAuthenticatedNonAdmin (0.00s)
+=== RUN   TestPublicMembersRequiresQueryAndOmitsPrivateFields
+--- PASS: TestPublicMembersRequiresQueryAndOmitsPrivateFields (0.00s)
+=== RUN   TestAdminMembersRequiresSessionAndReturnsAdminFields
+--- PASS: TestAdminMembersRequiresSessionAndReturnsAdminFields (0.00s)
+=== RUN   TestUpdateRoleAcceptsHeaderAndPathTargets
+=== RUN   TestUpdateRoleAcceptsHeaderAndPathTargets/uid_header
+=== RUN   TestUpdateRoleAcceptsHeaderAndPathTargets/path_uid
+--- PASS: TestUpdateRoleAcceptsHeaderAndPathTargets (0.00s)
+    --- PASS: TestUpdateRoleAcceptsHeaderAndPathTargets/uid_header (0.00s)
+    --- PASS: TestUpdateRoleAcceptsHeaderAndPathTargets/path_uid (0.00s)
+=== RUN   TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets
+=== RUN   TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets/unauthenticated
+=== RUN   TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets/conflicting_header_and_path
+--- PASS: TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets (0.00s)
+    --- PASS: TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets/unauthenticated (0.00s)
+    --- PASS: TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets/conflicting_header_and_path (0.00s)
+=== RUN   TestRegisterRequiresBearerToken
+--- PASS: TestRegisterRequiresBearerToken (0.00s)
+=== RUN   TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts
+=== RUN   TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts/invalid_credentials
+=== RUN   TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts/inactive_account
+=== RUN   TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts/missing_token
+--- PASS: TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts (0.00s)
+    --- PASS: TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts/invalid_credentials (0.00s)
+    --- PASS: TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts/inactive_account (0.00s)
+    --- PASS: TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts/missing_token (0.00s)
+=== RUN   TestCreateSessionReturnsRegistrationRequiredForFirebaseOnlyUser
+--- PASS: TestCreateSessionReturnsRegistrationRequiredForFirebaseOnlyUser (0.00s)
+=== RUN   TestCreateSessionPreservesStudentAndProfessorRoles
+=== RUN   TestCreateSessionPreservesStudentAndProfessorRoles/estudiante
+=== RUN   TestCreateSessionPreservesStudentAndProfessorRoles/profesor
+--- PASS: TestCreateSessionPreservesStudentAndProfessorRoles (0.00s)
+    --- PASS: TestCreateSessionPreservesStudentAndProfessorRoles/estudiante (0.00s)
+    --- PASS: TestCreateSessionPreservesStudentAndProfessorRoles/profesor (0.00s)
+=== RUN   TestLogoutInvalidatesSessionAndClearsCookie
+--- PASS: TestLogoutInvalidatesSessionAndClearsCookie (0.00s)
+=== RUN   TestRegisterIgnoresClientSuppliedRole
+--- PASS: TestRegisterIgnoresClientSuppliedRole (0.00s)
+=== RUN   TestLogoutRevokesCookieSessionEvenWhenStaleAuthorizationIsPresent
+--- PASS: TestLogoutRevokesCookieSessionEvenWhenStaleAuthorizationIsPresent (0.00s)
+=== RUN   TestLoginRotatesPreviousSessionCookie
+--- PASS: TestLoginRotatesPreviousSessionCookie (0.00s)
+=== RUN   TestStaleSessionCookieIsClearedOnUnauthorized
+--- PASS: TestStaleSessionCookieIsClearedOnUnauthorized (0.00s)
+=== RUN   TestRegisterPersistsIdentityFields
+--- PASS: TestRegisterPersistsIdentityFields (0.00s)
+=== RUN   TestRegisterRejectsInvalidInput
+=== RUN   TestRegisterRejectsInvalidInput/missing_name
+=== RUN   TestRegisterRejectsInvalidInput/missing_last_name
+=== RUN   TestRegisterRejectsInvalidInput/email_mismatch
+--- PASS: TestRegisterRejectsInvalidInput (0.00s)
+    --- PASS: TestRegisterRejectsInvalidInput/missing_name (0.00s)
+    --- PASS: TestRegisterRejectsInvalidInput/missing_last_name (0.00s)
+    --- PASS: TestRegisterRejectsInvalidInput/email_mismatch (0.00s)
+=== RUN   TestRegisterRejectsMissingProfileFields
+=== RUN   TestRegisterRejectsMissingProfileFields/missing_document_type
+=== RUN   TestRegisterRejectsMissingProfileFields/missing_document_number
+=== RUN   TestRegisterRejectsMissingProfileFields/missing_email
+--- PASS: TestRegisterRejectsMissingProfileFields (0.00s)
+    --- PASS: TestRegisterRejectsMissingProfileFields/missing_document_type (0.00s)
+    --- PASS: TestRegisterRejectsMissingProfileFields/missing_document_number (0.00s)
+    --- PASS: TestRegisterRejectsMissingProfileFields/missing_email (0.00s)
+=== RUN   TestRegisterRejectsInvalidFirebaseToken
+--- PASS: TestRegisterRejectsInvalidFirebaseToken (0.00s)
+=== RUN   TestLoginCreatesHashedOpaqueSession
+--- PASS: TestLoginCreatesHashedOpaqueSession (0.00s)
+=== RUN   TestLoginRejectsInvalidAndInactiveUsers
+=== RUN   TestLoginRejectsInvalidAndInactiveUsers/invalid_token
+=== RUN   TestLoginRejectsInvalidAndInactiveUsers/inactive_user
+--- PASS: TestLoginRejectsInvalidAndInactiveUsers (0.00s)
+    --- PASS: TestLoginRejectsInvalidAndInactiveUsers/invalid_token (0.00s)
+    --- PASS: TestLoginRejectsInvalidAndInactiveUsers/inactive_user (0.00s)
+=== RUN   TestLoginRejectsUnregisteredFirebaseUserWithoutUpsert
+--- PASS: TestLoginRejectsUnregisteredFirebaseUserWithoutUpsert (0.00s)
+=== RUN   TestCurrentUserAndLogoutUseSessionHash
+--- PASS: TestCurrentUserAndLogoutUseSessionHash (0.00s)
+=== RUN   TestLogoutInvalidatesCurrentUserSession
+--- PASS: TestLogoutInvalidatesCurrentUserSession (0.00s)
+=== RUN   TestRequestPasswordRecoveryDoesNotRevealUnknownEmail
+--- PASS: TestRequestPasswordRecoveryDoesNotRevealUnknownEmail (0.00s)
+=== RUN   TestResetPasswordHashesPasswordAndConsumesTokenOnce
+--- PASS: TestResetPasswordHashesPasswordAndConsumesTokenOnce (0.11s)
+=== RUN   TestResetPasswordRevokesAllUserSessions
+--- PASS: TestResetPasswordRevokesAllUserSessions (0.05s)
+=== RUN   TestPurgeExpiredCredentialsRemovesSessionsAndRecoveryTokens
+--- PASS: TestPurgeExpiredCredentialsRemovesSessionsAndRecoveryTokens (0.00s)
+=== RUN   TestResetPasswordRejectsShortPasswordAndInvalidToken
+=== RUN   TestResetPasswordRejectsShortPasswordAndInvalidToken/short_password
+=== RUN   TestResetPasswordRejectsShortPasswordAndInvalidToken/repository_rejects_token
+--- PASS: TestResetPasswordRejectsShortPasswordAndInvalidToken (0.00s)
+    --- PASS: TestResetPasswordRejectsShortPasswordAndInvalidToken/short_password (0.00s)
+    --- PASS: TestResetPasswordRejectsShortPasswordAndInvalidToken/repository_rejects_token (0.00s)
+=== RUN   TestUpdateUserRoleRequiresAdminAndUsesTargetUID
+--- PASS: TestUpdateUserRoleRequiresAdminAndUsesTargetUID (0.00s)
+=== RUN   TestUpdateUserRoleRejectsNonAdminAndInvalidRequests
+=== RUN   TestUpdateUserRoleRejectsNonAdminAndInvalidRequests/non-admin_actor
+=== RUN   TestUpdateUserRoleRejectsNonAdminAndInvalidRequests/missing_target_uid
+=== RUN   TestUpdateUserRoleRejectsNonAdminAndInvalidRequests/unsupported_role
+--- PASS: TestUpdateUserRoleRejectsNonAdminAndInvalidRequests (0.00s)
+    --- PASS: TestUpdateUserRoleRejectsNonAdminAndInvalidRequests/non-admin_actor (0.00s)
+    --- PASS: TestUpdateUserRoleRejectsNonAdminAndInvalidRequests/missing_target_uid (0.00s)
+    --- PASS: TestUpdateUserRoleRejectsNonAdminAndInvalidRequests/unsupported_role (0.00s)
+=== RUN   TestSearchUsersRequiresQueryAndBoundsLimit
+--- PASS: TestSearchUsersRequiresQueryAndBoundsLimit (0.00s)
+=== RUN   TestUpsertPreservesExistingLastName
+--- PASS: TestUpsertPreservesExistingLastName (0.02s)
+=== RUN   TestUpsertAssignsVisitanteAndNeverChangesExistingRole
+--- PASS: TestUpsertAssignsVisitanteAndNeverChangesExistingRole (0.02s)
+=== RUN   TestSearchReturnsOnlyActiveMatchingUsers
+--- PASS: TestSearchReturnsOnlyActiveMatchingUsers (0.02s)
+=== RUN   TestUpdateRoleUpdatesActiveUserAndRejectsInactiveOrMissingUID
+--- PASS: TestUpdateRoleUpdatesActiveUserAndRejectsInactiveOrMissingUID (0.02s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/auth	0.232s
+=== RUN   TestMemberWritesRequireAdmin
+--- PASS: TestMemberWritesRequireAdmin (0.00s)
+=== RUN   TestMemberWriteErrorsMapToClientStatus
+--- PASS: TestMemberWriteErrorsMapToClientStatus (0.00s)
+=== RUN   TestGetMemberShowsPrivateFieldsOnlyToAdminOrSelf
+--- PASS: TestGetMemberShowsPrivateFieldsOnlyToAdminOrSelf (0.00s)
+=== RUN   TestGetMemberHidesNonPublicProfileFromVisitors
+    http_test.go:160: hidden anonymous: status=200, want 404: {"id":"hidden","name":"Oculto","last_name":"","role":"profesor","status":"activo","visible_publicly":false}
+    http_test.go:161: hidden other: status=200, want 404: {"id":"hidden","name":"Oculto","last_name":"","role":"profesor","status":"activo","visible_publicly":false}
+--- FAIL: TestGetMemberHidesNonPublicProfileFromVisitors (0.00s)
+=== RUN   TestMemberPublicationsRespectVisibility
+--- PASS: TestMemberPublicationsRespectVisibility (0.00s)
+=== RUN   TestPublicMembersPassesDirectoryFilters
+--- PASS: TestPublicMembersPassesDirectoryFilters (0.00s)
+=== RUN   TestCreateUpdateAndDeactivateKeepProfileData
+--- PASS: TestCreateUpdateAndDeactivateKeepProfileData (0.04s)
+=== RUN   TestListExcludesInactiveAndHiddenEvenWhenSearchMatches
+    repository_test.go:116: List() returned 3 profiles, want only visible: [{ID:04c53d85-ec0c-498c-b7da-cf7bdb5cac3e FirebaseUID: Name:hidden LastName:Prueba Email: DocumentType: DocumentNumber: Role:estudiante Status:activo Area: Formation: ORCID: CvLAC:https://scienti.minciencias.gov.co/cvlac VisiblePublicly:false SeedbedIDs:[]} {ID:88c23731-06ac-467c-a025-8bee9c22c354 FirebaseUID: Name:off LastName:Prueba Email: DocumentType: DocumentNumber: Role:estudiante Status:inactivo Area: Formation: ORCID: CvLAC:https://scienti.minciencias.gov.co/cvlac VisiblePublicly:true SeedbedIDs:[]} {ID:5cd3c0aa-4aef-4466-95c2-d46f8bde3f6c FirebaseUID: Name:visible LastName:Prueba Email: DocumentType: DocumentNumber: Role:estudiante Status:activo Area: Formation: ORCID: CvLAC:https://scienti.minciencias.gov.co/cvlac VisiblePublicly:true SeedbedIDs:[]}]
+--- FAIL: TestListExcludesInactiveAndHiddenEvenWhenSearchMatches (0.03s)
+=== RUN   TestListFiltersBySeedbedTypeAndArea
+--- PASS: TestListFiltersBySeedbedTypeAndArea (0.03s)
+=== RUN   TestMissingOrMalformedMemberIDIsNotFound
+    repository_test.go:157: Find malformed: err=ERROR: invalid input syntax for type uuid: "not-a-uuid" (SQLSTATE 22P02), want ErrMemberNotFound
+    repository_test.go:157: SetStatus missing: err=no rows in result set, want ErrMemberNotFound
+    repository_test.go:157: Update missing: err=ERROR: insert or update on table "perfil_investigador" violates foreign key constraint "perfil_investigador_usuario_id_fkey" (SQLSTATE 23503), want ErrMemberNotFound
+--- FAIL: TestMissingOrMalformedMemberIDIsNotFound (0.01s)
+=== RUN   TestUpdateSeedbedsKeepsMembershipHistory
+    repository_test.go:178: withdrawn membership rows for previous seedbed=0, want 1 kept with retirado_en
+--- FAIL: TestUpdateSeedbedsKeepsMembershipHistory (0.03s)
+=== RUN   TestPublicationsReturnOnlyVisibleNewestFirst
+--- PASS: TestPublicationsReturnOnlyVisibleNewestFirst (0.03s)
+=== RUN   TestCreateValidatesRequiredFieldsRoleAndCvLAC
+--- PASS: TestCreateValidatesRequiredFieldsRoleAndCvLAC (0.00s)
+=== RUN   TestUpdateValidatesRoleAndCvLAC
+--- PASS: TestUpdateValidatesRoleAndCvLAC (0.00s)
+=== RUN   TestSetStatusAcceptsOnlyActivoOrInactivo
+--- PASS: TestSetStatusAcceptsOnlyActivoOrInactivo (0.00s)
+=== RUN   TestGetStripsPrivateFieldsForPublicView
+--- PASS: TestGetStripsPrivateFieldsForPublicView (0.00s)
+=== RUN   TestListClampsLimit
+--- PASS: TestListClampsLimit (0.00s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/member	0.169s
+=== RUN   TestCreateRejectsMissingRequiredField
+--- PASS: TestCreateRejectsMissingRequiredField (0.00s)
+=== RUN   TestCreateReturnsOpaqueTrackingToken
+--- PASS: TestCreateReturnsOpaqueTrackingToken (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/registration	0.003s
+=== RUN   TestPatchKeepsOmittedFields
+--- PASS: TestPatchKeepsOmittedFields (0.00s)
+=== RUN   TestProjectUpdatesKeepAuthorAndDateHistory
+--- PASS: TestProjectUpdatesKeepAuthorAndDateHistory (0.04s)
+=== RUN   TestConvertProposalKeepsHistoryAndLinksProject
+--- PASS: TestConvertProposalKeepsHistoryAndLinksProject (0.03s)
+=== RUN   TestProposalWithoutSeedbedIsStored
+--- PASS: TestProposalWithoutSeedbedIsStored (0.02s)
+=== RUN   TestActivityWithoutOptionalListsIsStored
+--- PASS: TestActivityWithoutOptionalListsIsStored (0.02s)
+=== RUN   TestReviewNotifiesActiveAdmins
+--- PASS: TestReviewNotifiesActiveAdmins (0.03s)
+=== RUN   TestMalformedOrMissingReferencesAreNotFound
+--- PASS: TestMalformedOrMissingReferencesAreNotFound (0.02s)
+=== RUN   TestActivityRequiresResponsibleTeacherOrAdmin
+--- PASS: TestActivityRequiresResponsibleTeacherOrAdmin (0.00s)
+=== RUN   TestProjectProgressMustBeBetween0And100
+--- PASS: TestProjectProgressMustBeBetween0And100 (0.00s)
+=== RUN   TestProjectUpdateRecordsActorAndChangedFields
+--- PASS: TestProjectUpdateRecordsActorAndChangedFields (0.00s)
+=== RUN   TestProgressOnlyByResponsibleOrAdmin
+--- PASS: TestProgressOnlyByResponsibleOrAdmin (0.00s)
+=== RUN   TestProposalCreateAlwaysStartsRadicada
+--- PASS: TestProposalCreateAlwaysStartsRadicada (0.00s)
+=== RUN   TestProposalAuthorCannotApproveOrReview
+--- PASS: TestProposalAuthorCannotApproveOrReview (0.00s)
+=== RUN   TestProposalDetailIncludesHistory
+--- PASS: TestProposalDetailIncludesHistory (0.00s)
+=== RUN   TestConvertRequiresApprovedProposalAndReviewer
+--- PASS: TestConvertRequiresApprovedProposalAndReviewer (0.00s)
+=== RUN   TestResearchJSONUsesCamelCase
+--- PASS: TestResearchJSONUsesCamelCase (0.00s)
+=== RUN   TestProposalListScopesByRole
+--- PASS: TestProposalListScopesByRole (0.00s)
+=== RUN   TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending
+--- PASS: TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending (0.00s)
+=== RUN   TestActivityStatusDerivedFromDateWhenOmitted
+--- PASS: TestActivityStatusDerivedFromDateWhenOmitted (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/research	0.168s
+=== RUN   TestRoleEndpointsRequireAdmin
+--- PASS: TestRoleEndpointsRequireAdmin (0.00s)
+=== RUN   TestRoleCatalogAndPermissionsPayloads
+--- PASS: TestRoleCatalogAndPermissionsPayloads (0.00s)
+=== RUN   TestSetRolePermissionsErrors
+--- PASS: TestSetRolePermissionsErrors (0.00s)
+=== RUN   TestUserRoles
+--- PASS: TestUserRoles (0.00s)
+=== RUN   TestDashboard
+--- PASS: TestDashboard (0.00s)
+=== RUN   TestRoleModuleNotConfigured
+--- PASS: TestRoleModuleNotConfigured (0.00s)
+=== RUN   TestPermissionCatalogIsSeeded
+--- PASS: TestPermissionCatalogIsSeeded (0.02s)
+=== RUN   TestSetRolePermissionsReplacesSetAndRecordsHistory
+--- PASS: TestSetRolePermissionsReplacesSetAndRecordsHistory (0.02s)
+=== RUN   TestSetRolePermissionsRejectsUnknownPermissionAtomically
+--- PASS: TestSetRolePermissionsRejectsUnknownPermissionAtomically (0.01s)
+=== RUN   TestCatalogHasOnlyTheFourContractRoles
+--- PASS: TestCatalogHasOnlyTheFourContractRoles (0.00s)
+=== RUN   TestRolePermissionsAcceptsContractLabel
+--- PASS: TestRolePermissionsAcceptsContractLabel (0.00s)
+=== RUN   TestSetRolePermissionsValidatesDeduplicatesAndRecordsActor
+--- PASS: TestSetRolePermissionsValidatesDeduplicatesAndRecordsActor (0.00s)
+=== RUN   TestSetRolePermissionsRejectsActorOwnRole
+--- PASS: TestSetRolePermissionsRejectsActorOwnRole (0.00s)
+=== RUN   TestUserRolesUsesFirebaseUID
+--- PASS: TestUserRolesUsesFirebaseUID (0.00s)
+=== RUN   TestDashboardReturnsRolePermissionsAndExcludesVisitante
+--- PASS: TestDashboardReturnsRolePermissionsAndExcludesVisitante (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/role	0.054s
+=== RUN   TestCreateSeedbedRequiresTeacherOrAdminSession
+--- PASS: TestCreateSeedbedRequiresTeacherOrAdminSession (0.00s)
+=== RUN   TestListSeedbedsRestrictsPrivateViewToAdmin
+--- PASS: TestListSeedbedsRestrictsPrivateViewToAdmin (0.00s)
+=== RUN   TestGetSeedbedRespectsVisibility
+--- PASS: TestGetSeedbedRespectsVisibility (0.00s)
+=== RUN   TestSeedbedSpaceHidesPrivateData
+--- PASS: TestSeedbedSpaceHidesPrivateData (0.00s)
+=== RUN   TestUpdateSeedbedRequiresResponsibleOrAdmin
+--- PASS: TestUpdateSeedbedRequiresResponsibleOrAdmin (0.00s)
+=== RUN   TestSetSeedbedVisibilityValidatesActorAndState
+--- PASS: TestSetSeedbedVisibilityValidatesActorAndState (0.00s)
+=== RUN   TestSeedbedMemberHistoryIsRestricted
+--- PASS: TestSeedbedMemberHistoryIsRestricted (0.00s)
+=== RUN   TestLinkAndWithdrawMemberRequireResponsibleOrAdmin
+--- PASS: TestLinkAndWithdrawMemberRequireResponsibleOrAdmin (0.00s)
+=== RUN   TestLiveCreateRejectsDuplicateName
+    live_api_test.go:107: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveCreateRejectsDuplicateName (0.00s)
+=== RUN   TestLiveUnknownSeedbedReturnsNotFound
+    live_api_test.go:114: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveUnknownSeedbedReturnsNotFound (0.00s)
+=== RUN   TestLiveVisibilityControlsPublicAccess
+    live_api_test.go:122: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveVisibilityControlsPublicAccess (0.00s)
+=== RUN   TestLiveHiddenMembersAnonymousSingleError
+    live_api_test.go:143: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveHiddenMembersAnonymousSingleError (0.00s)
+=== RUN   TestLiveWithdrawKeepsHistory
+    live_api_test.go:152: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveWithdrawKeepsHistory (0.00s)
+=== RUN   TestCreateRejectsMissingRequiredFields
+--- PASS: TestCreateRejectsMissingRequiredFields (0.00s)
+=== RUN   TestCreateRequiresActiveTeacherAsResponsible
+--- PASS: TestCreateRequiresActiveTeacherAsResponsible (0.00s)
+=== RUN   TestCreateStartsAsDraftWithTrimmedData
+--- PASS: TestCreateStartsAsDraftWithTrimmedData (0.00s)
+=== RUN   TestVisibilityAllowsResponsibleOrAdminAndKnownStates
+--- PASS: TestVisibilityAllowsResponsibleOrAdminAndKnownStates (0.00s)
+=== RUN   TestAddMemberAcceptsOnlyActiveStudentsOrTeachers
+--- PASS: TestAddMemberAcceptsOnlyActiveStudentsOrTeachers (0.00s)
+=== RUN   TestRemoveMemberRequiresResponsibleOrAdmin
+--- PASS: TestRemoveMemberRequiresResponsibleOrAdmin (0.00s)
+=== RUN   TestListBoundsPagination
+--- PASS: TestListBoundsPagination (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/seedbed	0.007s
+FAIL

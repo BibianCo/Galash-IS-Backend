@@ -353,3 +353,39 @@
 {"v":1,"id":"D016","t":"defect","test":"T082","run":"R047","sev":"high","s":"open","name":"Directory search ORs name and email without parentheses, so inactive and hidden profiles leak into GET /members","ref":"internal/adapters/outbound/postgres/user_repository.go List"}
 {"v":1,"id":"D017","t":"defect","test":"T084","run":"R047","sev":"medium","s":"open","name":"Missing or malformed member ids return driver errors (500) instead of ErrMemberNotFound (404) on find, status and update","ref":"internal/adapters/outbound/postgres/user_repository.go Find, SetStatus, Update"}
 {"v":1,"id":"D018","t":"defect","test":"T085","run":"R047","sev":"high","s":"open","name":"PATCH /members/{id} with seedbed_ids deletes current memberships instead of withdrawing them, losing participation history","ref":"internal/adapters/outbound/postgres/user_repository.go Update"}
+{"v":1,"id":"T087","t":"test","area":"module-11-roles","p":"must","name":"Permission catalog is seeded with descriptions and admin holds every permission."}
+{"v":1,"id":"T088","t":"test","area":"module-11-roles","p":"must","name":"Replacing a role's permissions leaves only the new set and records history rows."}
+{"v":1,"id":"T089","t":"test","area":"module-11-roles","p":"must","name":"An unknown permission fails the replace and leaves the role's permissions unchanged."}
+{"v":1,"id":"T090","t":"test","area":"module-11-roles","p":"must","name":"Role catalog has exactly Visitante, Estudiante, Docente (stored profesor) and Admin."}
+{"v":1,"id":"T091","t":"test","area":"module-11-roles","p":"must","name":"Role lookup accepts the contract label Docente; unknown roles return ErrRoleNotFound."}
+{"v":1,"id":"T092","t":"test","area":"module-11-roles","p":"must","name":"Replace validates against the catalog, deduplicates, records the actor and allows an empty set."}
+{"v":1,"id":"T093","t":"test","area":"module-11-roles","p":"must","name":"An actor cannot change the permissions of the role they hold."}
+{"v":1,"id":"T094","t":"test","area":"module-11-roles","p":"must","name":"User roles are looked up by Firebase UID; unknown users return ErrUserNotFound."}
+{"v":1,"id":"T095","t":"test","area":"module-11-roles","p":"must","name":"Dashboard returns user, role and permissions; Visitante and unknown roles are forbidden."}
+{"v":1,"id":"T096","t":"test","area":"module-11-roles","p":"must","name":"Role, permission and user-role endpoints return 401 without session, 403 for non-admin and 200 for admin."}
+{"v":1,"id":"T097","t":"test","area":"module-11-roles","p":"must","name":"GET /roles, /permissions and /roles/{roleId}/permissions return the expected payloads; unknown role is 404."}
+{"v":1,"id":"T098","t":"test","area":"module-11-roles","p":"must","name":"PUT /roles/{roleId}/permissions maps own role 409, unknown role 404, invalid body or permission 400 without changes."}
+{"v":1,"id":"T099","t":"test","area":"module-11-roles","p":"must","name":"GET /users/{userId}/roles returns the user's catalog role; unknown user is 404."}
+{"v":1,"id":"T100","t":"test","area":"module-11-roles","p":"must","name":"GET /users/me/dashboard is 401 anonymous, 403 for Visitante, 200 for Estudiante; GET /users/me still works."}
+{"v":1,"id":"T101","t":"test","area":"module-11-roles","p":"must","name":"Role endpoints answer 500 when the module is not composed."}
+{"v":1,"id":"E005","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local; ephemeral PostgreSQL 16 (postgres:16-alpine) on localhost:55432 initialized from database/init.sql"}
+{"v":1,"id":"R048","t":"run","at":"2026-10-24T17:40:00Z","build":"37baca4+wip","env":"E005","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/... -count=1 -v; git diff --check","ev":["R048/go-test-role.txt"]}
+{"v":1,"id":"X180","t":"result","run":"R048","test":"T087","s":"pass"}
+{"v":1,"id":"X181","t":"result","run":"R048","test":"T088","s":"pass"}
+{"v":1,"id":"X182","t":"result","run":"R048","test":"T089","s":"pass"}
+{"v":1,"id":"X183","t":"result","run":"R048","test":"T090","s":"pass"}
+{"v":1,"id":"X184","t":"result","run":"R048","test":"T091","s":"pass"}
+{"v":1,"id":"X185","t":"result","run":"R048","test":"T092","s":"pass"}
+{"v":1,"id":"X186","t":"result","run":"R048","test":"T093","s":"pass"}
+{"v":1,"id":"X187","t":"result","run":"R048","test":"T094","s":"pass"}
+{"v":1,"id":"X188","t":"result","run":"R048","test":"T095","s":"pass"}
+{"v":1,"id":"X189","t":"result","run":"R048","test":"T096","s":"pass"}
+{"v":1,"id":"X190","t":"result","run":"R048","test":"T097","s":"pass"}
+{"v":1,"id":"X191","t":"result","run":"R048","test":"T098","s":"pass"}
+{"v":1,"id":"X192","t":"result","run":"R048","test":"T099","s":"pass"}
+{"v":1,"id":"X193","t":"result","run":"R048","test":"T100","s":"pass"}
+{"v":1,"id":"X194","t":"result","run":"R048","test":"T101","s":"pass"}
+{"v":1,"id":"X195","t":"result","run":"R048","test":"T078","s":"fail"}
+{"v":1,"id":"X196","t":"result","run":"R048","test":"T082","s":"fail"}
+{"v":1,"id":"X197","t":"result","run":"R048","test":"T084","s":"fail"}
+{"v":1,"id":"X198","t":"result","run":"R048","test":"T085","s":"fail"}

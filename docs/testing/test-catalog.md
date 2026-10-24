@@ -114,6 +114,21 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T084|module-5-members|`TestMissingOrMalformedMemberIDIsNotFound`|Find, SetStatus and Update return ErrMemberNotFound for missing or malformed ids.|`tests/member/repository_test.go`|PT-INT-01|
 |T085|module-5-members|`TestUpdateSeedbedsKeepsMembershipHistory`|Changing seedbed_ids withdraws previous memberships with `retirado_en` instead of deleting them.|`tests/member/repository_test.go`|PT-INT-01, TDB-T06|
 |T086|module-5-members|`TestPublicationsReturnOnlyVisibleNewestFirst`|Publications return only visible items newest first; none is [].|`tests/member/repository_test.go`|PT-INT-02|
+|T087|module-11-roles|`TestPermissionCatalogIsSeeded`|Permission catalog is seeded with descriptions and admin holds every permission.|`tests/role/repository_test.go`|—|
+|T088|module-11-roles|`TestSetRolePermissionsReplacesSetAndRecordsHistory`|Replacing a role's permissions leaves only the new set and records history rows.|`tests/role/repository_test.go`|—|
+|T089|module-11-roles|`TestSetRolePermissionsRejectsUnknownPermissionAtomically`|An unknown permission fails the replace and leaves the role's permissions unchanged.|`tests/role/repository_test.go`|—|
+|T090|module-11-roles|`TestCatalogHasOnlyTheFourContractRoles`|Role catalog has exactly Visitante, Estudiante, Docente (stored profesor) and Admin.|`tests/role/service_test.go`|—|
+|T091|module-11-roles|`TestRolePermissionsAcceptsContractLabel`|Role lookup accepts the contract label Docente; unknown roles return ErrRoleNotFound.|`tests/role/service_test.go`|—|
+|T092|module-11-roles|`TestSetRolePermissionsValidatesDeduplicatesAndRecordsActor`|Replace validates against the catalog, deduplicates, records the actor and allows an empty set.|`tests/role/service_test.go`|—|
+|T093|module-11-roles|`TestSetRolePermissionsRejectsActorOwnRole`|An actor cannot change the permissions of the role they hold.|`tests/role/service_test.go`|—|
+|T094|module-11-roles|`TestUserRolesUsesFirebaseUID`|User roles are looked up by Firebase UID; unknown users return ErrUserNotFound.|`tests/role/service_test.go`|—|
+|T095|module-11-roles|`TestDashboardReturnsRolePermissionsAndExcludesVisitante`|Dashboard returns user, role and permissions; Visitante and unknown roles are forbidden.|`tests/role/service_test.go`|—|
+|T096|module-11-roles|`TestRoleEndpointsRequireAdmin`|Role, permission and user-role endpoints return 401 without session, 403 for non-admin and 200 for admin.|`tests/role/http_test.go`|—|
+|T097|module-11-roles|`TestRoleCatalogAndPermissionsPayloads`|GET /roles, /permissions and /roles/{roleId}/permissions return the expected payloads; unknown role is 404.|`tests/role/http_test.go`|—|
+|T098|module-11-roles|`TestSetRolePermissionsErrors`|PUT /roles/{roleId}/permissions maps own role 409, unknown role 404, invalid body or permission 400 without changes.|`tests/role/http_test.go`|—|
+|T099|module-11-roles|`TestUserRoles`|GET /users/{userId}/roles returns the user's catalog role; unknown user is 404.|`tests/role/http_test.go`|—|
+|T100|module-11-roles|`TestDashboard`|GET /users/me/dashboard is 401 anonymous, 403 for Visitante, 200 for Estudiante; GET /users/me still works.|`tests/role/http_test.go`|—|
+|T101|module-11-roles|`TestRoleModuleNotConfigured`|Role endpoints answer 500 when the module is not composed.|`tests/role/http_test.go`|—|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.
