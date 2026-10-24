@@ -60,6 +60,11 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T065|module-4-research|`TestProposalListScopesByRole`|Proposal list shows all to Admin/Docente and only own or responsible proposals to students.|`tests/research/service_test.go`|PT-SEM-06|
 |T069|module-4-research|`TestActivityStatusDerivedFromDateWhenOmitted`|Omitted activity status is derived from the date (future próxima, today en curso, past finalizada); explicit status wins.|`tests/research/service_test.go`|PT-SEM-04|
 |T066|module-4-research|`TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending`|Review requires existing seedbed; admin list defaults to pendiente.|`tests/research/service_test.go`|PT-SEM-08|
+|T070|module-5-members|`TestCreateValidatesRequiredFieldsRoleAndCvLAC`|Create rejects missing required fields, non member roles and non-http CvLAC.|`tests/member/service_test.go`|PT-INT-01, PT-INT-03|
+|T071|module-5-members|`TestUpdateValidatesRoleAndCvLAC`|Update rejects empty id, non member role and invalid CvLAC.|`tests/member/service_test.go`|PT-INT-01, PT-INT-03|
+|T072|module-5-members|`TestSetStatusAcceptsOnlyActivoOrInactivo`|Status accepts only activo or inactivo, normalized.|`tests/member/service_test.go`|PT-INT-01|
+|T073|module-5-members|`TestGetStripsPrivateFieldsForPublicView`|Public view strips email, document and firebase uid.|`tests/member/service_test.go`|PT-INT-02|
+|T074|module-5-members|`TestListClampsLimit`|Directory limit defaults to 20 and is capped at 100.|`tests/member/service_test.go`|PT-INT-02|
 
 ## HTTP/API tests
 
@@ -79,6 +84,12 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T043|seedbeds|`TestSeedbedMemberHistoryIsRestricted`|Withdrawal history only for responsible or admin; hidden members not exposed.|`tests/seedbed/http_test.go`|PT-SEM-02, PT-SEM-03|
 |T044|seedbeds|`TestLinkAndWithdrawMemberRequireResponsibleOrAdmin`|Link and withdraw member require responsible or admin.|`tests/seedbed/http_test.go`|PT-SEM-03|
 |T064|module-4-research|`TestPatchKeepsOmittedFields`|PATCH of project, activity and proposal keeps omitted fields and validates the merged record.|`tests/research/http_test.go`|PT-SEM-04, PT-SEM-05, PT-SEM-06|
+|T075|module-5-members|`TestMemberWritesRequireAdmin`|Member create, update and status return 401 anonymous, 403 non-admin, success for admin.|`tests/member/http_test.go`|PT-INT-01|
+|T076|module-5-members|`TestMemberWriteErrorsMapToClientStatus`|Invalid data or JSON is 400; missing member is 404.|`tests/member/http_test.go`|PT-INT-01|
+|T077|module-5-members|`TestGetMemberShowsPrivateFieldsOnlyToAdminOrSelf`|Private fields only for admin or the member; inactive profile is 404 for visitors.|`tests/member/http_test.go`|PT-INT-02|
+|T078|module-5-members|`TestGetMemberHidesNonPublicProfileFromVisitors`|Profile not visible publicly is 404 for visitors; admin still sees it.|`tests/member/http_test.go`|PT-INT-02|
+|T079|module-5-members|`TestMemberPublicationsRespectVisibility`|Publications for public profiles; 404 for inactive, hidden or missing.|`tests/member/http_test.go`|PT-INT-02|
+|T080|module-5-members|`TestPublicMembersPassesDirectoryFilters`|`GET /members` passes q, type, seedbedId, area and limit; empty list is [].|`tests/member/http_test.go`|PT-INT-02|
 
 ## Database integration tests
 
@@ -97,6 +108,12 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T063|module-4-research|`TestActivityWithoutOptionalListsIsStored`|Activity without responsibles or evidence is stored with empty lists.|`tests/research/repository_test.go`|PT-SEM-04|
 |T067|module-4-research|`TestReviewNotifiesActiveAdmins`|New review notifies every active admin in the same transaction; empty list is [].|`tests/research/repository_test.go`|PT-SEM-08|
 |T068|module-4-research|`TestMalformedOrMissingReferencesAreNotFound`|Malformed ids and missing seedbeds map to not-found errors instead of 500; empty activity list is [].|`tests/research/repository_test.go`|PT-SEM-04, PT-SEM-05|
+|T081|module-5-members|`TestCreateUpdateAndDeactivateKeepProfileData`|Create, partial update and deactivation persist profile fields and keep seedbed links.|`tests/member/repository_test.go`|PT-INT-01, PT-INT-03|
+|T082|module-5-members|`TestListExcludesInactiveAndHiddenEvenWhenSearchMatches`|Directory search excludes inactive and non-public profiles even when the query matches by email.|`tests/member/repository_test.go`|PT-INT-02|
+|T083|module-5-members|`TestListFiltersBySeedbedTypeAndArea`|Directory filters by current seedbed, type and area.|`tests/member/repository_test.go`|PT-INT-02|
+|T084|module-5-members|`TestMissingOrMalformedMemberIDIsNotFound`|Find, SetStatus and Update return ErrMemberNotFound for missing or malformed ids.|`tests/member/repository_test.go`|PT-INT-01|
+|T085|module-5-members|`TestUpdateSeedbedsKeepsMembershipHistory`|Changing seedbed_ids withdraws previous memberships with `retirado_en` instead of deleting them.|`tests/member/repository_test.go`|PT-INT-01, TDB-T06|
+|T086|module-5-members|`TestPublicationsReturnOnlyVisibleNewestFirst`|Publications return only visible items newest first; none is [].|`tests/member/repository_test.go`|PT-INT-02|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.

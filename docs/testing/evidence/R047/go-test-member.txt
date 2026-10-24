@@ -1,0 +1,121 @@
+--- PASS: TestCreateSessionSetsSecureCookie (0.00s)
+--- PASS: TestCreateSessionAcceptsAuthorizationHeaderWithoutBody (0.00s)
+--- PASS: TestCurrentUserRequiresSession (0.00s)
+--- PASS: TestLocalFrontendPreflightIsAccepted (0.00s)
+--- PASS: TestAuthorizationHeaderTakesPrecedenceOverStaleSessionCookie (0.00s)
+--- PASS: TestAdminMembersRejectsAuthenticatedNonAdmin (0.00s)
+--- PASS: TestPublicMembersRequiresQueryAndOmitsPrivateFields (0.00s)
+--- PASS: TestAdminMembersRequiresSessionAndReturnsAdminFields (0.00s)
+--- PASS: TestUpdateRoleAcceptsHeaderAndPathTargets (0.00s)
+--- PASS: TestUpdateRoleRejectsUnauthenticatedAndConflictingTargets (0.00s)
+--- PASS: TestRegisterRequiresBearerToken (0.00s)
+--- PASS: TestCreateSessionReturnsGenericErrorForInvalidOrInactiveAccounts (0.00s)
+--- PASS: TestCreateSessionReturnsRegistrationRequiredForFirebaseOnlyUser (0.00s)
+--- PASS: TestCreateSessionPreservesStudentAndProfessorRoles (0.00s)
+--- PASS: TestLogoutInvalidatesSessionAndClearsCookie (0.00s)
+--- PASS: TestRegisterIgnoresClientSuppliedRole (0.00s)
+--- PASS: TestLogoutRevokesCookieSessionEvenWhenStaleAuthorizationIsPresent (0.00s)
+--- PASS: TestLoginRotatesPreviousSessionCookie (0.00s)
+--- PASS: TestStaleSessionCookieIsClearedOnUnauthorized (0.00s)
+--- PASS: TestRegisterPersistsIdentityFields (0.00s)
+--- PASS: TestRegisterRejectsInvalidInput (0.00s)
+--- PASS: TestRegisterRejectsMissingProfileFields (0.00s)
+--- PASS: TestRegisterRejectsInvalidFirebaseToken (0.00s)
+--- PASS: TestLoginCreatesHashedOpaqueSession (0.00s)
+--- PASS: TestLoginRejectsInvalidAndInactiveUsers (0.00s)
+--- PASS: TestLoginRejectsUnregisteredFirebaseUserWithoutUpsert (0.00s)
+--- PASS: TestCurrentUserAndLogoutUseSessionHash (0.00s)
+--- PASS: TestLogoutInvalidatesCurrentUserSession (0.00s)
+--- PASS: TestRequestPasswordRecoveryDoesNotRevealUnknownEmail (0.00s)
+--- PASS: TestResetPasswordHashesPasswordAndConsumesTokenOnce (0.13s)
+--- PASS: TestResetPasswordRevokesAllUserSessions (0.05s)
+--- PASS: TestPurgeExpiredCredentialsRemovesSessionsAndRecoveryTokens (0.00s)
+--- PASS: TestResetPasswordRejectsShortPasswordAndInvalidToken (0.00s)
+--- PASS: TestUpdateUserRoleRequiresAdminAndUsesTargetUID (0.00s)
+--- PASS: TestUpdateUserRoleRejectsNonAdminAndInvalidRequests (0.00s)
+--- PASS: TestSearchUsersRequiresQueryAndBoundsLimit (0.00s)
+--- PASS: TestUpsertPreservesExistingLastName (0.02s)
+--- PASS: TestUpsertAssignsVisitanteAndNeverChangesExistingRole (0.01s)
+--- PASS: TestSearchReturnsOnlyActiveMatchingUsers (0.02s)
+--- PASS: TestUpdateRoleUpdatesActiveUserAndRejectsInactiveOrMissingUID (0.02s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/auth	0.251s
+--- PASS: TestMemberWritesRequireAdmin (0.00s)
+--- PASS: TestMemberWriteErrorsMapToClientStatus (0.00s)
+--- PASS: TestGetMemberShowsPrivateFieldsOnlyToAdminOrSelf (0.00s)
+    http_test.go:160: hidden anonymous: status=200, want 404: {"id":"hidden","name":"Oculto","last_name":"","role":"profesor","status":"activo","visible_publicly":false}
+    http_test.go:161: hidden other: status=200, want 404: {"id":"hidden","name":"Oculto","last_name":"","role":"profesor","status":"activo","visible_publicly":false}
+--- FAIL: TestGetMemberHidesNonPublicProfileFromVisitors (0.00s)
+--- PASS: TestMemberPublicationsRespectVisibility (0.00s)
+--- PASS: TestPublicMembersPassesDirectoryFilters (0.00s)
+--- PASS: TestCreateUpdateAndDeactivateKeepProfileData (0.04s)
+    repository_test.go:116: List() returned 3 profiles, want only visible: [{ID:<uuid> FirebaseUID: Name:hidden LastName:Prueba Email: DocumentType: DocumentNumber: Role:estudiante Status:activo Area: Formation: ORCID: CvLAC:https://scienti.minciencias.gov.co/cvlac VisiblePublicly:false SeedbedIDs:[]} {ID:<uuid> FirebaseUID: Name:off LastName:Prueba Email: DocumentType: DocumentNumber: Role:estudiante Status:inactivo Area: Formation: ORCID: CvLAC:https://scienti.minciencias.gov.co/cvlac VisiblePublicly:true SeedbedIDs:[]} {ID:<uuid> FirebaseUID: Name:visible LastName:Prueba Email: DocumentType: DocumentNumber: Role:estudiante Status:activo Area: Formation: ORCID: CvLAC:https://scienti.minciencias.gov.co/cvlac VisiblePublicly:true SeedbedIDs:[]}]
+--- FAIL: TestListExcludesInactiveAndHiddenEvenWhenSearchMatches (0.04s)
+--- PASS: TestListFiltersBySeedbedTypeAndArea (0.03s)
+    repository_test.go:157: SetStatus missing: err=no rows in result set, want ErrMemberNotFound
+    repository_test.go:157: Update missing: err=ERROR: insert or update on table "perfil_investigador" violates foreign key constraint "perfil_investigador_usuario_id_fkey" (SQLSTATE 23503), want ErrMemberNotFound
+    repository_test.go:157: Find malformed: err=ERROR: invalid input syntax for type uuid: "not-a-uuid" (SQLSTATE 22P02), want ErrMemberNotFound
+--- FAIL: TestMissingOrMalformedMemberIDIsNotFound (0.01s)
+    repository_test.go:178: withdrawn membership rows for previous seedbed=0, want 1 kept with retirado_en
+--- FAIL: TestUpdateSeedbedsKeepsMembershipHistory (0.02s)
+--- PASS: TestPublicationsReturnOnlyVisibleNewestFirst (0.02s)
+--- PASS: TestCreateValidatesRequiredFieldsRoleAndCvLAC (0.00s)
+--- PASS: TestUpdateValidatesRoleAndCvLAC (0.00s)
+--- PASS: TestSetStatusAcceptsOnlyActivoOrInactivo (0.00s)
+--- PASS: TestGetStripsPrivateFieldsForPublicView (0.00s)
+--- PASS: TestListClampsLimit (0.00s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/member	0.175s
+--- PASS: TestCreateRejectsMissingRequiredField (0.00s)
+--- PASS: TestCreateReturnsOpaqueTrackingToken (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/registration	0.003s
+--- PASS: TestPatchKeepsOmittedFields (0.00s)
+--- PASS: TestProjectUpdatesKeepAuthorAndDateHistory (0.04s)
+--- PASS: TestConvertProposalKeepsHistoryAndLinksProject (0.04s)
+--- PASS: TestProposalWithoutSeedbedIsStored (0.03s)
+--- PASS: TestActivityWithoutOptionalListsIsStored (0.02s)
+--- PASS: TestReviewNotifiesActiveAdmins (0.02s)
+--- PASS: TestMalformedOrMissingReferencesAreNotFound (0.02s)
+--- PASS: TestActivityRequiresResponsibleTeacherOrAdmin (0.00s)
+--- PASS: TestProjectProgressMustBeBetween0And100 (0.00s)
+--- PASS: TestProjectUpdateRecordsActorAndChangedFields (0.00s)
+--- PASS: TestProgressOnlyByResponsibleOrAdmin (0.00s)
+--- PASS: TestProposalCreateAlwaysStartsRadicada (0.00s)
+--- PASS: TestProposalAuthorCannotApproveOrReview (0.00s)
+--- PASS: TestProposalDetailIncludesHistory (0.00s)
+--- PASS: TestConvertRequiresApprovedProposalAndReviewer (0.00s)
+--- PASS: TestResearchJSONUsesCamelCase (0.00s)
+--- PASS: TestProposalListScopesByRole (0.00s)
+--- PASS: TestReviewRequiresExistingSeedbedAndQueueDefaultsToPending (0.00s)
+--- PASS: TestActivityStatusDerivedFromDateWhenOmitted (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/research	0.175s
+--- PASS: TestCreateSeedbedRequiresTeacherOrAdminSession (0.00s)
+--- PASS: TestListSeedbedsRestrictsPrivateViewToAdmin (0.00s)
+--- PASS: TestGetSeedbedRespectsVisibility (0.00s)
+--- PASS: TestSeedbedSpaceHidesPrivateData (0.00s)
+--- PASS: TestUpdateSeedbedRequiresResponsibleOrAdmin (0.00s)
+--- PASS: TestSetSeedbedVisibilityValidatesActorAndState (0.00s)
+--- PASS: TestSeedbedMemberHistoryIsRestricted (0.00s)
+--- PASS: TestLinkAndWithdrawMemberRequireResponsibleOrAdmin (0.00s)
+    live_api_test.go:107: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveCreateRejectsDuplicateName (0.00s)
+    live_api_test.go:114: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveUnknownSeedbedReturnsNotFound (0.00s)
+    live_api_test.go:122: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveVisibilityControlsPublicAccess (0.00s)
+    live_api_test.go:143: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveHiddenMembersAnonymousSingleError (0.00s)
+    live_api_test.go:152: GALASH_API_URL or TEST_DATABASE_URL is not set
+--- SKIP: TestLiveWithdrawKeepsHistory (0.00s)
+--- PASS: TestCreateRejectsMissingRequiredFields (0.00s)
+--- PASS: TestCreateRequiresActiveTeacherAsResponsible (0.00s)
+--- PASS: TestCreateStartsAsDraftWithTrimmedData (0.00s)
+--- PASS: TestVisibilityAllowsResponsibleOrAdminAndKnownStates (0.00s)
+--- PASS: TestAddMemberAcceptsOnlyActiveStudentsOrTeachers (0.00s)
+--- PASS: TestRemoveMemberRequiresResponsibleOrAdmin (0.00s)
+--- PASS: TestListBoundsPagination (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/seedbed	0.006s
+FAIL
