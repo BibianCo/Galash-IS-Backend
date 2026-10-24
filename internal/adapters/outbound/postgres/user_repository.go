@@ -115,7 +115,7 @@ func (r *UserRepository) List(ctx context.Context, f ports.MemberFilter) ([]doma
 	args := []any{}
 	if q := strings.TrimSpace(f.Query); q != "" {
 		args = append(args, "%"+strings.ToLower(q)+"%")
-		where = append(where, "lower(u.nombre || ' ' || COALESCE(u.apellido,'')) LIKE $"+fmt.Sprint(len(args))+" OR lower(u.email) LIKE $"+fmt.Sprint(len(args)))
+		where = append(where, "(lower(u.nombre || ' ' || COALESCE(u.apellido,'')) LIKE $"+fmt.Sprint(len(args))+" OR lower(u.email) LIKE $"+fmt.Sprint(len(args))+")")
 	}
 	if f.Role != "" {
 		args = append(args, f.Role)
@@ -190,20 +190,23 @@ func (r *UserRepository) Update(ctx context.Context, id string, c memberapp.Upda
 		return domain.MemberProfile{}, err
 	}
 	defer tx.Rollback(ctx)
-	_, err = tx.Exec(ctx, `UPDATE usuarios SET nombre=COALESCE(NULLIF($1,''),nombre), apellido=COALESCE(NULLIF($2,''),apellido), email=COALESCE(NULLIF($3,''),email), tipo_dni=COALESCE(NULLIF($4,''),tipo_dni), dni=COALESCE(NULLIF($5,''),dni), rol=COALESCE(NULLIF($6,''),rol) WHERE id=$7`, c.Name, c.LastName, c.Email, c.DocumentType, c.DocumentNumber, strings.ToLower(c.Role), id)
+	result, err := tx.Exec(ctx, `UPDATE usuarios SET nombre=COALESCE(NULLIF($1,''),nombre), apellido=COALESCE(NULLIF($2,''),apellido), email=COALESCE(NULLIF($3,''),email), tipo_dni=COALESCE(NULLIF($4,''),tipo_dni), dni=COALESCE(NULLIF($5,''),dni), rol=COALESCE(NULLIF($6,''),rol) WHERE id=$7`, c.Name, c.LastName, c.Email, c.DocumentType, c.DocumentNumber, strings.ToLower(c.Role), id)
 	if err != nil {
 		return domain.MemberProfile{}, err
+	}
+	if result.RowsAffected() == 0 {
+		return domain.MemberProfile{}, domain.ErrMemberNotFound
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($6,$1,$2,$3,$4,COALESCE($5,true)) ON CONFLICT(usuario_id) DO UPDATE SET area_investigacion=COALESCE(NULLIF($1,''),perfil_investigador.area_investigacion), formacion=COALESCE(NULLIF($2,''),perfil_investigador.formacion), orcid=COALESCE(NULLIF($3,''),perfil_investigador.orcid), cvlac=COALESCE(NULLIF($4,''),perfil_investigador.cvlac), visible_publicamente=COALESCE($5,perfil_investigador.visible_publicamente)`, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly, id)
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
 	if c.SeedbedIDs != nil {
-		if _, err = tx.Exec(ctx, `DELETE FROM semillero_miembros WHERE usuario_id=$1 AND retirado_en IS NULL`, id); err != nil {
+		if _, err = tx.Exec(ctx, `UPDATE semillero_miembros SET retirado_en=now() WHERE usuario_id=$1 AND retirado_en IS NULL AND (cardinality($2::text[]) = 0 OR NOT (semillero_id::text = ANY($2::text[])))`, id, c.SeedbedIDs); err != nil {
 			return domain.MemberProfile{}, err
 		}
 		for _, sid := range c.SeedbedIDs {
-			if _, err = tx.Exec(ctx, `INSERT INTO semillero_miembros(semillero_id,usuario_id) VALUES($1,$2)`, sid, id); err != nil {
+			if _, err = tx.Exec(ctx, `INSERT INTO semillero_miembros(semillero_id,usuario_id) VALUES($1,$2) ON CONFLICT (semillero_id,usuario_id) DO UPDATE SET retirado_en=NULL`, sid, id); err != nil {
 				return domain.MemberProfile{}, err
 			}
 		}
@@ -220,7 +223,7 @@ func (r *UserRepository) SetStatus(ctx context.Context, id, status string) (doma
 		return domain.MemberProfile{}, err
 	}
 	if result.RowsAffected() == 0 {
-		return domain.MemberProfile{}, pgx.ErrNoRows
+		return domain.MemberProfile{}, domain.ErrMemberNotFound
 	}
 	return r.Find(ctx, id)
 }

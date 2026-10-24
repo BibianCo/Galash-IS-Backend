@@ -1,0 +1,5 @@
+Build and automated tests: docker go test ./... = PASS.
+D015 live check: active profile with visible_publicamente=false returned HTTP 404 to unauthenticated GET /members/{id}.
+D016 live check: q=Defect Search returned only the active visible fixture; hidden and inactive fixtures were excluded.
+D017 live check: GET /members/not-a-uuid returned HTTP 404 with integrante no encontrado.
+D018 database transaction check: removing an active membership set retirado_en and preserved the row; transaction was rolled back after verification.

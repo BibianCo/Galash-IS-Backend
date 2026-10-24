@@ -197,6 +197,12 @@
 {"v":1,"id":"X099","t":"result","run":"R045","test":"T003","s":"pass","ev":["docs/testing/evidence/R045/go-test-member-update.txt"]}
 {"v":1,"id":"R046","t":"run","at":"2026-10-23T00:00:00Z","build":"working-tree","by":"agent","mode":"automated","note":"Migración y verificación del endpoint de publicaciones de integrantes"}
 {"v":1,"id":"X100","t":"result","run":"R046","test":"T003","s":"pass","ev":["docs/testing/evidence/R046/member-publications.txt"]}
+{"v":1,"id":"R048","t":"run","at":"2026-10-24T22:53:00Z","build":"working-tree","by":"agent","mode":"automated","note":"Corrección y verificación de defectos D015-D018 del módulo 5"}
+{"v":1,"id":"X101","t":"result","run":"R048","test":"T003","s":"pass","ev":["docs/testing/evidence/R048/module5-defects.txt"]}
+{"v":1,"id":"D015","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: hidden public profiles return 404 to visitors"}
+{"v":1,"id":"D016","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: public search groups name/email predicates and excludes inactive/hidden profiles"}
+{"v":1,"id":"D017","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: malformed and nonexistent member ids return 404"}
+{"v":1,"id":"D018","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: membership removal marks retirado_en instead of deleting history"}
 {"v":1,"id":"T050","t":"test","area":"module-4-research","p":"must","name":"Compilación y pruebas existentes del módulo 4"}
 {"v":1,"id":"R035","t":"run","at":"2026-10-23T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."}
 {"v":1,"id":"X096","t":"result","run":"R035","test":"T050","s":"pass","ev":["docker go test ./..."]}
