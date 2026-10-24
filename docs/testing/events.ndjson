@@ -314,3 +314,42 @@
 {"v":1,"id":"X160","t":"result","run":"R043","test":"T067","s":"pass"}
 {"v":1,"id":"X161","t":"result","run":"R043","test":"T068","s":"pass"}
 {"v":1,"id":"X162","t":"result","run":"R043","test":"T069","s":"pass"}
+{"v":1,"id":"T070","t":"test","area":"module-5-members","p":"must","name":"Create member rejects missing uid/name/last name/email, non member roles and non-http CvLAC before reaching the repository"}
+{"v":1,"id":"T071","t":"test","area":"module-5-members","p":"must","name":"Update member rejects empty id, non member role and invalid CvLAC; partial update reaches repository"}
+{"v":1,"id":"T072","t":"test","area":"module-5-members","p":"must","name":"Member status accepts only activo or inactivo, normalized"}
+{"v":1,"id":"T073","t":"test","area":"module-5-members","p":"must","name":"Public member view strips email, document and firebase uid; blank id is not found"}
+{"v":1,"id":"T074","t":"test","area":"module-5-members","p":"should","name":"Directory limit defaults to 20 and is capped at 100"}
+{"v":1,"id":"T075","t":"test","area":"module-5-members","p":"must","name":"POST /members, PATCH /members/{id} and PATCH /members/{id}/status return 401 anonymous, 403 non-admin, success for admin"}
+{"v":1,"id":"T076","t":"test","area":"module-5-members","p":"must","name":"Member write errors map to 400 for invalid data or JSON and 404 for missing member"}
+{"v":1,"id":"T077","t":"test","area":"module-5-members","p":"must","name":"GET /members/{id} shows private fields only to admin or the member; inactive profile is 404 for visitors"}
+{"v":1,"id":"T078","t":"test","area":"module-5-members","p":"must","name":"GET /members/{id} returns 404 to visitors for a profile not visible publicly; admin still sees it"}
+{"v":1,"id":"T079","t":"test","area":"module-5-members","p":"must","name":"GET /members/{id}/publications returns publications for public profiles and 404 for inactive, hidden or missing"}
+{"v":1,"id":"T080","t":"test","area":"module-5-members","p":"must","name":"GET /members passes q, type, seedbedId, area and limit to the directory; empty list is []"}
+{"v":1,"id":"T081","t":"test","area":"module-5-members","p":"must","name":"Create, partial update and deactivation persist profile fields and keep seedbed links"}
+{"v":1,"id":"T082","t":"test","area":"module-5-members","p":"must","name":"Directory search excludes inactive and non-public profiles even when the query matches by email"}
+{"v":1,"id":"T083","t":"test","area":"module-5-members","p":"must","name":"Directory filters by current seedbed, type and area"}
+{"v":1,"id":"T084","t":"test","area":"module-5-members","p":"must","name":"Find, SetStatus and Update return ErrMemberNotFound for missing or malformed ids"}
+{"v":1,"id":"T085","t":"test","area":"module-5-members","p":"must","name":"Changing seedbed_ids withdraws previous memberships keeping retirado_en history instead of deleting them"}
+{"v":1,"id":"T086","t":"test","area":"module-5-members","p":"must","name":"Member publications return only visible items newest first; none is []"}
+{"v":1,"id":"R047","t":"run","at":"2026-10-24T16:29:52Z","build":"7b58776+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/... -count=1 -v; git diff --check","ev":["R047/go-test-member.txt"]}
+{"v":1,"id":"X163","t":"result","run":"R047","test":"T070","s":"pass"}
+{"v":1,"id":"X164","t":"result","run":"R047","test":"T071","s":"pass"}
+{"v":1,"id":"X165","t":"result","run":"R047","test":"T072","s":"pass"}
+{"v":1,"id":"X166","t":"result","run":"R047","test":"T073","s":"pass"}
+{"v":1,"id":"X167","t":"result","run":"R047","test":"T074","s":"pass"}
+{"v":1,"id":"X168","t":"result","run":"R047","test":"T075","s":"pass"}
+{"v":1,"id":"X169","t":"result","run":"R047","test":"T076","s":"pass"}
+{"v":1,"id":"X170","t":"result","run":"R047","test":"T077","s":"pass"}
+{"v":1,"id":"X171","t":"result","run":"R047","test":"T078","s":"fail","ev":["R047/go-test-member.txt"]}
+{"v":1,"id":"X172","t":"result","run":"R047","test":"T079","s":"pass"}
+{"v":1,"id":"X173","t":"result","run":"R047","test":"T080","s":"pass"}
+{"v":1,"id":"X174","t":"result","run":"R047","test":"T081","s":"pass"}
+{"v":1,"id":"X175","t":"result","run":"R047","test":"T082","s":"fail","ev":["R047/go-test-member.txt"]}
+{"v":1,"id":"X176","t":"result","run":"R047","test":"T083","s":"pass"}
+{"v":1,"id":"X177","t":"result","run":"R047","test":"T084","s":"fail","ev":["R047/go-test-member.txt"]}
+{"v":1,"id":"X178","t":"result","run":"R047","test":"T085","s":"fail","ev":["R047/go-test-member.txt"]}
+{"v":1,"id":"X179","t":"result","run":"R047","test":"T086","s":"pass"}
+{"v":1,"id":"D015","t":"defect","test":"T078","run":"R047","sev":"medium","s":"open","name":"GET /members/{id} returns profiles with visible_publicly=false to visitors and non-admin users","ref":"internal/adapters/inbound/http/handler.go getMember"}
+{"v":1,"id":"D016","t":"defect","test":"T082","run":"R047","sev":"high","s":"open","name":"Directory search ORs name and email without parentheses, so inactive and hidden profiles leak into GET /members","ref":"internal/adapters/outbound/postgres/user_repository.go List"}
+{"v":1,"id":"D017","t":"defect","test":"T084","run":"R047","sev":"medium","s":"open","name":"Missing or malformed member ids return driver errors (500) instead of ErrMemberNotFound (404) on find, status and update","ref":"internal/adapters/outbound/postgres/user_repository.go Find, SetStatus, Update"}
+{"v":1,"id":"D018","t":"defect","test":"T085","run":"R047","sev":"high","s":"open","name":"PATCH /members/{id} with seedbed_ids deletes current memberships instead of withdrawing them, losing participation history","ref":"internal/adapters/outbound/postgres/user_repository.go Update"}
