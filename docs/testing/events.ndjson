@@ -197,6 +197,12 @@
 {"v":1,"id":"X099","t":"result","run":"R045","test":"T003","s":"pass","ev":["docs/testing/evidence/R045/go-test-member-update.txt"]}
 {"v":1,"id":"R046","t":"run","at":"2026-10-23T00:00:00Z","build":"working-tree","by":"agent","mode":"automated","note":"Migración y verificación del endpoint de publicaciones de integrantes"}
 {"v":1,"id":"X100","t":"result","run":"R046","test":"T003","s":"pass","ev":["docs/testing/evidence/R046/member-publications.txt"]}
+{"v":1,"id":"R048","t":"run","at":"2026-10-24T22:53:00Z","build":"working-tree","by":"agent","mode":"automated","note":"Corrección y verificación de defectos D015-D018 del módulo 5"}
+{"v":1,"id":"X101","t":"result","run":"R048","test":"T003","s":"pass","ev":["docs/testing/evidence/R048/module5-defects.txt"]}
+{"v":1,"id":"D015","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: hidden public profiles return 404 to visitors"}
+{"v":1,"id":"D016","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: public search groups name/email predicates and excludes inactive/hidden profiles"}
+{"v":1,"id":"D017","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: malformed and nonexistent member ids return 404"}
+{"v":1,"id":"D018","t":"defect","run":"R048","s":"closed","name":"Fixed and verified: membership removal marks retirado_en instead of deleting history"}
 {"v":1,"id":"T050","t":"test","area":"module-4-research","p":"must","name":"Compilación y pruebas existentes del módulo 4"}
 {"v":1,"id":"R035","t":"run","at":"2026-10-23T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22-alpine go test ./..."}
 {"v":1,"id":"X096","t":"result","run":"R035","test":"T050","s":"pass","ev":["docker go test ./..."]}
@@ -353,3 +359,23 @@
 {"v":1,"id":"D016","t":"defect","test":"T082","run":"R047","sev":"high","s":"open","name":"Directory search ORs name and email without parentheses, so inactive and hidden profiles leak into GET /members","ref":"internal/adapters/outbound/postgres/user_repository.go List"}
 {"v":1,"id":"D017","t":"defect","test":"T084","run":"R047","sev":"medium","s":"open","name":"Missing or malformed member ids return driver errors (500) instead of ErrMemberNotFound (404) on find, status and update","ref":"internal/adapters/outbound/postgres/user_repository.go Find, SetStatus, Update"}
 {"v":1,"id":"D018","t":"defect","test":"T085","run":"R047","sev":"high","s":"open","name":"PATCH /members/{id} with seedbed_ids deletes current memberships instead of withdrawing them, losing participation history","ref":"internal/adapters/outbound/postgres/user_repository.go Update"}
+{"v":1,"id":"T102","t":"test","area":"module-5-members","p":"must","replaces":"T071","name":"Update member rejects non member role and invalid CvLAC; partial update reaches repository (malformed/empty id now covered by service UUID check)"}
+{"v":1,"id":"T103","t":"test","area":"module-5-members","p":"must","replaces":"T084","name":"Find, SetStatus and Update return ErrMemberNotFound for missing ids (malformed ids rejected earlier by the service)"}
+{"v":1,"id":"R049","t":"run","at":"2026-10-24T23:30:00Z","build":"merge origin/main (ee009fc) into test/GSW-20 (37baca4)+wip","env":"E004","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/... -count=1 -v; git diff --check","note":"Fixtures de tests/member migrados a UUID tras validacion de fed5965","ev":["R049/go-test-member-merge.txt"]}
+{"v":1,"id":"X199","t":"result","run":"R049","test":"T070","s":"pass"}
+{"v":1,"id":"X200","t":"result","run":"R049","test":"T102","s":"pass"}
+{"v":1,"id":"X201","t":"result","run":"R049","test":"T072","s":"pass"}
+{"v":1,"id":"X202","t":"result","run":"R049","test":"T073","s":"pass"}
+{"v":1,"id":"X203","t":"result","run":"R049","test":"T074","s":"pass"}
+{"v":1,"id":"X204","t":"result","run":"R049","test":"T075","s":"pass"}
+{"v":1,"id":"X205","t":"result","run":"R049","test":"T076","s":"pass"}
+{"v":1,"id":"X206","t":"result","run":"R049","test":"T077","s":"pass"}
+{"v":1,"id":"X207","t":"result","run":"R049","test":"T078","s":"pass"}
+{"v":1,"id":"X208","t":"result","run":"R049","test":"T079","s":"pass"}
+{"v":1,"id":"X209","t":"result","run":"R049","test":"T080","s":"pass"}
+{"v":1,"id":"X210","t":"result","run":"R049","test":"T081","s":"pass"}
+{"v":1,"id":"X211","t":"result","run":"R049","test":"T082","s":"pass"}
+{"v":1,"id":"X212","t":"result","run":"R049","test":"T083","s":"pass"}
+{"v":1,"id":"X213","t":"result","run":"R049","test":"T103","s":"pass"}
+{"v":1,"id":"X214","t":"result","run":"R049","test":"T085","s":"pass"}
+{"v":1,"id":"X215","t":"result","run":"R049","test":"T086","s":"pass"}

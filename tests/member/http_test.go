@@ -43,7 +43,7 @@ func (a *authStore) FindByEmail(context.Context, string) (domain.User, error) {
 func (a *authStore) FindByFirebaseUID(ctx context.Context, uid string) (domain.User, error) {
 	return a.FindByID(ctx, uid)
 }
-func (a *authStore) SetPassword(context.Context, string, string) error           { return nil }
+func (a *authStore) SetPassword(context.Context, string, string) error          { return nil }
 func (a *authStore) Search(context.Context, string, int) ([]domain.User, error) { return nil, nil }
 func (a *authStore) UpdateRole(context.Context, string, string) error           { return nil }
 func (a *authStore) Upsert(context.Context, domain.User) (string, error)        { return "", nil }
@@ -70,9 +70,9 @@ type server struct {
 func newServer(t *testing.T) server {
 	t.Helper()
 	store := &authStore{sessions: map[string]string{}, users: map[string]domain.User{
-		"admin": {ID: "admin", Role: "admin", Status: "activo"},
-		"ana":   {ID: "ana", Role: "estudiante", Status: "activo"},
-		"other": {ID: "other", Role: "estudiante", Status: "activo"},
+		adminID: {ID: adminID, Role: "admin", Status: "activo"},
+		anaID:   {ID: anaID, Role: "estudiante", Status: "activo"},
+		otherID: {ID: otherID, Role: "estudiante", Status: "activo"},
 	}}
 	auth := authapp.NewService(verifier{}, store)
 	repo := newRepository()
@@ -109,67 +109,67 @@ func TestMemberWritesRequireAdmin(t *testing.T) {
 	s := newServer(t)
 	writes := []struct{ method, path, body string }{
 		{http.MethodPost, "/members", memberBody},
-		{http.MethodPatch, "/members/ana", `{"area":"IA"}`},
-		{http.MethodPatch, "/members/ana/status", `{"status":"inactivo"}`},
+		{http.MethodPatch, "/members/" + anaID, `{"area":"IA"}`},
+		{http.MethodPatch, "/members/" + anaID + "/status", `{"status":"inactivo"}`},
 	}
 	for _, w := range writes {
 		expect(t, "anonymous "+w.method+" "+w.path, s.do(t, w.method, w.path, "", w.body), http.StatusUnauthorized)
-		expect(t, "student "+w.method+" "+w.path, s.do(t, w.method, w.path, "ana", w.body), http.StatusForbidden)
+		expect(t, "student "+w.method+" "+w.path, s.do(t, w.method, w.path, anaID, w.body), http.StatusForbidden)
 	}
 	if s.repo.created != nil || s.repo.updated != nil || s.repo.status != "" {
 		t.Fatal("non-admin write reached repository")
 	}
-	expect(t, "admin create", s.do(t, http.MethodPost, "/members", "admin", memberBody), http.StatusCreated)
-	expect(t, "admin update", s.do(t, http.MethodPatch, "/members/ana", "admin", `{"area":"IA"}`), http.StatusOK)
-	expect(t, "admin status", s.do(t, http.MethodPatch, "/members/ana/status", "admin", `{"status":"inactivo"}`), http.StatusOK)
+	expect(t, "admin create", s.do(t, http.MethodPost, "/members", adminID, memberBody), http.StatusCreated)
+	expect(t, "admin update", s.do(t, http.MethodPatch, "/members/"+anaID, adminID, `{"area":"IA"}`), http.StatusOK)
+	expect(t, "admin status", s.do(t, http.MethodPatch, "/members/"+anaID+"/status", adminID, `{"status":"inactivo"}`), http.StatusOK)
 }
 
 func TestMemberWriteErrorsMapToClientStatus(t *testing.T) {
 	s := newServer(t)
-	expect(t, "create missing fields", s.do(t, http.MethodPost, "/members", "admin", `{"name":"Luis"}`), http.StatusBadRequest)
-	expect(t, "create bad json", s.do(t, http.MethodPost, "/members", "admin", `{`), http.StatusBadRequest)
-	expect(t, "update bad cvlac", s.do(t, http.MethodPatch, "/members/ana", "admin", `{"cvlac":"cvlac"}`), http.StatusBadRequest)
-	expect(t, "update missing", s.do(t, http.MethodPatch, "/members/missing", "admin", `{"area":"IA"}`), http.StatusNotFound)
-	expect(t, "status invalid", s.do(t, http.MethodPatch, "/members/ana/status", "admin", `{"status":"eliminado"}`), http.StatusBadRequest)
-	expect(t, "status missing", s.do(t, http.MethodPatch, "/members/missing/status", "admin", `{"status":"activo"}`), http.StatusNotFound)
+	expect(t, "create missing fields", s.do(t, http.MethodPost, "/members", adminID, `{"name":"Luis"}`), http.StatusBadRequest)
+	expect(t, "create bad json", s.do(t, http.MethodPost, "/members", adminID, `{`), http.StatusBadRequest)
+	expect(t, "update bad cvlac", s.do(t, http.MethodPatch, "/members/"+anaID, adminID, `{"cvlac":"cvlac"}`), http.StatusBadRequest)
+	expect(t, "update missing", s.do(t, http.MethodPatch, "/members/"+missingID, adminID, `{"area":"IA"}`), http.StatusNotFound)
+	expect(t, "status invalid", s.do(t, http.MethodPatch, "/members/"+anaID+"/status", adminID, `{"status":"eliminado"}`), http.StatusBadRequest)
+	expect(t, "status missing", s.do(t, http.MethodPatch, "/members/"+missingID+"/status", adminID, `{"status":"activo"}`), http.StatusNotFound)
 }
 
 func TestGetMemberShowsPrivateFieldsOnlyToAdminOrSelf(t *testing.T) {
 	s := newServer(t)
-	for _, viewer := range []string{"", "other"} {
-		response := s.do(t, http.MethodGet, "/members/ana", viewer, "")
+	for _, viewer := range []string{"", otherID} {
+		response := s.do(t, http.MethodGet, "/members/"+anaID, viewer, "")
 		expect(t, "viewer "+viewer, response, http.StatusOK)
 		if strings.Contains(response.Body.String(), "ana@example.com") || strings.Contains(response.Body.String(), `"document_number"`) {
 			t.Errorf("viewer %q sees private fields: %s", viewer, response.Body.String())
 		}
 	}
-	for _, viewer := range []string{"ana", "admin"} {
-		response := s.do(t, http.MethodGet, "/members/ana", viewer, "")
+	for _, viewer := range []string{anaID, adminID} {
+		response := s.do(t, http.MethodGet, "/members/"+anaID, viewer, "")
 		expect(t, "viewer "+viewer, response, http.StatusOK)
 		if !strings.Contains(response.Body.String(), "ana@example.com") {
 			t.Errorf("viewer %q misses private fields: %s", viewer, response.Body.String())
 		}
 	}
-	expect(t, "inactive anonymous", s.do(t, http.MethodGet, "/members/off", "", ""), http.StatusNotFound)
-	expect(t, "inactive admin", s.do(t, http.MethodGet, "/members/off", "admin", ""), http.StatusOK)
-	expect(t, "missing anonymous", s.do(t, http.MethodGet, "/members/missing", "", ""), http.StatusNotFound)
+	expect(t, "inactive anonymous", s.do(t, http.MethodGet, "/members/"+offID, "", ""), http.StatusNotFound)
+	expect(t, "inactive admin", s.do(t, http.MethodGet, "/members/"+offID, adminID, ""), http.StatusOK)
+	expect(t, "missing anonymous", s.do(t, http.MethodGet, "/members/"+missingID, "", ""), http.StatusNotFound)
 }
 
 func TestGetMemberHidesNonPublicProfileFromVisitors(t *testing.T) {
 	s := newServer(t)
-	expect(t, "hidden anonymous", s.do(t, http.MethodGet, "/members/hidden", "", ""), http.StatusNotFound)
-	expect(t, "hidden other", s.do(t, http.MethodGet, "/members/hidden", "other", ""), http.StatusNotFound)
-	expect(t, "hidden admin", s.do(t, http.MethodGet, "/members/hidden", "admin", ""), http.StatusOK)
+	expect(t, "hidden anonymous", s.do(t, http.MethodGet, "/members/"+hiddenID, "", ""), http.StatusNotFound)
+	expect(t, "hidden other", s.do(t, http.MethodGet, "/members/"+hiddenID, otherID, ""), http.StatusNotFound)
+	expect(t, "hidden admin", s.do(t, http.MethodGet, "/members/"+hiddenID, adminID, ""), http.StatusOK)
 }
 
 func TestMemberPublicationsRespectVisibility(t *testing.T) {
 	s := newServer(t)
-	response := s.do(t, http.MethodGet, "/members/ana/publications", "", "")
+	response := s.do(t, http.MethodGet, "/members/"+anaID+"/publications", "", "")
 	expect(t, "public", response, http.StatusOK)
 	if !strings.Contains(response.Body.String(), `"title":"Artículo"`) {
 		t.Errorf("publications missing: %s", response.Body.String())
 	}
-	for _, id := range []string{"off", "hidden", "missing"} {
+	for _, id := range []string{offID, hiddenID, missingID} {
 		expect(t, id, s.do(t, http.MethodGet, "/members/"+id+"/publications", "", ""), http.StatusNotFound)
 	}
 }

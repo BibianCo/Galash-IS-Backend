@@ -143,14 +143,17 @@ func TestListFiltersBySeedbedTypeAndArea(t *testing.T) {
 	}
 }
 
+// Malformed IDs are rejected earlier by the service (TestMemberOperationsRejectMalformedIDsAsNotFound).
 func TestMissingOrMalformedMemberIDIsNotFound(t *testing.T) {
 	f := newFixture(t)
 	missing := "00000000-0000-0000-0000-000000000000"
 	checks := map[string]func() error{
-		"Find malformed":    func() error { _, err := f.repo.Find(f.ctx, "not-a-uuid"); return err },
 		"Find missing":      func() error { _, err := f.repo.Find(f.ctx, missing); return err },
 		"SetStatus missing": func() error { _, err := f.repo.SetStatus(f.ctx, missing, "inactivo"); return err },
-		"Update missing":    func() error { _, err := f.repo.Update(f.ctx, missing, ports.UpdateMemberCommand{Area: "IA"}); return err },
+		"Update missing": func() error {
+			_, err := f.repo.Update(f.ctx, missing, ports.UpdateMemberCommand{Area: "IA"})
+			return err
+		},
 	}
 	for name, check := range checks {
 		if err := check(); !errors.Is(err, domain.ErrMemberNotFound) {
