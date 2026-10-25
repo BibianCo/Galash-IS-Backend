@@ -8,9 +8,12 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
+	researchapp "github.com/galash-uptc/backend/internal/application/research"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -36,26 +39,43 @@ type resetRequest struct {
 }
 
 type Handler struct {
-	service  *application.Service
-	seedbeds *seedbedapp.Service
+	service       *application.Service
+	seedbeds      *seedbedapp.Service
 	registrations *registrationapp.Service
-	db       ports.HealthChecker
+	research      *researchapp.Service
+	members       *memberapp.Service
+	db            ports.HealthChecker
 }
 
 func NewHandler(service *application.Service, db ports.HealthChecker, seedbeds ...*seedbedapp.Service) *Handler {
-	return newHandler(service, db, seedbeds, nil)
+	return newHandler(service, db, seedbeds, nil, nil)
 }
 
 func NewHandlerWithRegistrations(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service) *Handler {
-	return newHandler(service, db, []*seedbedapp.Service{seedbed}, registration)
+	return newHandler(service, db, []*seedbedapp.Service{seedbed}, registration, nil)
+}
+func NewHandlerWithResearch(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service) *Handler {
+	h := newHandler(service, db, []*seedbedapp.Service{seedbed}, registration, nil)
+	h.research = research
+	return h
 }
 
-func newHandler(service *application.Service, db ports.HealthChecker, seedbeds []*seedbedapp.Service, registration *registrationapp.Service) *Handler {
+func NewHandlerWithResearchAndMembers(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service) *Handler {
+	h := newHandler(service, db, []*seedbedapp.Service{seedbed}, registration, members)
+	h.research = research
+	return h
+}
+
+func NewHandlerWithMembers(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, members *memberapp.Service) *Handler {
+	return newHandler(service, db, []*seedbedapp.Service{seedbed}, registration, members)
+}
+
+func newHandler(service *application.Service, db ports.HealthChecker, seedbeds []*seedbedapp.Service, registration *registrationapp.Service, members *memberapp.Service) *Handler {
 	var sb *seedbedapp.Service
 	if len(seedbeds) > 0 {
 		sb = seedbeds[0]
 	}
-	return &Handler{service: service, seedbeds: sb, registrations: registration, db: db}
+	return &Handler{service: service, seedbeds: sb, registrations: registration, members: members, db: db}
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -66,6 +86,11 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("DELETE /auth/sessions/current", h.deleteSession)
 	mux.HandleFunc("GET /users/me", h.currentUser)
 	mux.HandleFunc("GET /members", h.publicMembers)
+	mux.HandleFunc("POST /members", h.createMember)
+	mux.HandleFunc("GET /members/{id}", h.getMember)
+	mux.HandleFunc("PATCH /members/{id}", h.updateMember)
+	mux.HandleFunc("PATCH /members/{id}/status", h.setMemberStatus)
+	mux.HandleFunc("GET /members/{id}/publications", h.memberPublications)
 	mux.HandleFunc("GET /find/user", h.adminMembers)
 	mux.HandleFunc("GET /admin/members", h.adminMembers)
 	mux.HandleFunc("PUT /users/roles", h.updateRole)
@@ -84,6 +109,25 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/registration-requests", h.listRegistrationRequests)
 	mux.HandleFunc("GET /admin/registration-requests/{id}", h.registrationDetail)
 	mux.HandleFunc("PATCH /admin/registration-requests/{id}/status", h.updateRegistrationStatus)
+	mux.HandleFunc("GET /seedbeds/{seedbedId}/activities", h.listActivities)
+	mux.HandleFunc("POST /seedbeds/{seedbedId}/activities", h.createActivity)
+	mux.HandleFunc("GET /activities/{id}", h.getActivity)
+	mux.HandleFunc("PATCH /activities/{id}", h.updateActivity)
+	mux.HandleFunc("GET /projects", h.listProjects)
+	mux.HandleFunc("POST /projects", h.createProject)
+	mux.HandleFunc("GET /projects/progress", h.projectProgress)
+	mux.HandleFunc("GET /projects/{id}", h.getProject)
+	mux.HandleFunc("PATCH /projects/{id}", h.updateProject)
+	mux.HandleFunc("PATCH /projects/{id}/progress", h.updateProgress)
+	mux.HandleFunc("GET /projects/{id}/history", h.projectHistory)
+	mux.HandleFunc("GET /research-proposals", h.listProposals)
+	mux.HandleFunc("POST /research-proposals", h.createProposal)
+	mux.HandleFunc("GET /research-proposals/{id}", h.getProposal)
+	mux.HandleFunc("PATCH /research-proposals/{id}", h.updateProposal)
+	mux.HandleFunc("POST /research-proposals/{id}/convert-to-project", h.convertProposal)
+	mux.HandleFunc("POST /seedbeds/{seedbedId}/reviews", h.createReview)
+	mux.HandleFunc("GET /admin/seedbed-reviews", h.listReviews)
+	mux.HandleFunc("PATCH /admin/seedbed-reviews/{id}/moderation", h.moderateReview)
 	return localCORS(mux)
 }
 
@@ -127,7 +171,7 @@ type visibilityRequest struct {
 	Status     string `json:"status"`
 	Visibility string `json:"visibility"`
 }
-type memberRequest struct {
+type seedbedMemberRequest struct {
 	UserID string `json:"userId"`
 }
 
@@ -372,7 +416,7 @@ func (h *Handler) addSeedbedMember(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var q memberRequest
+	var q seedbedMemberRequest
 	if json.NewDecoder(r.Body).Decode(&q) != nil {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
@@ -399,70 +443,556 @@ func (h *Handler) removeSeedbedMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) registrationReady(w http.ResponseWriter) bool {
-	if h.registrations == nil { writeError(w, 500, "módulo de solicitudes no configurado"); return false }
+	if h.registrations == nil {
+		writeError(w, 500, "módulo de solicitudes no configurado")
+		return false
+	}
 	return true
 }
 
 func (h *Handler) createRegistration(w http.ResponseWriter, r *http.Request) {
-	if !h.registrationReady(w) { return }
+	if !h.registrationReady(w) {
+		return
+	}
 	var request domain.RegistrationRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil { writeError(w, 400, "cuerpo JSON inválido"); return }
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
 	userID := ""
 	if hasSessionCredential(r) {
-		actor, ok := h.actor(w, r); if !ok { return }; userID = actor.ID
+		actor, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		userID = actor.ID
 	}
 	created, trackingToken, err := h.registrations.Create(r.Context(), request, userID)
-	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrInvalidRegistrationData) { writeError(w, 400, err.Error()); return }
-	if errors.Is(err, domain.ErrSeedbedNotFound) { writeError(w, 400, err.Error()); return }
-	if err != nil { log.Printf("registration request create failed: %v", err); writeError(w, 500, "no fue posible radicar la solicitud"); return }
+	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrInvalidRegistrationData) {
+		writeError(w, 400, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrSeedbedNotFound) {
+		writeError(w, 400, err.Error())
+		return
+	}
+	if err != nil {
+		log.Printf("registration request create failed: %v", err)
+		writeError(w, 500, "no fue posible radicar la solicitud")
+		return
+	}
 	writeJSON(w, 201, map[string]any{"id": created.ID, "estado": created.Status, "fechaRadicacion": created.CreatedAt, "trackingToken": trackingToken})
 }
 
 func (h *Handler) registrationStatus(w http.ResponseWriter, r *http.Request) {
-	if !h.registrationReady(w) { return }
+	if !h.registrationReady(w) {
+		return
+	}
 	trackingToken := strings.TrimSpace(r.URL.Query().Get("trackingToken"))
 	userID := ""
 	if trackingToken == "" && hasSessionCredential(r) {
-		actor, ok := h.actor(w, r); if !ok { return }; userID = actor.ID
+		actor, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		userID = actor.ID
 	}
 	item, err := h.registrations.Status(r.Context(), r.PathValue("id"), trackingToken, userID)
-	if errors.Is(err, domain.ErrInvalidTrackingToken) { writeError(w, 401, err.Error()); return }
-	if errors.Is(err, domain.ErrRegistrationNotFound) { writeError(w, 404, "solicitud no encontrada"); return }
-	if err != nil { writeError(w, 500, "no fue posible consultar la solicitud"); return }
+	if errors.Is(err, domain.ErrInvalidTrackingToken) {
+		writeError(w, 401, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrRegistrationNotFound) {
+		writeError(w, 404, "solicitud no encontrada")
+		return
+	}
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar la solicitud")
+		return
+	}
 	writeJSON(w, 200, map[string]any{"id": item.ID, "estado": item.Status, "fechaActualizacion": item.UpdatedAt, "observacion": item.Observation})
 }
 
-type registrationStatusRequest struct { Status string `json:"estado"`; Observation string `json:"observacion"`; ResponsibleID string `json:"responsableId"` }
+type registrationStatusRequest struct {
+	Status        string `json:"estado"`
+	Observation   string `json:"observacion"`
+	ResponsibleID string `json:"responsableId"`
+}
 
 func (h *Handler) adminRegistration(w http.ResponseWriter, r *http.Request) (domain.User, bool) {
-	a, ok := h.actor(w, r); if !ok { return domain.User{}, false }
-	if !strings.EqualFold(a.Role, "admin") { writeError(w, 403, "se requiere rol admin"); return domain.User{}, false }
+	a, ok := h.actor(w, r)
+	if !ok {
+		return domain.User{}, false
+	}
+	if !strings.EqualFold(a.Role, "admin") {
+		writeError(w, 403, "se requiere rol admin")
+		return domain.User{}, false
+	}
 	return a, true
 }
 
 func (h *Handler) listRegistrationRequests(w http.ResponseWriter, r *http.Request) {
-	if !h.registrationReady(w) { return }; if _, ok := h.adminRegistration(w, r); !ok { return }
+	if !h.registrationReady(w) {
+		return
+	}
+	if _, ok := h.adminRegistration(w, r); !ok {
+		return
+	}
 	items, err := h.registrations.List(r.Context(), r.URL.Query().Get("estado"), r.URL.Query().Get("desde"), r.URL.Query().Get("hasta"), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("responsableId"))
-	if err != nil { writeError(w, 500, "no fue posible consultar las solicitudes"); return }; writeJSON(w, 200, map[string]any{"requests": items})
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar las solicitudes")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"requests": items})
 }
 
 func (h *Handler) registrationDetail(w http.ResponseWriter, r *http.Request) {
-	if !h.registrationReady(w) { return }; if _, ok := h.adminRegistration(w, r); !ok { return }
+	if !h.registrationReady(w) {
+		return
+	}
+	if _, ok := h.adminRegistration(w, r); !ok {
+		return
+	}
 	item, err := h.registrations.Detail(r.Context(), r.PathValue("id"))
-	if errors.Is(err, domain.ErrRegistrationNotFound) { writeError(w, 404, err.Error()); return }; if err != nil { writeError(w, 500, "no fue posible consultar el detalle"); return }; writeJSON(w, 200, item)
+	if errors.Is(err, domain.ErrRegistrationNotFound) {
+		writeError(w, 404, err.Error())
+		return
+	}
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar el detalle")
+		return
+	}
+	writeJSON(w, 200, item)
 }
 
 func (h *Handler) updateRegistrationStatus(w http.ResponseWriter, r *http.Request) {
-	if !h.registrationReady(w) { return }; actor, ok := h.adminRegistration(w, r); if !ok { return }
+	if !h.registrationReady(w) {
+		return
+	}
+	actor, ok := h.adminRegistration(w, r)
+	if !ok {
+		return
+	}
 	var request registrationStatusRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil { writeError(w, 400, "cuerpo JSON inválido"); return }
-	responsible := request.ResponsibleID; if responsible == "" { responsible = actor.ID }
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	responsible := request.ResponsibleID
+	if responsible == "" {
+		responsible = actor.ID
+	}
 	item, err := h.registrations.UpdateStatus(r.Context(), r.PathValue("id"), request.Status, request.Observation, responsible)
-	switch { case errors.Is(err, domain.ErrInvalidRegistrationStatus), errors.Is(err, domain.ErrInvalidRegistrationTransition): writeError(w, 400, err.Error()); case errors.Is(err, domain.ErrRegistrationNotFound): writeError(w, 404, err.Error()); case err != nil: writeError(w, 500, "no fue posible actualizar la solicitud"); default: writeJSON(w, 200, item) }
+	switch {
+	case errors.Is(err, domain.ErrInvalidRegistrationStatus), errors.Is(err, domain.ErrInvalidRegistrationTransition):
+		writeError(w, 400, err.Error())
+	case errors.Is(err, domain.ErrRegistrationNotFound):
+		writeError(w, 404, err.Error())
+	case err != nil:
+		writeError(w, 500, "no fue posible actualizar la solicitud")
+	default:
+		writeJSON(w, 200, item)
+	}
+}
+
+func (h *Handler) researchReady(w http.ResponseWriter) bool {
+	if h.research == nil {
+		writeError(w, 500, "módulo de investigación no configurado")
+		return false
+	}
+	return true
+}
+
+type activityRequest struct {
+	Title          string     `json:"title"`
+	Description    string     `json:"description"`
+	Status         string     `json:"status"`
+	Date           *time.Time `json:"date"`
+	ResponsibleIDs []string   `json:"responsibleIds"`
+	Evidence       []string   `json:"evidence"`
+}
+type projectRequest struct {
+	SeedbedID                            string `json:"seedbedId"`
+	Title, Summary, ResearchLine, Status string
+	ResponsibleIDs, MemberIDs            []string
+	StartDate, EndDate                   *time.Time
+	Progress                             int
+}
+type proposalRequest struct {
+	SeedbedID, Title, Problem, Objectives, Methodology, Status, Observations string
+	ResponsibleIDs, Attachments                                              []string
+}
+
+func actorRole(a domain.User, roles ...string) bool {
+	for _, x := range roles {
+		if strings.EqualFold(a.Role, x) {
+			return true
+		}
+	}
+	return false
+}
+func researchError(w http.ResponseWriter, e error) {
+	switch {
+	case errors.Is(e, domain.ErrForbidden):
+		writeError(w, 403, e.Error())
+	case errors.Is(e, domain.ErrResearchNotFound), errors.Is(e, domain.ErrSeedbedNotFound):
+		writeError(w, 404, mapResearchNotFound(e))
+	case errors.Is(e, domain.ErrInvalidResearch), errors.Is(e, domain.ErrInvalidProjectStatus):
+		writeError(w, 400, e.Error())
+	default:
+		writeError(w, 500, "no fue posible procesar la investigación")
+	}
+}
+func mapResearchNotFound(e error) string {
+	if errors.Is(e, domain.ErrSeedbedNotFound) {
+		return "semillero no encontrado"
+	}
+	return e.Error()
+}
+func (h *Handler) listActivities(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	v, e := h.research.ListActivities(r.Context(), r.PathValue("seedbedId"), r.URL.Query().Get("period"), r.URL.Query().Get("status"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"activities": v})
+}
+func (h *Handler) createActivity(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q activityRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.CreateActivity(r.Context(), domain.Activity{SeedbedID: r.PathValue("seedbedId"), Title: q.Title, Description: q.Description, Status: q.Status, Date: q.Date, ResponsibleIDs: q.ResponsibleIDs, Evidence: q.Evidence}, a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (h *Handler) getActivity(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	v, e := h.research.FindActivity(r.Context(), r.PathValue("id"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+
+// PATCH handlers decode the body over the stored record so omitted fields keep their value.
+func (h *Handler) updateActivity(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	q, e := h.research.FindActivity(r.Context(), r.PathValue("id"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.UpdateActivity(r.Context(), r.PathValue("id"), q, a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+func toProject(q projectRequest) domain.Project {
+	return domain.Project{SeedbedID: q.SeedbedID, Title: q.Title, Summary: q.Summary, ResearchLine: q.ResearchLine, Status: q.Status, ResponsibleIDs: q.ResponsibleIDs, MemberIDs: q.MemberIDs, StartDate: q.StartDate, EndDate: q.EndDate, Progress: q.Progress}
+}
+func (h *Handler) listProjects(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	v, e := h.research.ListProjects(r.Context(), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("status"), r.URL.Query().Get("period"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"projects": v})
+}
+func (h *Handler) createProject(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q projectRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.CreateProject(r.Context(), toProject(q), a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (h *Handler) getProject(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	v, e := h.research.FindProject(r.Context(), r.PathValue("id"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+func (h *Handler) updateProject(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	q, e := h.research.FindProject(r.Context(), r.PathValue("id"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.UpdateProject(r.Context(), r.PathValue("id"), q, a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+func (h *Handler) updateProgress(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q struct {
+		Progress int `json:"progress"`
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.Progress(r.Context(), r.PathValue("id"), q.Progress, a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+func (h *Handler) projectProgress(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok || !actorRole(a, "estudiante", "docente", "profesor", "admin") {
+		if ok {
+			writeError(w, 403, "rol no autorizado")
+		}
+		return
+	}
+	v, e := h.research.ProgressList(r.Context(), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("period"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"projects": v})
+}
+func (h *Handler) projectHistory(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok || !actorRole(a, "estudiante", "docente", "profesor", "admin") {
+		if ok {
+			writeError(w, 403, "rol no autorizado")
+		}
+		return
+	}
+	v, e := h.research.History(r.Context(), r.PathValue("id"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"history": v})
+}
+func (h *Handler) listProposals(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	v, e := h.research.Proposals(r.Context(), a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"proposals": v})
+}
+func (h *Handler) createProposal(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q proposalRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.CreateProposal(r.Context(), domain.ResearchProposal{SeedbedID: q.SeedbedID, Title: q.Title, Problem: q.Problem, Objectives: q.Objectives, Methodology: q.Methodology, Status: q.Status, ResponsibleIDs: q.ResponsibleIDs, Attachments: q.Attachments}, a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (h *Handler) getProposal(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	v, e := h.research.Proposal(r.Context(), r.PathValue("id"), a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+func (h *Handler) updateProposal(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	q, e := h.research.Proposal(r.Context(), r.PathValue("id"), a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.UpdateProposal(r.Context(), r.PathValue("id"), q, a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
+}
+func (h *Handler) convertProposal(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	v, e := h.research.Convert(r.Context(), r.PathValue("id"), a.ID)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (h *Handler) createReview(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q struct {
+		Text string `json:"text"`
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil || strings.TrimSpace(q.Text) == "" {
+		writeError(w, 400, "reseña inválida")
+		return
+	}
+	v, e := h.research.Review(r.Context(), domain.SeedbedReview{SeedbedID: r.PathValue("seedbedId"), AuthorID: a.ID, Text: q.Text})
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (h *Handler) listReviews(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	if _, ok := h.adminRegistration(w, r); !ok {
+		return
+	}
+	v, e := h.research.Reviews(r.Context(), r.URL.Query().Get("status"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"reviews": v})
+}
+func (h *Handler) moderateReview(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	if _, ok := h.adminRegistration(w, r); !ok {
+		return
+	}
+	var q struct{ Status, Note string }
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	v, e := h.research.Moderate(r.Context(), r.PathValue("id"), q.Status, q.Note)
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, v)
 }
 
 func hasSessionCredential(r *http.Request) bool {
-	if strings.TrimSpace(r.Header.Get("Authorization")) != "" { return true }
+	if strings.TrimSpace(r.Header.Get("Authorization")) != "" {
+		return true
+	}
 	cookie, err := r.Cookie(sessionCookieName)
 	return err == nil && cookie.Value != ""
 }
@@ -472,22 +1002,205 @@ type roleRequest struct {
 	Rol  string `json:"rol"`
 }
 
+type memberRequest struct {
+	FirebaseUID     string   `json:"firebase_uid"`
+	Name            string   `json:"name"`
+	LastName        string   `json:"last_name"`
+	Email           string   `json:"email"`
+	DocumentType    string   `json:"document_type"`
+	DocumentNumber  string   `json:"document_number"`
+	Role            string   `json:"role"`
+	Area            string   `json:"area"`
+	Formation       string   `json:"formation"`
+	ORCID           string   `json:"orcid"`
+	CvLAC           string   `json:"cvlac"`
+	VisiblePublicly *bool    `json:"visible_publicly"`
+	SeedbedIDs      []string `json:"seedbed_ids"`
+	Status          string   `json:"status"`
+}
+
+func (h *Handler) memberReady(w http.ResponseWriter) bool {
+	if h.members == nil {
+		writeError(w, 500, "módulo de integrantes no configurado")
+		return false
+	}
+	return true
+}
+func (h *Handler) requireAdmin(w http.ResponseWriter, r *http.Request) (domain.User, bool) {
+	a, ok := h.actor(w, r)
+	if !ok {
+		return domain.User{}, false
+	}
+	if !strings.EqualFold(a.Role, "admin") {
+		writeError(w, 403, "se requiere rol admin")
+		return domain.User{}, false
+	}
+	return a, true
+}
+func memberFilter(r *http.Request) memberapp.Filter {
+	return memberapp.Filter{Query: searchQuery(r), Role: r.URL.Query().Get("type"), SeedbedID: r.URL.Query().Get("seedbedId"), Area: r.URL.Query().Get("area"), Limit: requestedLimit(r)}
+}
 func (h *Handler) publicMembers(w http.ResponseWriter, r *http.Request) {
-	query := searchQuery(r)
-	users, err := h.service.SearchUsers(r.Context(), query, requestedLimit(r))
-	if errors.Is(err, domain.ErrIncompleteIdentity) {
-		writeError(w, http.StatusBadRequest, "se requiere una búsqueda por nombre o correo")
+	// Keep the lightweight auth-only handler usable by existing callers that do
+	// not compose the complete member module (notably isolated auth tests).
+	if h.members == nil {
+		users, err := h.service.SearchUsers(r.Context(), searchQuery(r), requestedLimit(r))
+		if errors.Is(err, domain.ErrIncompleteIdentity) {
+			writeError(w, http.StatusBadRequest, "se requiere una búsqueda por nombre o correo")
+			return
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "no fue posible consultar los integrantes")
+			return
+		}
+		profiles := make([]domain.PublicProfile, 0, len(users))
+		for _, user := range users {
+			profiles = append(profiles, domain.PublicProfile{ID: user.ID, Name: user.Name, LastName: user.LastName, Role: user.Role})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"members": profiles})
+		return
+	}
+	if !h.memberReady(w) {
+		return
+	}
+	items, err := h.members.List(r.Context(), memberFilter(r))
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar el directorio de integrantes")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"members": items})
+}
+func (h *Handler) createMember(w http.ResponseWriter, r *http.Request) {
+	if !h.memberReady(w) {
+		return
+	}
+	if _, ok := h.requireAdmin(w, r); !ok {
+		return
+	}
+	var q memberRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	p, err := h.members.Create(r.Context(), memberapp.CreateCommand{FirebaseUID: q.FirebaseUID, Name: q.Name, LastName: q.LastName, Email: q.Email, DocumentType: q.DocumentType, DocumentNumber: q.DocumentNumber, Role: q.Role, Area: q.Area, Formation: q.Formation, ORCID: q.ORCID, CvLAC: q.CvLAC, VisiblePublicly: q.VisiblePublicly == nil || *q.VisiblePublicly, SeedbedIDs: q.SeedbedIDs})
+	if errors.Is(err, domain.ErrInvalidMember) {
+		writeError(w, 400, err.Error())
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "no fue posible consultar los integrantes")
+		writeError(w, 500, "no fue posible crear el perfil del integrante")
 		return
 	}
-	profiles := make([]domain.PublicProfile, 0, len(users))
-	for _, user := range users {
-		profiles = append(profiles, domain.PublicProfile{ID: user.ID, Name: user.Name, LastName: user.LastName, Role: user.Role})
+	writeJSON(w, 201, p)
+}
+func (h *Handler) getMember(w http.ResponseWriter, r *http.Request) {
+	if !h.memberReady(w) {
+		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"members": profiles})
+	id := r.PathValue("id")
+	private := false
+	if hasSessionCredential(r) {
+		a, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		p, err := h.members.Get(r.Context(), id, true)
+		if err != nil {
+			writeError(w, 404, "integrante no encontrado")
+			return
+		}
+		private = strings.EqualFold(a.Role, "admin") || a.ID == p.ID
+	}
+	p, err := h.members.Get(r.Context(), id, private)
+	if errors.Is(err, domain.ErrMemberNotFound) {
+		writeError(w, 404, err.Error())
+		return
+	}
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar el perfil")
+		return
+	}
+	if p.Status != "activo" && !private {
+		writeError(w, 404, "perfil no encontrado")
+		return
+	}
+	writeJSON(w, 200, p)
+}
+func (h *Handler) updateMember(w http.ResponseWriter, r *http.Request) {
+	if !h.memberReady(w) {
+		return
+	}
+	if _, ok := h.requireAdmin(w, r); !ok {
+		return
+	}
+	var q memberRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	p, err := h.members.Update(r.Context(), r.PathValue("id"), memberapp.UpdateCommand{Name: q.Name, LastName: q.LastName, Email: q.Email, DocumentType: q.DocumentType, DocumentNumber: q.DocumentNumber, Role: q.Role, Area: q.Area, Formation: q.Formation, ORCID: q.ORCID, CvLAC: q.CvLAC, VisiblePublicly: q.VisiblePublicly, SeedbedIDs: q.SeedbedIDs})
+	if errors.Is(err, domain.ErrInvalidMember) {
+		writeError(w, 400, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrMemberNotFound) {
+		writeError(w, 404, err.Error())
+		return
+	}
+	if err != nil {
+		writeError(w, 500, "no fue posible actualizar el perfil del integrante")
+		return
+	}
+	writeJSON(w, 200, p)
+}
+func (h *Handler) setMemberStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.memberReady(w) {
+		return
+	}
+	if _, ok := h.requireAdmin(w, r); !ok {
+		return
+	}
+	var q struct {
+		Status string `json:"status"`
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	p, err := h.members.SetStatus(r.Context(), r.PathValue("id"), q.Status)
+	if errors.Is(err, domain.ErrInvalidMemberStatus) {
+		writeError(w, 400, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrMemberNotFound) {
+		writeError(w, 404, err.Error())
+		return
+	}
+	if err != nil {
+		writeError(w, 500, "no fue posible actualizar el estado del perfil")
+		return
+	}
+	writeJSON(w, 200, p)
+}
+func (h *Handler) memberPublications(w http.ResponseWriter, r *http.Request) {
+	if !h.memberReady(w) {
+		return
+	}
+	p, err := h.members.Get(r.Context(), r.PathValue("id"), false)
+	if errors.Is(err, domain.ErrMemberNotFound) || err != nil && p.ID == "" {
+		writeError(w, 404, "integrante no encontrado")
+		return
+	}
+	if p.Status != "activo" || !p.VisiblePublicly {
+		writeError(w, 404, "perfil no encontrado")
+		return
+	}
+	items, err := h.members.Publications(r.Context(), p.ID)
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar las publicaciones del integrante")
+		return
+	}
+	writeJSON(w, 200, map[string]any{"publications": items})
 }
 
 func (h *Handler) adminMembers(w http.ResponseWriter, r *http.Request) {

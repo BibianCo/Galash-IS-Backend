@@ -1,0 +1,4 @@
+Migration: database/migrations/004_member_publications.sql
+Command: docker compose exec -T postgres psql -U galash -d galash < database/migrations/004_member_publications.sql
+Result: CREATE TABLE; CREATE INDEX
+Endpoint check: GET /members/{existing-user-id}/publications returned HTTP 200 with {"publications":[]}.

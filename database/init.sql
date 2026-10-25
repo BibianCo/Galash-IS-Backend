@@ -131,6 +131,20 @@ CREATE TABLE perfil_investigador (
     proyectos_dirigidos INTEGER NOT NULL DEFAULT 0,
     articulos_publicados INTEGER NOT NULL DEFAULT 0
 );
+ALTER TABLE perfil_investigador ADD COLUMN IF NOT EXISTS area_investigacion TEXT;
+ALTER TABLE perfil_investigador ADD COLUMN IF NOT EXISTS cvlac TEXT;
+ALTER TABLE perfil_investigador ADD COLUMN IF NOT EXISTS visible_publicamente BOOLEAN NOT NULL DEFAULT true;
+
+CREATE TABLE IF NOT EXISTS publicaciones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    titulo TEXT NOT NULL,
+    descripcion TEXT,
+    url TEXT,
+    publicado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    visible BOOLEAN NOT NULL DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS publicaciones_usuario_idx ON publicaciones(usuario_id, publicado_en DESC);
 
 CREATE TABLE noticias (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -168,7 +182,9 @@ CREATE TABLE proyectos (
     fecha_inicio DATE,
     fecha_fin DATE,
     semillero_id UUID NOT NULL REFERENCES semilleros(id),
-    area_investigacion TEXT
+    area_investigacion TEXT,
+    estado TEXT NOT NULL DEFAULT 'Radicado', avance INTEGER NOT NULL DEFAULT 0 CHECK (avance BETWEEN 0 AND 100),
+    responsables TEXT[] NOT NULL DEFAULT '{}', integrantes TEXT[] NOT NULL DEFAULT '{}', creado_por UUID REFERENCES usuarios(id), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE actividades (
@@ -177,8 +193,23 @@ CREATE TABLE actividades (
     descripcion TEXT,
     estado TEXT NOT NULL DEFAULT 'pendiente',
     fecha DATE,
-    semillero_id UUID NOT NULL REFERENCES semilleros(id)
+    semillero_id UUID NOT NULL REFERENCES semilleros(id), responsables TEXT[] NOT NULL DEFAULT '{}', evidencias TEXT[] NOT NULL DEFAULT '{}', creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Radicado';
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS avance INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS responsables TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS integrantes TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id);
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS responsables TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS evidencias TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE actividades ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE TABLE IF NOT EXISTS proyecto_historial (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), proyecto_id UUID NOT NULL REFERENCES proyectos(id) ON DELETE CASCADE, autor_id UUID REFERENCES usuarios(id), campo TEXT NOT NULL, valor TEXT NOT NULL, creado_en TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS propuestas_investigacion (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), semillero_id UUID REFERENCES semilleros(id), titulo TEXT NOT NULL, problema TEXT NOT NULL, objetivos TEXT NOT NULL, metodologia TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'Radicada', responsables TEXT[] NOT NULL DEFAULT '{}', anexos TEXT[] NOT NULL DEFAULT '{}', autor_id UUID NOT NULL REFERENCES usuarios(id), observaciones TEXT, creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE propuestas_investigacion ADD COLUMN IF NOT EXISTS proyecto_id UUID REFERENCES proyectos(id);
+CREATE TABLE IF NOT EXISTS propuesta_historial (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), propuesta_id UUID NOT NULL REFERENCES propuestas_investigacion(id) ON DELETE CASCADE, autor_id UUID REFERENCES usuarios(id), estado TEXT, observacion TEXT, creado_en TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS semillero_resenas (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), semillero_id UUID NOT NULL REFERENCES semilleros(id), autor_id UUID NOT NULL REFERENCES usuarios(id), texto TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'pendiente', nota_moderacion TEXT, creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), moderado_en TIMESTAMPTZ);
 
 CREATE TABLE eventos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

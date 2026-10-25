@@ -20,3 +20,11 @@ ejecuta la migración desde la raíz del repositorio:
 docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
   -d "${POSTGRES_DB:-galash}" < database/migrations/002_seedbed_members.sql
 ```
+
+Para habilitar las publicaciones del directorio de integrantes en una base ya
+creada, ejecuta:
+
+```bash
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
+  -d "${POSTGRES_DB:-galash}" < database/migrations/004_member_publications.sql
+```
