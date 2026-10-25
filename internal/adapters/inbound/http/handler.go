@@ -11,6 +11,7 @@ import (
 	"time"
 
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
@@ -46,6 +47,7 @@ type Handler struct {
 	research      *researchapp.Service
 	members       *memberapp.Service
 	events        *eventapp.Service
+	content       *contentapp.Service
 	db            ports.HealthChecker
 }
 
@@ -71,6 +73,11 @@ func NewHandlerWithResearchAndMembers(service *application.Service, db ports.Hea
 func NewHandlerWithEvents(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service) *Handler {
 	h := NewHandlerWithResearchAndMembers(service, db, seedbed, registration, research, members)
 	h.events = events
+	return h
+}
+func NewHandlerWithContent(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service) *Handler {
+	h := NewHandlerWithEvents(service, db, seedbed, registration, research, members, events)
+	h.content = content
 	return h
 }
 
@@ -143,6 +150,12 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /events/{id}/publish", h.publishEvent)
 	mux.HandleFunc("POST /events/{id}/cancel", h.cancelEvent)
 	mux.HandleFunc("POST /events/{id}/hide", h.hideEvent)
+	mux.HandleFunc("GET /content/pages", h.listPublishedPages)
+	mux.HandleFunc("GET /content/pages/{slug}", h.getPublishedPage)
+	mux.HandleFunc("GET /admin/content/pages", h.listAdminPages)
+	mux.HandleFunc("POST /admin/content/pages", h.createPage)
+	mux.HandleFunc("PATCH /admin/content/pages/{id}", h.updatePage)
+	mux.HandleFunc("POST /admin/content/pages/{id}/publish", h.publishPage)
 	return localCORS(mux)
 }
 
@@ -1706,4 +1719,122 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+type pageRequest struct {
+	Slug    string `json:"slug"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+func (h *Handler) contentReady(w http.ResponseWriter) bool {
+	if h.content == nil {
+		writeError(w, 500, "módulo de contenido institucional no configurado")
+		return false
+	}
+	return true
+}
+func contentError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, 403, err.Error())
+	case errors.Is(err, domain.ErrContentNotFound):
+		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrInvalidContent), errors.Is(err, domain.ErrInvalidContentTransition):
+		writeError(w, 400, err.Error())
+	default:
+		writeError(w, 500, "no fue posible procesar la página institucional")
+	}
+}
+func (h *Handler) listPublishedPages(w http.ResponseWriter, r *http.Request) {
+	if !h.contentReady(w) {
+		return
+	}
+	pages, err := h.content.ListPublished(r.Context())
+	if err != nil {
+		contentError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"pages": pages})
+}
+func (h *Handler) getPublishedPage(w http.ResponseWriter, r *http.Request) {
+	if !h.contentReady(w) {
+		return
+	}
+	p, err := h.content.FindPublished(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		contentError(w, err)
+		return
+	}
+	writeJSON(w, 200, p)
+}
+func (h *Handler) listAdminPages(w http.ResponseWriter, r *http.Request) {
+	if !h.contentReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	pages, err := h.content.ListAdmin(r.Context(), a.ID)
+	if err != nil {
+		contentError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"pages": pages})
+}
+func (h *Handler) createPage(w http.ResponseWriter, r *http.Request) {
+	if !h.contentReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q pageRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	p, err := h.content.Create(r.Context(), domain.ContentPage{Slug: q.Slug, Title: q.Title, Content: q.Content}, a.ID)
+	if err != nil {
+		contentError(w, err)
+		return
+	}
+	writeJSON(w, 201, p)
+}
+func (h *Handler) updatePage(w http.ResponseWriter, r *http.Request) {
+	if !h.contentReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q pageRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	p, err := h.content.Update(r.Context(), r.PathValue("id"), q.Title, q.Content, q.Slug, a.ID)
+	if err != nil {
+		contentError(w, err)
+		return
+	}
+	writeJSON(w, 200, p)
+}
+func (h *Handler) publishPage(w http.ResponseWriter, r *http.Request) {
+	if !h.contentReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	p, err := h.content.Publish(r.Context(), r.PathValue("id"), a.ID)
+	if err != nil {
+		contentError(w, err)
+		return
+	}
+	writeJSON(w, 200, p)
 }

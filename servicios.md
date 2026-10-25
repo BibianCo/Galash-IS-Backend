@@ -76,6 +76,12 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | POST | `/events/{id}/publish` | publica evento | M6 | [ ] |
 | POST | `/events/{id}/cancel` | cancela evento | M6 | [ ] |
 | POST | `/events/{id}/hide` | oculta evento | M6 | [ ] |
+| GET | `/content/pages` | páginas institucionales publicadas | M7 | [ ] |
+| GET | `/content/pages/{slug}` | página institucional publicada | M7 | [ ] |
+| GET | `/admin/content/pages` | páginas públicas y borradores | M7 | [ ] |
+| POST | `/admin/content/pages` | crea página en borrador | M7 | [ ] |
+| PATCH | `/admin/content/pages/{id}` | edita página y sanitiza contenido | M7 | [ ] |
+| POST | `/admin/content/pages/{id}/publish` | publica página vigente | M7 | [ ] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y

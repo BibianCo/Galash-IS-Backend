@@ -210,6 +210,8 @@ CREATE TABLE IF NOT EXISTS propuestas_investigacion (id UUID PRIMARY KEY DEFAULT
 ALTER TABLE propuestas_investigacion ADD COLUMN IF NOT EXISTS proyecto_id UUID REFERENCES proyectos(id);
 CREATE TABLE IF NOT EXISTS propuesta_historial (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), propuesta_id UUID NOT NULL REFERENCES propuestas_investigacion(id) ON DELETE CASCADE, autor_id UUID REFERENCES usuarios(id), estado TEXT, observacion TEXT, creado_en TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS semillero_resenas (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), semillero_id UUID NOT NULL REFERENCES semilleros(id), autor_id UUID NOT NULL REFERENCES usuarios(id), texto TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'pendiente', nota_moderacion TEXT, creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), moderado_en TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS contenido_paginas (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), slug TEXT NOT NULL UNIQUE, titulo TEXT NOT NULL, contenido TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'borrador', autor_id UUID NOT NULL REFERENCES usuarios(id), creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(), publicado_en TIMESTAMPTZ);
+CREATE INDEX IF NOT EXISTS contenido_paginas_estado_idx ON contenido_paginas(estado, slug);
 
 CREATE TABLE eventos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
