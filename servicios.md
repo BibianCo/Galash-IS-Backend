@@ -69,6 +69,13 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | POST | `/seedbeds/{seedbedId}/reviews` | crea reseña | M4 | [ ] |
 | GET | `/admin/seedbed-reviews` | lista reseñas | M4 | [ ] |
 | PATCH | `/admin/seedbed-reviews/{id}/moderation` | modera reseña | M4 | [ ] |
+| GET | `/events` | agenda pública filtrable; Admin autenticado ve todos los estados | M6 | [ ] |
+| POST | `/events` | crea evento en borrador | M6 | [ ] |
+| GET | `/events/{id}` | detalle publicado/autorizado | M6 | [ ] |
+| PATCH | `/events/{id}` | edita evento | M6 | [ ] |
+| POST | `/events/{id}/publish` | publica evento | M6 | [ ] |
+| POST | `/events/{id}/cancel` | cancela evento | M6 | [ ] |
+| POST | `/events/{id}/hide` | oculta evento | M6 | [ ] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y
@@ -80,6 +87,13 @@ conservan su valor. `GET /research-proposals` devuelve todas a
 malformados o semillero inexistente responden `404`. En `POST
 /seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se
 calcula (`próxima`, `en curso`, `finalizada`).
+
+M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`,
+`imageUrl` y `registrationUrl`. Las fechas son RFC3339; los estados son
+`borrador`, `publicado`, `oculto` y `cancelado`. La agenda pública solo muestra
+`publicado`; `status=proximo` y `status=vencido` permiten separar eventos según
+la fecha de inicio. La escritura requiere sesión de `Docente` o `Admin`; el
+docente solo administra sus propios eventos.
 
 Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
 sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`

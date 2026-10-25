@@ -138,11 +138,11 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `GET` | `/events` | Lista eventos en formato de agenda; permite filtros por tipo, fecha y estado, y diferencia vencidos de próximos. | Must / Visitante | HU-EVT-03 |
+| `GET` | `/events` | Lista eventos en formato de agenda; permite filtros por tipo, fecha y estado, diferencia vencidos de próximos y, para `Admin` autenticado, incluye borradores, publicados, cancelados y ocultos. | Must / Visitante o Admin autorizado | HU-EVT-03 |
 | `POST` | `/events` | Crea evento en borrador con fecha, hora, organizador, lugar/enlace e imagen opcional. | Must / Docente o Admin autorizado | HU-EVT-01 |
 | `GET` | `/events/{id}` | Consulta detalle e información de inscripción, si existe. | Must / Visitante si está publicado | HU-EVT-03 |
 | `PATCH` | `/events/{id}` | Actualiza los datos del evento y registra fecha de modificación. | Must / Docente responsable o Admin | HU-EVT-02 |
-| `POST` | `/events/{id}/publish` | Publica un evento en borrador. | Must / Docente responsable o Admin | HU-EVT-01, HU-EVT-02 |
+| `POST` | `/events/{id}/publish` | Publica un evento en borrador u oculto. | Must / Docente responsable o Admin | HU-EVT-01, HU-EVT-02 |
 | `POST` | `/events/{id}/cancel` | Cancela el evento conservando su información histórica. | Must / Docente responsable o Admin | HU-EVT-02 |
 | `POST` | `/events/{id}/hide` | Oculta el evento sin borrarlo. | Must / Docente responsable o Admin | HU-EVT-02 |
 

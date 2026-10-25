@@ -320,3 +320,40 @@
 {"v":1,"id":"X160","t":"result","run":"R043","test":"T067","s":"pass"}
 {"v":1,"id":"X161","t":"result","run":"R043","test":"T068","s":"pass"}
 {"v":1,"id":"X162","t":"result","run":"R043","test":"T069","s":"pass"}
+{"v":1,"id":"T070","t":"test","area":"module-6-events","p":"must","name":"Compilación y regresión del módulo 6 de eventos"}
+{"v":1,"id":"R049","t":"run","at":"2026-10-24T00:00:00Z","build":"working-tree","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; git diff --check"}
+{"v":1,"id":"X163","t":"result","run":"R049","test":"T070","s":"pass","ev":["docker go test ./...","git diff --check"]}
+{"v":1,"id":"T071","t":"test","area":"module-6-events","p":"must","name":"Migración de esquema y agenda pública vacía"}
+{"v":1,"id":"R050","t":"run","at":"2026-10-25T02:34:43Z","build":"working-tree","by":"agent","mode":"manual-api","cmd":"docker compose exec postgres psql -v ON_ERROR_STOP=1 -f database/migrations/006_events.sql; curl -i http://localhost:8080/events"}
+{"v":1,"id":"X164","t":"result","run":"R050","test":"T071","s":"pass","ev":["PostgreSQL migration applied","GET /events returned HTTP 200 with {events:[]}"]}
+{"v":1,"id":"T072","t":"test","area":"module-6-events","p":"must","name":"Listado administrativo de todos los estados de eventos"}
+{"v":1,"id":"R051","t":"run","at":"2026-10-25T02:50:14Z","build":"working-tree","by":"agent","mode":"automated-and-manual-api","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth; curl -i http://localhost:8080/events"}
+{"v":1,"id":"X165","t":"result","run":"R051","test":"T072","s":"pass","ev":["docker go test ./...","docker compose build auth","GET /events returned HTTP 200"]}
+{"v":1,"id":"T073","t":"test","area":"module-6-events","p":"must","name":"Rechazo de eventos con horario y lugar superpuestos"}
+{"v":1,"id":"R052","t":"run","at":"2026-10-25T02:53:07Z","build":"working-tree","by":"agent","mode":"automated-and-manual-api","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth; curl -i http://localhost:8080/events"}
+{"v":1,"id":"X166","t":"result","run":"R052","test":"T073","s":"pass","ev":["docker go test ./...","docker compose build auth","GET /events returned HTTP 200"]}
+{"v":1,"id":"T074","t":"test","area":"module-6-events","p":"must","name":"Consulta de conflicto con fin opcional y tipos timestamptz"}
+{"v":1,"id":"R053","t":"run","at":"2026-10-25T02:58:48Z","build":"working-tree","by":"agent","mode":"automated-and-sql","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth; psql conflict query; curl -i http://localhost:8080/events"}
+{"v":1,"id":"X167","t":"result","run":"R053","test":"T074","s":"pass","ev":["PostgreSQL conflict query returned false without type error","docker go test ./...","GET /events returned HTTP 200"]}
+{"v":1,"id":"T075","t":"test","area":"module-6-events","p":"must","name":"PT-EVT-01 Crear eventos presenciales y virtuales, validar fecha/hora y URLs inválidas, imagen y estado borrador","file":"tests/event/http_test.go","fn":"TestCreateEvent"}
+{"v":1,"id":"T076","t":"test","area":"module-6-events","p":"must","name":"PT-EVT-02 Publicar, editar, ocultar y cancelar con responsable/Admin y rechazar usuarios sin permiso","file":"tests/event/http_test.go","fn":"TestEventLifecycleAndPermissions"}
+{"v":1,"id":"T077","t":"test","area":"module-6-events","p":"must","name":"PT-EVT-03 Agenda con filtros de tipo, fecha y estado, detalle con inscripción y diferencia próximos/vencidos","file":"tests/event/http_test.go","fn":"TestAgendaFiltersAndDetail"}
+{"v":1,"id":"T078","t":"test","area":"module-6-events","p":"must","name":"Repositorio PostgreSQL de eventos: ciclo, filtros, conflicto de lugar/horario y migración 006 re-ejecutable","file":"tests/event/repository_test.go","fn":"TestEventRepositoryPersistsLifecycleAndFilters"}
+{"v":1,"id":"R054","t":"run","at":"2026-10-25T03:21:17Z","build":"5e1907a+tests","env":"E004","by":"agent","mode":"automated","cmd":"psql -v ON_ERROR_STOP=1 -f database/migrations/006_events.sql; TEST_DATABASE_URL=<ephemeral> go test ./..."}
+{"v":1,"id":"X168","t":"result","run":"R054","test":"T075","s":"pass"}
+{"v":1,"id":"X169","t":"result","run":"R054","test":"T076","s":"pass"}
+{"v":1,"id":"X170","t":"result","run":"R054","test":"T077","s":"pass"}
+{"v":1,"id":"X171","t":"result","run":"R054","test":"T078","s":"pass","ev":["migration 006 re-run over init.sql: OK","go test ./... all packages ok"]}
+{"v":1,"id":"D019","t":"defect","sev":"high","s":"open","area":"module-6-events","name":"Fila GET /events del contrato compartido difiere de la copia en Galash-IS (cambio M6 de LOG-0070 sin sincronizar)"}
+{"v":1,"id":"T079","t":"test","area":"module-6-events","p":"must","name":"Autorización, PATCH nullable, respuesta del organizador y política centralizada de agenda"}
+{"v":1,"id":"R055","t":"run","at":"2026-10-25T03:58:11Z","build":"working-tree","by":"agent","mode":"automated-and-sql","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth; curl public and invalid-token detail; EXPLAIN event RETURNING"}
+{"v":1,"id":"X172","t":"result","run":"R055","test":"T079","s":"pass","ev":["docker go test ./...","public detail returned 404","invalid token detail returned 401","event RETURNING organizerName SQL parsed"]}
+{"v":1,"id":"T080","t":"test","area":"module-6-events","p":"must","name":"Pruebas remotas integradas con correcciones de hallazgos reaplicadas"}
+{"v":1,"id":"R056","t":"run","at":"2026-10-25T04:00:00Z","build":"e453657+wip","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; git diff --check"}
+{"v":1,"id":"X173","t":"result","run":"R056","test":"T080","s":"pass","ev":["go test ./...","git diff --check"]}
+{"v":1,"id":"T081","t":"test","area":"module-6-events","p":"must","name":"Evento sin endAt actualizado bloquea el mismo día y lugar, pero no otra sala"}
+{"v":1,"id":"R057","t":"run","at":"2026-10-25T04:10:00Z","build":"e453657+wip","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/event/ ./internal/...; git diff --check"}
+{"v":1,"id":"X174","t":"result","run":"R057","test":"T081","s":"pass","ev":["same venue/day returned 409","different venue/day returned 201","go test targeted packages","git diff --check"]}
+{"v":1,"id":"T082","t":"test","area":"module-6-events","p":"must","name":"Evento anterior al inicio de un evento sin endAt permitido; evento posterior bloqueado"}
+{"v":1,"id":"R058","t":"run","at":"2026-10-25T04:20:00Z","build":"e453657+wip","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/event/ ./internal/...; git diff --check"}
+{"v":1,"id":"X175","t":"result","run":"R058","test":"T082","s":"pass","ev":["earlier event returned 201","later same venue returned 409","go test targeted packages","git diff --check"]}
