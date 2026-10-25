@@ -138,7 +138,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `GET` | `/events` | Lista eventos en formato de agenda; permite filtros por tipo, fecha y estado, y diferencia vencidos de próximos. | Must / Visitante | HU-EVT-03 |
+| `GET` | `/events` | Lista eventos en formato de agenda; permite filtros por tipo, fecha y estado, diferencia vencidos de próximos y, para `Admin` autenticado, incluye borradores, publicados, cancelados y ocultos. | Must / Visitante o Admin autorizado | HU-EVT-03 |
 | `POST` | `/events` | Crea evento en borrador con fecha, hora, organizador, lugar/enlace e imagen opcional. | Must / Docente o Admin autorizado | HU-EVT-01 |
 | `GET` | `/events/{id}` | Consulta detalle e información de inscripción, si existe. | Must / Visitante si está publicado | HU-EVT-03 |
 | `PATCH` | `/events/{id}` | Actualiza los datos del evento y registra fecha de modificación. | Must / Docente responsable o Admin | HU-EVT-02 |

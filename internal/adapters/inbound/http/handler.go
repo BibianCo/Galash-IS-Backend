@@ -11,6 +11,7 @@ import (
 	"time"
 
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	eventapp "github.com/galash-uptc/backend/internal/application/event"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	researchapp "github.com/galash-uptc/backend/internal/application/research"
@@ -44,6 +45,7 @@ type Handler struct {
 	registrations *registrationapp.Service
 	research      *researchapp.Service
 	members       *memberapp.Service
+	events        *eventapp.Service
 	db            ports.HealthChecker
 }
 
@@ -63,6 +65,12 @@ func NewHandlerWithResearch(service *application.Service, db ports.HealthChecker
 func NewHandlerWithResearchAndMembers(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service) *Handler {
 	h := newHandler(service, db, []*seedbedapp.Service{seedbed}, registration, members)
 	h.research = research
+	return h
+}
+
+func NewHandlerWithEvents(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service) *Handler {
+	h := NewHandlerWithResearchAndMembers(service, db, seedbed, registration, research, members)
+	h.events = events
 	return h
 }
 
@@ -128,6 +136,13 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /seedbeds/{seedbedId}/reviews", h.createReview)
 	mux.HandleFunc("GET /admin/seedbed-reviews", h.listReviews)
 	mux.HandleFunc("PATCH /admin/seedbed-reviews/{id}/moderation", h.moderateReview)
+	mux.HandleFunc("GET /events", h.listEvents)
+	mux.HandleFunc("POST /events", h.createEvent)
+	mux.HandleFunc("GET /events/{id}", h.getEvent)
+	mux.HandleFunc("PATCH /events/{id}", h.updateEvent)
+	mux.HandleFunc("POST /events/{id}/publish", h.publishEvent)
+	mux.HandleFunc("POST /events/{id}/cancel", h.cancelEvent)
+	mux.HandleFunc("POST /events/{id}/hide", h.hideEvent)
 	return localCORS(mux)
 }
 
@@ -151,6 +166,241 @@ func localCORS(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+type eventRequest struct {
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	Type            string     `json:"type"`
+	StartAt         *time.Time `json:"startAt"`
+	EndAt           *time.Time `json:"endAt"`
+	Venue           string     `json:"venue"`
+	MeetingURL      string     `json:"meetingUrl"`
+	ImageURL        string     `json:"imageUrl"`
+	RegistrationURL string     `json:"registrationUrl"`
+}
+type eventPatchRequest struct {
+	Title           *string    `json:"title"`
+	Description     *string    `json:"description"`
+	Type            *string    `json:"type"`
+	StartAt         *time.Time `json:"startAt"`
+	EndAt           *time.Time `json:"endAt"`
+	Venue           *string    `json:"venue"`
+	MeetingURL      *string    `json:"meetingUrl"`
+	ImageURL        *string    `json:"imageUrl"`
+	RegistrationURL *string    `json:"registrationUrl"`
+}
+
+func (h *Handler) eventReady(w http.ResponseWriter) bool {
+	if h.events == nil {
+		writeError(w, http.StatusInternalServerError, "módulo de eventos no configurado")
+		return false
+	}
+	return true
+}
+func eventError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, domain.ErrEventNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, domain.ErrEventConflict):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, domain.ErrInvalidEvent), errors.Is(err, domain.ErrInvalidEventTransition):
+		writeError(w, http.StatusBadRequest, err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "no fue posible procesar el evento")
+	}
+}
+func eventFromRequest(q eventRequest) domain.Event {
+	e := domain.Event{Title: q.Title, Description: q.Description, Type: q.Type, EndAt: q.EndAt, Venue: q.Venue, MeetingURL: q.MeetingURL, ImageURL: q.ImageURL, RegistrationURL: q.RegistrationURL}
+	if q.StartAt != nil {
+		e.StartAt = *q.StartAt
+	}
+	return e
+}
+func (h *Handler) listEvents(w http.ResponseWriter, r *http.Request) {
+	if !h.eventReady(w) {
+		return
+	}
+	var actor *domain.User
+	if token, tokenErr := sessionToken(r); tokenErr == nil {
+		current, currentErr := h.service.CurrentUser(r.Context(), token)
+		if currentErr != nil {
+			invalidSession(w, r, "sesión inválida o expirada")
+			return
+		}
+		actor = &current
+	}
+	var from, to *time.Time
+	if value := r.URL.Query().Get("from"); value != "" {
+		t, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			writeError(w, 400, "from debe ser una fecha RFC3339")
+			return
+		}
+		from = &t
+	}
+	if value := r.URL.Query().Get("to"); value != "" {
+		t, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			writeError(w, 400, "to debe ser una fecha RFC3339")
+			return
+		}
+		to = &t
+	}
+	status := r.URL.Query().Get("status")
+	if status != "" && status != "borrador" && status != "publicado" && status != "cancelado" && status != "oculto" && status != "proximo" && status != "vencido" {
+		writeError(w, 400, "status inválido")
+		return
+	}
+	if actor == nil && (status == "borrador" || status == "cancelado" || status == "oculto") {
+		writeError(w, http.StatusForbidden, "se requiere sesión de admin para consultar eventos no publicados")
+		return
+	}
+	if actor != nil && !strings.EqualFold(actor.Role, "admin") && (status == "borrador" || status == "cancelado" || status == "oculto") {
+		writeError(w, http.StatusForbidden, "se requiere rol admin para consultar eventos no publicados")
+		return
+	}
+	repoStatus := status
+	if repoStatus == "proximo" || repoStatus == "vencido" {
+		repoStatus = "publicado"
+	}
+	if actor != nil && strings.EqualFold(actor.Role, "admin") && status == "" {
+		repoStatus = ""
+	}
+	items, err := h.events.List(r.Context(), r.URL.Query().Get("type"), repoStatus, from, to, actor)
+	if err != nil {
+		eventError(w, err)
+		return
+	}
+	if status == "proximo" || status == "vencido" {
+		now := time.Now()
+		filtered := items[:0]
+		for _, e := range items {
+			upcoming := !e.StartAt.Before(now)
+			if (status == "proximo" && upcoming) || (status == "vencido" && !upcoming) {
+				filtered = append(filtered, e)
+			}
+		}
+		items = filtered
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"events": items})
+}
+func (h *Handler) createEvent(w http.ResponseWriter, r *http.Request) {
+	if !h.eventReady(w) {
+		return
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q eventRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	e, err := h.events.Create(r.Context(), eventFromRequest(q), actor.ID)
+	if err != nil {
+		eventError(w, err)
+		return
+	}
+	writeJSON(w, 201, e)
+}
+func (h *Handler) getEvent(w http.ResponseWriter, r *http.Request) {
+	if !h.eventReady(w) {
+		return
+	}
+	token, _ := sessionToken(r)
+	actor := ""
+	if token != "" {
+		if u, err := h.service.CurrentUser(r.Context(), token); err == nil {
+			actor = u.ID
+		}
+	}
+	e, err := h.events.Find(r.Context(), r.PathValue("id"), actor)
+	if err != nil {
+		eventError(w, err)
+		return
+	}
+	writeJSON(w, 200, e)
+}
+func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
+	if !h.eventReady(w) {
+		return
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	old, err := h.events.Find(r.Context(), r.PathValue("id"), actor.ID)
+	if err != nil {
+		eventError(w, err)
+		return
+	}
+	var q eventPatchRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	updated := old
+	if q.Title != nil {
+		updated.Title = *q.Title
+	}
+	if q.Description != nil {
+		updated.Description = *q.Description
+	}
+	if q.Type != nil {
+		updated.Type = *q.Type
+	}
+	if q.StartAt != nil {
+		updated.StartAt = *q.StartAt
+	}
+	if q.EndAt != nil {
+		updated.EndAt = q.EndAt
+	}
+	if q.Venue != nil {
+		updated.Venue = *q.Venue
+	}
+	if q.MeetingURL != nil {
+		updated.MeetingURL = *q.MeetingURL
+	}
+	if q.ImageURL != nil {
+		updated.ImageURL = *q.ImageURL
+	}
+	if q.RegistrationURL != nil {
+		updated.RegistrationURL = *q.RegistrationURL
+	}
+	e, err := h.events.Update(r.Context(), r.PathValue("id"), updated, actor.ID)
+	if err != nil {
+		eventError(w, err)
+		return
+	}
+	writeJSON(w, 200, e)
+}
+func (h *Handler) changeEventStatus(w http.ResponseWriter, r *http.Request, status string) {
+	if !h.eventReady(w) {
+		return
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	e, err := h.events.SetStatus(r.Context(), r.PathValue("id"), status, actor.ID)
+	if err != nil {
+		eventError(w, err)
+		return
+	}
+	writeJSON(w, 200, e)
+}
+func (h *Handler) publishEvent(w http.ResponseWriter, r *http.Request) {
+	h.changeEventStatus(w, r, "publicado")
+}
+func (h *Handler) cancelEvent(w http.ResponseWriter, r *http.Request) {
+	h.changeEventStatus(w, r, "cancelado")
+}
+func (h *Handler) hideEvent(w http.ResponseWriter, r *http.Request) {
+	h.changeEventStatus(w, r, "oculto")
 }
 
 func isLocalOrigin(origin string) bool {

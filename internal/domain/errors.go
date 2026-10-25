@@ -30,3 +30,7 @@ var ErrInvalidMemberStatus = errors.New("el estado del integrante debe ser activ
 var ErrResearchNotFound = errors.New("recurso de investigación no encontrado")
 var ErrInvalidResearch = errors.New("datos de investigación inválidos")
 var ErrInvalidProjectStatus = errors.New("estado de proyecto inválido")
+var ErrEventNotFound = errors.New("evento no encontrado")
+var ErrInvalidEvent = errors.New("datos del evento inválidos")
+var ErrInvalidEventTransition = errors.New("transición de evento no permitida")
+var ErrEventConflict = errors.New("ya existe otro evento en el mismo lugar y horario")

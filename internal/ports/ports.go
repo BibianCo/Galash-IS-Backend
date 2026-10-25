@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/galash-uptc/backend/internal/domain"
 )
@@ -51,4 +52,13 @@ type SeedbedRepository interface {
 	ListMembers(ctx context.Context, id string, includeHistory bool) ([]domain.SeedbedMember, error)
 	AddMember(ctx context.Context, seedbedID, userID string) error
 	RemoveMember(ctx context.Context, seedbedID, userID string) error
+}
+
+type EventRepository interface {
+	List(ctx context.Context, eventType, status string, from, to *time.Time) ([]domain.Event, error)
+	Create(ctx context.Context, event domain.Event) (domain.Event, error)
+	Find(ctx context.Context, id string) (domain.Event, error)
+	Update(ctx context.Context, id string, event domain.Event) (domain.Event, error)
+	SetStatus(ctx context.Context, id, status string) (domain.Event, error)
+	HasConflict(ctx context.Context, event domain.Event, excludeID string) (bool, error)
 }
