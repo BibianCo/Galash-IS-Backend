@@ -54,13 +54,42 @@ func validEvent(e domain.Event) bool {
 }
 
 func (s *Service) List(ctx context.Context, eventType, status string, from, to *time.Time, actor *domain.User) ([]domain.Event, error) {
-	// The public agenda never exposes drafts, hidden or cancelled events.
-	if actor == nil || !isRole(*actor, "admin") {
-		if status == "" || status == "proximo" || status == "vencido" {
-			status = "publicado"
+	validStatuses := map[string]bool{"": true, "borrador": true, "publicado": true, "cancelado": true, "oculto": true, "proximo": true, "vencido": true}
+	if !validStatuses[status] {
+		return nil, domain.ErrInvalidEvent
+	}
+	admin := actor != nil && isRole(*actor, "admin")
+	if !admin && (status == "borrador" || status == "cancelado" || status == "oculto") {
+		return nil, domain.ErrForbidden
+	}
+	repoStatus := status
+	if !admin || status == "proximo" || status == "vencido" {
+		repoStatus = "publicado"
+	}
+	items, err := s.repo.List(ctx, eventType, repoStatus, from, to)
+	if err != nil || (status != "proximo" && status != "vencido") {
+		return items, err
+	}
+	now := time.Now()
+	filtered := items[:0]
+	for _, item := range items {
+		upcoming := !item.StartAt.Before(now)
+		if status == "proximo" && upcoming || status == "vencido" && !upcoming {
+			filtered = append(filtered, item)
 		}
 	}
-	return s.repo.List(ctx, eventType, status, from, to)
+	return filtered, nil
+}
+
+func (s *Service) FindForUpdate(ctx context.Context, id, actor string) (domain.Event, error) {
+	e, err := s.repo.Find(ctx, id)
+	if err != nil {
+		return e, err
+	}
+	if err := s.actorCanManage(ctx, actor, e.OrganizerID); err != nil {
+		return domain.Event{}, err
+	}
+	return e, nil
 }
 
 func (s *Service) Create(ctx context.Context, event domain.Event, actor string) (domain.Event, error) {

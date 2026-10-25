@@ -84,12 +84,13 @@ func TestEventRepositoryPersistsLifecycleAndFilters(t *testing.T) {
 		exclude string
 		want    bool
 	}{
-		"same instant without end": {domain.Event{Venue: venue, StartAt: start}, "", true},
-		"inside open-ended event":  {domain.Event{Venue: " " + venue + " ", StartAt: start, EndAt: &later}, "", true},
-		"excluding itself":         {domain.Event{Venue: venue, StartAt: start}, e.ID, false},
-		"other venue":              {domain.Event{Venue: venue + "-b", StartAt: start}, "", false},
-		"empty venue":              {domain.Event{StartAt: start}, "", false},
-		"after open-ended instant": {domain.Event{Venue: venue, StartAt: later}, "", false},
+		"same instant without end":     {domain.Event{Venue: venue, StartAt: start}, "", true},
+		"inside open-ended event":      {domain.Event{Venue: " " + venue + " ", StartAt: start, EndAt: &later}, "", true},
+		"excluding itself":             {domain.Event{Venue: venue, StartAt: start}, e.ID, false},
+		"other venue":                  {domain.Event{Venue: venue + "-b", StartAt: start}, "", false},
+		"empty venue":                  {domain.Event{StartAt: start}, "", false},
+		"same day as open-ended event": {domain.Event{Venue: venue, StartAt: later}, "", true},
+		"before open-ended event":      {domain.Event{Venue: venue, StartAt: start.Add(-2 * time.Hour), EndAt: func() *time.Time { v := start.Add(-time.Hour); return &v }()}, "", false},
 	} {
 		got, err := r.HasConflict(ctx, c.event, c.exclude)
 		if err != nil || got != c.want {

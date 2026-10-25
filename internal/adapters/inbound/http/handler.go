@@ -180,15 +180,15 @@ type eventRequest struct {
 	RegistrationURL string     `json:"registrationUrl"`
 }
 type eventPatchRequest struct {
-	Title           *string    `json:"title"`
-	Description     *string    `json:"description"`
-	Type            *string    `json:"type"`
-	StartAt         *time.Time `json:"startAt"`
-	EndAt           *time.Time `json:"endAt"`
-	Venue           *string    `json:"venue"`
-	MeetingURL      *string    `json:"meetingUrl"`
-	ImageURL        *string    `json:"imageUrl"`
-	RegistrationURL *string    `json:"registrationUrl"`
+	Title           *string         `json:"title"`
+	Description     *string         `json:"description"`
+	Type            *string         `json:"type"`
+	StartAt         *time.Time      `json:"startAt"`
+	EndAt           json.RawMessage `json:"endAt"`
+	Venue           *string         `json:"venue"`
+	MeetingURL      *string         `json:"meetingUrl"`
+	ImageURL        *string         `json:"imageUrl"`
+	RegistrationURL *string         `json:"registrationUrl"`
 }
 
 func (h *Handler) eventReady(w http.ResponseWriter) bool {
@@ -231,6 +231,9 @@ func (h *Handler) listEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		actor = &current
+	} else if hasSessionCredential(r) {
+		invalidSession(w, r, "sesión inválida o expirada")
+		return
 	}
 	var from, to *time.Time
 	if value := r.URL.Query().Get("from"); value != "" {
@@ -250,40 +253,10 @@ func (h *Handler) listEvents(w http.ResponseWriter, r *http.Request) {
 		to = &t
 	}
 	status := r.URL.Query().Get("status")
-	if status != "" && status != "borrador" && status != "publicado" && status != "cancelado" && status != "oculto" && status != "proximo" && status != "vencido" {
-		writeError(w, 400, "status inválido")
-		return
-	}
-	if actor == nil && (status == "borrador" || status == "cancelado" || status == "oculto") {
-		writeError(w, http.StatusForbidden, "se requiere sesión de admin para consultar eventos no publicados")
-		return
-	}
-	if actor != nil && !strings.EqualFold(actor.Role, "admin") && (status == "borrador" || status == "cancelado" || status == "oculto") {
-		writeError(w, http.StatusForbidden, "se requiere rol admin para consultar eventos no publicados")
-		return
-	}
-	repoStatus := status
-	if repoStatus == "proximo" || repoStatus == "vencido" {
-		repoStatus = "publicado"
-	}
-	if actor != nil && strings.EqualFold(actor.Role, "admin") && status == "" {
-		repoStatus = ""
-	}
-	items, err := h.events.List(r.Context(), r.URL.Query().Get("type"), repoStatus, from, to, actor)
+	items, err := h.events.List(r.Context(), r.URL.Query().Get("type"), status, from, to, actor)
 	if err != nil {
 		eventError(w, err)
 		return
-	}
-	if status == "proximo" || status == "vencido" {
-		now := time.Now()
-		filtered := items[:0]
-		for _, e := range items {
-			upcoming := !e.StartAt.Before(now)
-			if (status == "proximo" && upcoming) || (status == "vencido" && !upcoming) {
-				filtered = append(filtered, e)
-			}
-		}
-		items = filtered
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"events": items})
 }
@@ -311,12 +284,18 @@ func (h *Handler) getEvent(w http.ResponseWriter, r *http.Request) {
 	if !h.eventReady(w) {
 		return
 	}
-	token, _ := sessionToken(r)
+	token, tokenErr := sessionToken(r)
 	actor := ""
 	if token != "" {
-		if u, err := h.service.CurrentUser(r.Context(), token); err == nil {
-			actor = u.ID
+		u, err := h.service.CurrentUser(r.Context(), token)
+		if err != nil {
+			invalidSession(w, r, "sesión inválida o expirada")
+			return
 		}
+		actor = u.ID
+	} else if tokenErr != nil && hasSessionCredential(r) {
+		invalidSession(w, r, "sesión inválida o expirada")
+		return
 	}
 	e, err := h.events.Find(r.Context(), r.PathValue("id"), actor)
 	if err != nil {
@@ -333,7 +312,7 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	old, err := h.events.Find(r.Context(), r.PathValue("id"), actor.ID)
+	old, err := h.events.FindForUpdate(r.Context(), r.PathValue("id"), actor.ID)
 	if err != nil {
 		eventError(w, err)
 		return
@@ -357,7 +336,16 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
 		updated.StartAt = *q.StartAt
 	}
 	if q.EndAt != nil {
-		updated.EndAt = q.EndAt
+		if string(q.EndAt) == "null" {
+			updated.EndAt = nil
+		} else {
+			var endAt time.Time
+			if json.Unmarshal(q.EndAt, &endAt) != nil {
+				writeError(w, http.StatusBadRequest, "endAt debe ser una fecha RFC3339 o null")
+				return
+			}
+			updated.EndAt = &endAt
+		}
 	}
 	if q.Venue != nil {
 		updated.Venue = *q.Venue

@@ -18,7 +18,7 @@ func NewEventRepository(db *pgxpool.Pool) *EventRepository { return &EventReposi
 const eventSQL = `e.id,e.titulo,COALESCE(e.descripcion,''),e.tipo,e.inicia_en,e.termina_en,e.organizador_id,
  COALESCE(u.nombre||' '||COALESCE(u.apellido,''),''),COALESCE(e.lugar,''),COALESCE(e.enlace,''),COALESCE(e.imagen_url,''),COALESCE(e.enlace_inscripcion,''),e.estado,e.creado_en,e.actualizado_en`
 const eventReturningSQL = `id,titulo,COALESCE(descripcion,''),tipo,inicia_en,termina_en,organizador_id,
- '',COALESCE(lugar,''),COALESCE(enlace,''),COALESCE(imagen_url,''),COALESCE(enlace_inscripcion,''),estado,creado_en,actualizado_en`
+ COALESCE((SELECT u.nombre||' '||COALESCE(u.apellido,'') FROM usuarios u WHERE u.id=organizador_id),''),COALESCE(lugar,''),COALESCE(enlace,''),COALESCE(imagen_url,''),COALESCE(enlace_inscripcion,''),estado,creado_en,actualizado_en`
 
 func eventErr(err error) error {
 	var pgErr *pgconn.PgError
@@ -69,8 +69,8 @@ func (r *EventRepository) HasConflict(ctx context.Context, e domain.Event, exclu
 		  AND estado <> 'cancelado'
 		  AND NULLIF(BTRIM(lugar), '') IS NOT NULL
 		  AND BTRIM(lugar) = BTRIM($2)
-		  AND inicia_en < COALESCE($4::timestamptz, $3::timestamptz + interval '1 microsecond')
-		  AND $3::timestamptz < COALESCE(termina_en, inicia_en + interval '1 microsecond')
+		  AND inicia_en < COALESCE($4::timestamptz, date_trunc('day', $3::timestamptz) + interval '1 day')
+		  AND $3::timestamptz < COALESCE(termina_en, date_trunc('day', inicia_en) + interval '1 day')
 	)`, excludeID, e.Venue, e.StartAt, e.EndAt).Scan(&exists)
 	return exists, err
 }

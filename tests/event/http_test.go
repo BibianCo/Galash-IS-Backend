@@ -114,12 +114,15 @@ func (r *repository) HasConflict(_ context.Context, e domain.Event, excludeID st
 		if x.EndAt != nil {
 			return *x.EndAt
 		}
-		return x.StartAt.Add(time.Microsecond)
+		return x.StartAt.Truncate(24 * time.Hour).Add(24 * time.Hour)
+	}
+	start := func(x domain.Event) time.Time {
+		return x.StartAt
 	}
 	for id, o := range r.events {
 		venue := strings.TrimSpace(o.Venue)
 		if id != excludeID && o.Status != "cancelado" && venue != "" && venue == strings.TrimSpace(e.Venue) &&
-			o.StartAt.Before(end(e)) && e.StartAt.Before(end(o)) {
+			start(o).Before(end(e)) && start(e).Before(end(o)) {
 			return true, nil
 		}
 	}
@@ -222,7 +225,7 @@ func TestCreateEvent(t *testing.T) {
 
 	overlap := `{"title":"Otro","type":"evento","startAt":"2030-05-10T15:00:00Z","venue":" Aula 101 "}`
 	expect(t, "venue overlap", s.do(t, http.MethodPost, "/events", "other", overlap), http.StatusConflict)
-	adjacent := `{"title":"Después","type":"evento","startAt":"2030-05-10T16:00:00Z","venue":"Aula 101"}`
+	adjacent := `{"title":"Después","type":"evento","startAt":"2030-05-10T16:00:00Z","endAt":"2030-05-10T18:00:00Z","venue":"Aula 101"}`
 	expect(t, "adjacent slot", s.do(t, http.MethodPost, "/events", "other", adjacent), http.StatusCreated)
 }
 
@@ -235,7 +238,7 @@ func TestEventLifecycleAndPermissions(t *testing.T) {
 	expect(t, "anonymous publish", s.do(t, http.MethodPost, path+"/publish", "", ""), http.StatusUnauthorized)
 	expect(t, "student publish", s.do(t, http.MethodPost, path+"/publish", "student", ""), http.StatusForbidden)
 	expect(t, "other teacher publish", s.do(t, http.MethodPost, path+"/publish", "other", ""), http.StatusForbidden)
-	expect(t, "other teacher edit draft", s.do(t, http.MethodPatch, path, "other", `{"title":"x"}`), http.StatusNotFound)
+	expect(t, "other teacher edit draft", s.do(t, http.MethodPatch, path, "other", `{"title":"x"}`), http.StatusForbidden)
 
 	if got := expect(t, "owner publish", s.do(t, http.MethodPost, path+"/publish", "teacher", ""), http.StatusOK); got.Status != "publicado" {
 		t.Errorf("publish status = %q", got.Status)
@@ -251,6 +254,16 @@ func TestEventLifecycleAndPermissions(t *testing.T) {
 	if edited.Title != "Taller IA avanzado" || edited.Venue != "Aula 101" || edited.Status != "publicado" || !edited.UpdatedAt.After(before) {
 		t.Errorf("partial edit = %+v", edited)
 	}
+	cleared := expect(t, "clear endAt", s.do(t, http.MethodPatch, path, "teacher", `{"endAt":null}`), http.StatusOK)
+	if cleared.EndAt != nil {
+		t.Errorf("clear endAt = %v, want nil", cleared.EndAt)
+	}
+	earlierSameDay := `{"title":"Antes del evento de día","type":"evento","startAt":"2030-05-10T10:00:00Z","endAt":"2030-05-10T12:00:00Z","venue":"Aula 101"}`
+	expect(t, "before all-day event start", s.do(t, http.MethodPost, "/events", "other", earlierSameDay), http.StatusCreated)
+	allDayConflict := `{"title":"Mismo día","type":"evento","startAt":"2030-05-10T18:00:00Z","endAt":"2030-05-10T19:00:00Z","venue":"Aula 101"}`
+	expect(t, "same venue same day after clearing endAt", s.do(t, http.MethodPost, "/events", "other", allDayConflict), http.StatusConflict)
+	differentVenue := `{"title":"Otra sala","type":"evento","startAt":"2030-05-10T18:00:00Z","endAt":"2030-05-10T19:00:00Z","venue":"Aula 202"}`
+	expect(t, "different venue same day", s.do(t, http.MethodPost, "/events", "other", differentVenue), http.StatusCreated)
 
 	if got := expect(t, "admin hide", s.do(t, http.MethodPost, path+"/hide", "admin", ""), http.StatusOK); got.Status != "oculto" {
 		t.Errorf("hide status = %q", got.Status)

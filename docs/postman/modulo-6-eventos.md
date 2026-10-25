@@ -166,6 +166,15 @@ los eventos están en `borrador`, porque un borrador ya reserva ese espacio.
 Los eventos `cancelado` no bloquean nuevas reservas. Si dos eventos son en línea
 y no tienen `venue`, esta validación de lugar no aplica.
 
+Cuando `endAt` se omite, el evento reserva el resto del día desde su hora de
+inicio en ese lugar. Por eso se permite un evento anterior que termine antes
+de esa hora, pero no otro evento posterior o superpuesto en el mismo lugar.
+
+La misma regla aplica si un evento tenía `endAt` y luego se actualiza con
+`{"endAt": null}`: desde ese momento queda tratado como evento que ocupa el
+resto de ese día. Un evento anterior que termine antes de su inicio, o un
+evento en otra sala el mismo día, sí puede crearse.
+
 Ejemplo de segundo evento que debe fallar si el primero usa `Sala 2` entre
 14:00 y 16:00:
 
@@ -243,7 +252,14 @@ Body de ejemplo:
 ```
 
 Los campos omitidos conservan su valor. El estado no se modifica mediante
-`PATCH`; use las acciones específicas siguientes.
+`PATCH`; use las acciones específicas siguientes. Para quitar una fecha final
+existente, envíe explícitamente:
+
+```json
+{
+  "endAt": null
+}
+```
 
 ## 6. Publicar
 
