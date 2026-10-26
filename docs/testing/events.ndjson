@@ -366,3 +366,18 @@
 {"v":1,"id":"X082","t":"result","run":"R082","test":"T080","s":"pass","ev":["go test ./...","auth container rebuilt","POST /admin/content/pages invalid session HTTP 401"]}
 {"v":1,"id":"R083","t":"run","at":"2026-10-25T23:00:00Z","by":"agent","mode":"automated","cmd":"docker run golang:1.22 go test ./...; docker compose up -d --build auth"}
 {"v":1,"id":"X083","t":"result","run":"R083","test":"T080","s":"pass","ev":["go test ./...","INSERT temporal en contenido_paginas con ROLLBACK","auth container rebuilt"]}
+{"v":1,"id":"T083","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-01 backend: visitante lista y consulta por slug historia, objetivos, misión, visión y áreas publicadas; borradores ocultos","file":"tests/content/http_test.go"}
+{"v":1,"id":"T084","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-02: borrador, edición parcial, publicación, autor y fecha; rechazo 401/403 sin permiso y 400 en datos inválidos","file":"tests/content/http_test.go"}
+{"v":1,"id":"T085","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-02: sanitización conserva solo formato permitido en creación y edición","file":"tests/content/http_test.go"}
+{"v":1,"id":"T086","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-02: PostgreSQL persiste borrador, nombre de autor, fecha de actualización y publicación","file":"tests/content/repository_test.go"}
+{"v":1,"id":"T087","t":"test","area":"module-7-content-pages","p":"should","name":"PT-INFO-02: errores del adaptador PostgreSQL (slug duplicado, id no UUID) responden error de cliente, no 500","file":"tests/content/repository_test.go"}
+{"v":1,"id":"E005","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local; ephemeral database galash_test_m7 in galash-postgres (postgres:16-alpine) on localhost:5433 initialized from database/init.sql, dropped after run"}
+{"v":1,"id":"R084","t":"run","at":"2026-10-25T23:30:00Z","build":"ff21632+tests","env":"E005","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1"}
+{"v":1,"id":"X176","t":"result","run":"R084","test":"T083","s":"pass","ev":["R084/go-test-content.txt"]}
+{"v":1,"id":"X177","t":"result","run":"R084","test":"T084","s":"pass","ev":["R084/go-test-content.txt"]}
+{"v":1,"id":"X178","t":"result","run":"R084","test":"T085","s":"fail","ev":["R084/go-test-content.txt"],"defect":"D020"}
+{"v":1,"id":"X179","t":"result","run":"R084","test":"T086","s":"pass","ev":["R084/go-test-content.txt"]}
+{"v":1,"id":"X180","t":"result","run":"R084","test":"T087","s":"fail","ev":["R084/go-test-content.txt"],"defect":["D021","D022"]}
+{"v":1,"id":"D020","t":"defect","test":"T085","run":"R084","sev":"low","s":"open","name":"Sanitize descarta <br/> autocerrado (SelfClosingTagToken no manejado): '<p>a<br/>b</p>' queda '<p>ab</p>'"}
+{"v":1,"id":"D021","t":"defect","test":"T087","run":"R084","sev":"medium","s":"open","name":"POST /admin/content/pages con slug duplicado responde HTTP 500: violación UNIQUE de contenido_paginas.slug no se traduce a error de dominio"}
+{"v":1,"id":"D022","t":"defect","test":"T087","run":"R084","sev":"medium","s":"open","name":"PATCH /admin/content/pages/{id} y POST .../publish con id no UUID responden HTTP 500 en vez de 404 (error 22P02 de PostgreSQL no mapeado a ErrContentNotFound)"}
