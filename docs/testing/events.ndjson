@@ -357,3 +357,15 @@
 {"v":1,"id":"T082","t":"test","area":"module-6-events","p":"must","name":"Evento anterior al inicio de un evento sin endAt permitido; evento posterior bloqueado"}
 {"v":1,"id":"R058","t":"run","at":"2026-10-25T04:20:00Z","build":"e453657+wip","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/event/ ./internal/...; git diff --check"}
 {"v":1,"id":"X175","t":"result","run":"R058","test":"T082","s":"pass","ev":["earlier event returned 201","later same venue returned 409","go test targeted packages","git diff --check"]}
+{"v":1,"id":"T083","t":"test","area":"module-11-roles","p":"must","name":"GET /admin/members requires an Admin session and returns admin fields; legacy GET /find/user returns 404"}
+{"v":1,"id":"R059","t":"run","at":"2026-10-27T12:00:00Z","build":"wip","by":"agent","mode":"automated","cmd":"go test ./..."}
+{"v":1,"id":"X176","t":"result","run":"R059","test":"T083","s":"pass","ev":["unauthenticated returned 401","/find/user returned 404","/admin/members returned firebase_uid, email and document","go test ./... all packages ok"]}
+{"v":1,"id":"T084","t":"test","area":"module-11-roles","p":"must","name":"PUT role accepts the contract role Docente (normalized to docente) as well as legacy profesor"}
+{"v":1,"id":"R060","t":"run","at":"2026-10-28T02:36:00Z","build":"wip","by":"agent","mode":"automated","cmd":"go test ./..."}
+{"v":1,"id":"X177","t":"result","run":"R060","test":"T084","s":"pass","ev":["tests/auth ok","all packages ok"]}
+{"v":1,"id":"T085","t":"test","area":"module-11-roles","p":"must","name":"GET /admin/members includes inactive accounts; the public search still returns only active ones"}
+{"v":1,"id":"R061","t":"run","at":"2026-10-28T03:00:00Z","build":"wip","by":"agent","mode":"automated","cmd":"go vet ./...; go test ./...; curl against the rebuilt auth container with a temporary synthetic admin session"}
+{"v":1,"id":"X178","t":"result","run":"R061","test":"T085","s":"pass","ev":["tests/auth asserts searchInactive=true for admin","q=felipe returned the inactive synthetic account","go test ./... ok"]}
+{"v":1,"id":"T086","t":"test","area":"module-2-seedbeds","p":"should","name":"Seedbed topics are optional, at most 4, title required (60 chars max), phrase 160 chars max, trimmed; omitted topics on PATCH keep the stored ones"}
+{"v":1,"id":"R062","t":"run","at":"2026-10-28T03:20:00Z","build":"wip","by":"agent","mode":"automated","cmd":"go vet ./...; go test ./...; curl PATCH /seedbeds/{id} against the rebuilt auth container with a temporary synthetic admin session"}
+{"v":1,"id":"X179","t":"result","run":"R062","test":"T086","s":"pass","ev":["tests/seedbed TestTopicsAreOptionalLimitedAndTrimmed ok","PATCH without topics kept 4","PATCH with topics replaced and trimmed","5 topics -> 400","synthetic data restored"]}
