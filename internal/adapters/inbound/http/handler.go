@@ -99,7 +99,6 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("PATCH /members/{id}", h.updateMember)
 	mux.HandleFunc("PATCH /members/{id}/status", h.setMemberStatus)
 	mux.HandleFunc("GET /members/{id}/publications", h.memberPublications)
-	mux.HandleFunc("GET /find/user", h.adminMembers)
 	mux.HandleFunc("GET /admin/members", h.adminMembers)
 	mux.HandleFunc("PUT /users/roles", h.updateRole)
 	mux.HandleFunc("PUT /users/{userId}/roles", h.updateRole)

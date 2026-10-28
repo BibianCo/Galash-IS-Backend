@@ -45,6 +45,7 @@ type repository struct {
 	updateRoleErr        error
 	searchQuery          string
 	searchLimit          int
+	searchInactive       bool
 	searchUsers          []domain.User
 	searchErr            error
 }
@@ -78,8 +79,8 @@ func (r *repository) SetPassword(_ context.Context, _ string, hash string) error
 	r.passwordHash = hash
 	return nil
 }
-func (r *repository) Search(_ context.Context, query string, limit int) ([]domain.User, error) {
-	r.searchQuery, r.searchLimit = query, limit
+func (r *repository) Search(_ context.Context, query string, limit int, includeInactive bool) ([]domain.User, error) {
+	r.searchQuery, r.searchLimit, r.searchInactive = query, limit, includeInactive
 	if r.searchErr != nil {
 		return nil, r.searchErr
 	}
@@ -423,6 +424,9 @@ func TestUpdateUserRoleRequiresAdminAndUsesTargetUID(t *testing.T) {
 	}
 	if repository.updatedUID != "target-uid" || repository.updatedRole != "profesor" {
 		t.Fatalf("updated target=%q role=%q", repository.updatedUID, repository.updatedRole)
+	}
+	if err := service.UpdateUserRole(context.Background(), login.Token, "target-uid", "Docente"); err != nil || repository.updatedRole != "docente" {
+		t.Fatalf("contract role docente: error=%v role=%q", err, repository.updatedRole)
 	}
 	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "profesor"); !errors.Is(err, domain.ErrSelfRoleChange) {
 		t.Fatalf("self role change error=%v", err)

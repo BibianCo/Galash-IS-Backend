@@ -184,12 +184,21 @@ func TestAdminMembersRequiresSessionAndReturnsAdminFields(t *testing.T) {
 		t.Fatalf("unauthenticated status=%d, want %d", unauthorized.Code, http.StatusUnauthorized)
 	}
 
-	request := httptest.NewRequest(http.MethodGet, "/find/user?q=ana", nil)
+	legacy := httptest.NewRecorder()
+	server.ServeHTTP(legacy, httptest.NewRequest(http.MethodGet, "/find/user?q=ana", nil))
+	if legacy.Code != http.StatusNotFound {
+		t.Fatalf("legacy alias status=%d, want %d", legacy.Code, http.StatusNotFound)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/admin/members?q=ana", nil)
 	request.AddCookie(loginCookie(t, server))
 	response := httptest.NewRecorder()
 	server.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.searchInactive {
+		t.Error("admin search must include inactive accounts")
 	}
 	for _, expected := range []string{"member-firebase-uid", "ana@example.test", "12345"} {
 		if !strings.Contains(response.Body.String(), expected) {

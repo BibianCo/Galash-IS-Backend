@@ -52,10 +52,9 @@ reemplaza; no crece indefinidamente.
    endpoints implementados". El código registra 18 rutas (semilleros, miembros
    y roles ya existen). Este archivo circula como input al equipo de frontend:
    **mentirle al front cuesta dinero**. Actualizarlo o eliminarlo.
-2. **`GET /admin/members` y `GET /find/user`**: fuera del contrato (búsqueda
-   administrativa con datos sensibles). El contrato solo define `GET /members`
-   con filtros. Definir si se incorporan al contrato o se eliminan;
-   `GET /find/user` parece alias legacy.
+2. **`GET /admin/members` y `GET /find/user`**: resuelto 2026-10-27.
+   `GET /admin/members` entra al contrato (M11, solo `Admin`, búsqueda
+   obligatoria). `GET /find/user` se eliminó.
 3. **`PUT /users/roles`** (sin `{userId}`): alias de
    `PUT /users/{userId}/roles`, fuera del contrato. Eliminar o documentar.
 4. **`GET /health`**: infraestructura, legítimamente fuera del contrato.

@@ -208,6 +208,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `PUT` | `/roles/{roleId}/permissions` | Asigna o retira permisos del rol; no permite crear roles fuera del catálogo ni autoasignarse privilegios. | Must / Admin | HU-TR-01 |
 | `GET` | `/users/{userId}/roles` | Consulta roles asignados a un usuario. | Must / Admin | HU-TR-01 |
 | `PUT` | `/users/{userId}/roles` | Reemplaza o asigna uno de los cuatro roles con validación de permisos y prevención de autoasignación. | Must / Admin | HU-AUTH-01, HU-TR-01 |
+| `GET` | `/admin/members` | Busca cuentas por nombre o correo (búsqueda obligatoria) e incluye inactivas, `firebase_uid`, email, documento, rol y estado. Solo vista administrativa. | Must / Admin | HU-AUTH-01, HU-TR-01 |
 | `GET` | `/users/me/dashboard` | Devuelve resumen de tareas y accesos permitidos según rol y contexto. | Must / Estudiante, Docente o Admin | HU-TR-02 |
 
 **Regla:** todos los endpoints de escritura deben comprobar el permiso requerido y el contexto (por ejemplo, pertenencia al semillero). La interfaz solo consume los permisos; no los concede.
