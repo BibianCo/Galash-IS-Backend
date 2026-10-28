@@ -37,6 +37,9 @@ GALASH-UPTC web system for academic management, research, and communication.
 - El módulo 4 (actividades, proyectos, propuestas y reseñas) responde en camelCase; las propuestas inician siempre `Radicada` y solo `Docente`/`Admin` cambian estado u observaciones; cada edición de proyecto o propuesta queda en historial con autor y fecha, y la conversión enlaza propuesta (`projectId`) y proyecto conservando el historial. Los `PATCH` del módulo son parciales; las reseñas nuevas notifican a cada `Admin` activo y su listado administrativo muestra por defecto las pendientes. Una actividad creada sin estado lo deriva de su fecha.
 - El adaptador HTTP acepta preflight CORS desde interfaces locales (`localhost`, `127.0.0.1` y `::1`) y prioriza `Authorization` sobre una cookie de sesión antigua.
 - El módulo 5 implementa el directorio de integrantes: listado público filtrable, creación y edición administrativa, detalle con campos internos para Admin o el propio integrante, cambio de estado sin borrar relaciones y publicaciones visibles.
+- `GET /admin/members` (contract M11) requires `q`, includes inactive accounts and returns `{users: [...]}`; the legacy alias `/find/user` no longer exists. `PUT /users/{userId}/roles` accepts `docente` (contract name) and `profesor` (legacy).
+- Seedbeds have `topics` (max 4 `{title, phrase}`, JSONB column `temas`, migration `007_seedbed_topics.sql`); omitted on `PATCH` they keep their value.
+- `database/seed/seed.sh [--reset]` loads or deletes idempotent synthetic development data (ids `5eed…`).
 
 ## Record
 

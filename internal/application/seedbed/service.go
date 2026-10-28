@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -18,7 +19,11 @@ func NewService(repo ports.SeedbedRepository, users ports.UserReader) *Service {
 	return &Service{repo: repo, users: users}
 }
 
-type CreateCommand struct{ Name, Description, ResearchLine, Objective, ResponsibleTeacherID, ContactEmail string }
+type CreateCommand struct {
+	Name, Description, ResearchLine, Objective, ResponsibleTeacherID, ContactEmail string
+	// Topics nil means "not sent": Create stores none and Update keeps the current ones.
+	Topics *[]domain.SeedbedTopic
+}
 type UpdateCommand = CreateCommand
 
 func validate(c CreateCommand) error {
@@ -28,7 +33,30 @@ func validate(c CreateCommand) error {
 	if !strings.Contains(c.ContactEmail, "@") {
 		return domain.ErrInvalidSeedbed
 	}
+	if c.Topics != nil {
+		if len(*c.Topics) > maxTopics {
+			return domain.ErrInvalidSeedbed
+		}
+		for _, topic := range *c.Topics {
+			if title := strings.TrimSpace(topic.Title); title == "" || utf8.RuneCountInString(title) > 60 || utf8.RuneCountInString(strings.TrimSpace(topic.Phrase)) > 160 {
+				return domain.ErrInvalidSeedbed
+			}
+		}
+	}
 	return nil
+}
+
+const maxTopics = 4
+
+func trimTopics(topics *[]domain.SeedbedTopic) []domain.SeedbedTopic {
+	if topics == nil {
+		return nil
+	}
+	out := make([]domain.SeedbedTopic, 0, len(*topics))
+	for _, topic := range *topics {
+		out = append(out, domain.SeedbedTopic{Title: strings.TrimSpace(topic.Title), Phrase: strings.TrimSpace(topic.Phrase)})
+	}
+	return out
 }
 func (s *Service) teacher(ctx context.Context, id string) error {
 	u, err := s.users.FindByID(ctx, strings.TrimSpace(id))
@@ -45,7 +73,7 @@ func (s *Service) Create(ctx context.Context, c CreateCommand) (domain.Seedbed, 
 		return domain.Seedbed{}, err
 	}
 	now := time.Now().UTC()
-	return s.repo.Create(ctx, domain.Seedbed{Name: strings.TrimSpace(c.Name), Description: strings.TrimSpace(c.Description), ResearchLine: strings.TrimSpace(c.ResearchLine), Objective: strings.TrimSpace(c.Objective), ResponsibleTeacherID: strings.TrimSpace(c.ResponsibleTeacherID), ContactEmail: strings.TrimSpace(c.ContactEmail), Status: domain.SeedbedDraft, Visibility: domain.SeedbedDraft, CreatedAt: now, UpdatedAt: now})
+	return s.repo.Create(ctx, domain.Seedbed{Name: strings.TrimSpace(c.Name), Description: strings.TrimSpace(c.Description), ResearchLine: strings.TrimSpace(c.ResearchLine), Objective: strings.TrimSpace(c.Objective), ResponsibleTeacherID: strings.TrimSpace(c.ResponsibleTeacherID), ContactEmail: strings.TrimSpace(c.ContactEmail), Topics: trimTopics(c.Topics), Status: domain.SeedbedDraft, Visibility: domain.SeedbedDraft, CreatedAt: now, UpdatedAt: now})
 }
 func (s *Service) Update(ctx context.Context, id string, c UpdateCommand) (domain.Seedbed, error) {
 	if err := validate(c); err != nil {
@@ -54,7 +82,7 @@ func (s *Service) Update(ctx context.Context, id string, c UpdateCommand) (domai
 	if err := s.teacher(ctx, c.ResponsibleTeacherID); err != nil {
 		return domain.Seedbed{}, err
 	}
-	return s.repo.Update(ctx, id, domain.Seedbed{Name: c.Name, Description: c.Description, ResearchLine: c.ResearchLine, Objective: c.Objective, ResponsibleTeacherID: c.ResponsibleTeacherID, ContactEmail: c.ContactEmail, UpdatedAt: time.Now().UTC()})
+	return s.repo.Update(ctx, id, domain.Seedbed{Name: c.Name, Description: c.Description, ResearchLine: c.ResearchLine, Objective: c.Objective, ResponsibleTeacherID: c.ResponsibleTeacherID, ContactEmail: c.ContactEmail, Topics: trimTopics(c.Topics), UpdatedAt: time.Now().UTC()})
 }
 func (s *Service) CanManage(ctx context.Context, actorID, id string) error {
 	sb, err := s.repo.Find(ctx, id)

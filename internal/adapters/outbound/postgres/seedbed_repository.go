@@ -14,7 +14,7 @@ type SeedbedRepository struct{ db *pgxpool.Pool }
 
 func NewSeedbedRepository(db *pgxpool.Pool) *SeedbedRepository { return &SeedbedRepository{db: db} }
 func (r *SeedbedRepository) Create(ctx context.Context, s domain.Seedbed) (domain.Seedbed, error) {
-	err := r.db.QueryRow(ctx, `INSERT INTO semilleros (nombre,descripcion,linea_investigacion,objetivo,lider_id,email_contacto,estado,visibilidad) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,creado_en,actualizado_en`, s.Name, s.Description, s.ResearchLine, s.Objective, s.ResponsibleTeacherID, s.ContactEmail, s.Status, s.Visibility).Scan(&s.ID, &s.CreatedAt, &s.UpdatedAt)
+	err := r.db.QueryRow(ctx, `INSERT INTO semilleros (nombre,descripcion,linea_investigacion,objetivo,lider_id,email_contacto,estado,visibilidad,temas) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,COALESCE($9::jsonb,'[]')) RETURNING id,temas,creado_en,actualizado_en`, s.Name, s.Description, s.ResearchLine, s.Objective, s.ResponsibleTeacherID, s.ContactEmail, s.Status, s.Visibility, topicsArg(s.Topics)).Scan(&s.ID, &s.Topics, &s.CreatedAt, &s.UpdatedAt)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		return domain.Seedbed{}, domain.ErrDuplicateSeedbed
@@ -23,7 +23,7 @@ func (r *SeedbedRepository) Create(ctx context.Context, s domain.Seedbed) (domai
 }
 func scanSeedbed(row pgx.Row) (domain.Seedbed, error) {
 	var s domain.Seedbed
-	err := row.Scan(&s.ID, &s.Name, &s.Description, &s.ResearchLine, &s.Objective, &s.ResponsibleTeacherID, &s.ContactEmail, &s.Status, &s.Visibility, &s.CreatedAt, &s.UpdatedAt)
+	err := row.Scan(&s.ID, &s.Name, &s.Description, &s.ResearchLine, &s.Objective, &s.ResponsibleTeacherID, &s.ContactEmail, &s.Topics, &s.Status, &s.Visibility, &s.CreatedAt, &s.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Seedbed{}, domain.ErrSeedbedNotFound
 	}
@@ -34,7 +34,15 @@ func scanSeedbed(row pgx.Row) (domain.Seedbed, error) {
 	return s, err
 }
 
-const seedbedFields = `id,nombre,COALESCE(descripcion,''),COALESCE(linea_investigacion,''),COALESCE(objetivo,''),lider_id,email_contacto,estado,visibilidad,creado_en,actualizado_en`
+const seedbedFields = `id,nombre,COALESCE(descripcion,''),COALESCE(linea_investigacion,''),COALESCE(objetivo,''),lider_id,email_contacto,temas,estado,visibilidad,creado_en,actualizado_en`
+
+// topicsArg sends SQL NULL for nil topics, so Update keeps the stored ones.
+func topicsArg(topics []domain.SeedbedTopic) any {
+	if topics == nil {
+		return nil
+	}
+	return topics
+}
 
 func (r *SeedbedRepository) Find(ctx context.Context, id string) (domain.Seedbed, error) {
 	return scanSeedbed(r.db.QueryRow(ctx, `SELECT `+seedbedFields+` FROM semilleros WHERE id=$1`, id))
@@ -138,7 +146,7 @@ func itoa(i int) string {
 	return "6"
 }
 func (r *SeedbedRepository) Update(ctx context.Context, id string, s domain.Seedbed) (domain.Seedbed, error) {
-	return scanSeedbed(r.db.QueryRow(ctx, `UPDATE semilleros SET nombre=$1,descripcion=$2,linea_investigacion=$3,objetivo=$4,lider_id=$5,email_contacto=$6,actualizado_en=now() WHERE id=$7 RETURNING `+seedbedFields, s.Name, s.Description, s.ResearchLine, s.Objective, s.ResponsibleTeacherID, s.ContactEmail, id))
+	return scanSeedbed(r.db.QueryRow(ctx, `UPDATE semilleros SET nombre=$1,descripcion=$2,linea_investigacion=$3,objetivo=$4,lider_id=$5,email_contacto=$6,temas=COALESCE($8::jsonb,temas),actualizado_en=now() WHERE id=$7 RETURNING `+seedbedFields, s.Name, s.Description, s.ResearchLine, s.Objective, s.ResponsibleTeacherID, s.ContactEmail, id, topicsArg(s.Topics)))
 }
 func (r *SeedbedRepository) SetVisibility(ctx context.Context, id, status string) (domain.Seedbed, error) {
 	return scanSeedbed(r.db.QueryRow(ctx, `UPDATE semilleros SET estado=$1,visibilidad=$1,actualizado_en=now() WHERE id=$2 RETURNING `+seedbedFields, status, id))

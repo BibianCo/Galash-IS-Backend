@@ -69,11 +69,11 @@ func (r *UserRepository) SetPassword(ctx context.Context, id, passwordHash strin
 	return err
 }
 
-func (r *UserRepository) Search(ctx context.Context, query string, limit int) ([]domain.User, error) {
+func (r *UserRepository) Search(ctx context.Context, query string, limit int, includeInactive bool) ([]domain.User, error) {
 	pattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
 	rows, err := r.db.Query(ctx, `SELECT id, firebase_uid, nombre, COALESCE(apellido, ''), email, COALESCE(tipo_dni, ''), COALESCE(dni, ''), rol, estado
-		FROM usuarios WHERE estado = 'activo' AND (lower(nombre || ' ' || COALESCE(apellido, '')) LIKE $1 OR lower(email) LIKE $1)
-		ORDER BY nombre, apellido, email LIMIT $2`, pattern, limit)
+		FROM usuarios WHERE ($3 OR estado = 'activo') AND (lower(nombre || ' ' || COALESCE(apellido, '')) LIKE $1 OR lower(email) LIKE $1)
+		ORDER BY nombre, apellido, email LIMIT $2`, pattern, limit, includeInactive)
 	if err != nil {
 		return nil, err
 	}

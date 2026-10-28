@@ -32,8 +32,7 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | PATCH | `/members/{id}` | edita perfil | M5 | [ ] |
 | PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [ ] |
 | GET | `/members/{id}/publications` | publicaciones visibles | M5 | [ ] |
-| GET | `/admin/members` | busq. admin | - | [ ] |
-| GET | `/find/user` | alias busq. | - | [ ] |
+| GET | `/admin/members` | busq. admin (requiere `q`) | M11 | [ ] |
 | PUT | `/users/roles` | alias rol | - | [ ] |
 | PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [ ] |
 | GET | `/seedbeds` | lista | M2 | [ ] |
@@ -88,6 +87,10 @@ malformados o semillero inexistente responden `404`. En `POST
 /seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se
 calcula (`próxima`, `en curso`, `finalizada`).
 
+M2: los semilleros incluyen `topics` (máx. 4 `{title, phrase}`); en `PATCH
+/seedbeds/{id}` omitirlo conserva los temas. `GET /admin/members` responde
+`{"users": [...]}`, exige `q` e incluye cuentas inactivas.
+
 M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`,
 `imageUrl` y `registrationUrl`. Las fechas son RFC3339; los estados son
 `borrador`, `publicado`, `oculto` y `cancelado`. La agenda pública solo muestra
@@ -95,9 +98,8 @@ M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`
 la fecha de inicio. La escritura requiere sesión de `Docente` o `Admin`; el
 docente solo administra sus propios eventos.
 
-Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
-sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
-alias de `PUT /users/{userId}/roles`.
+Fuera de contrato: `- /health` infraestructura · `- /users/roles` alias de
+`PUT /users/{userId}/roles`. `GET /admin/members` responde `400` sin `q`.
 
 ## PostgreSQL (Docker, host `5433`)
 

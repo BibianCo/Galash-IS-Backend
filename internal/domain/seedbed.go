@@ -10,17 +10,24 @@ const (
 )
 
 type Seedbed struct {
-	ID                   string    `json:"id"`
-	Name                 string    `json:"name"`
-	Description          string    `json:"description"`
-	ResearchLine         string    `json:"researchLine"`
-	Objective            string    `json:"objective"`
-	ResponsibleTeacherID string    `json:"responsibleTeacherId"`
-	ContactEmail         string    `json:"contactEmail"`
-	Status               string    `json:"status"`
-	Visibility           string    `json:"visibility"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                   string         `json:"id"`
+	Name                 string         `json:"name"`
+	Description          string         `json:"description"`
+	ResearchLine         string         `json:"researchLine"`
+	Objective            string         `json:"objective"`
+	ResponsibleTeacherID string         `json:"responsibleTeacherId"`
+	ContactEmail         string         `json:"contactEmail"`
+	Topics               []SeedbedTopic `json:"topics"`
+	Status               string         `json:"status"`
+	Visibility           string         `json:"visibility"`
+	CreatedAt            time.Time      `json:"createdAt"`
+	UpdatedAt            time.Time      `json:"updatedAt"`
+}
+
+// SeedbedTopic feeds the knowledge graph and the topics shown on the home page.
+type SeedbedTopic struct {
+	Title  string `json:"title"`
+	Phrase string `json:"phrase"`
 }
 
 type SeedbedMember struct {

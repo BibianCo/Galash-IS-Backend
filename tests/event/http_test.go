@@ -43,9 +43,9 @@ func (u users) FindByEmail(context.Context, string) (domain.User, error) {
 func (u users) FindByFirebaseUID(ctx context.Context, uid string) (domain.User, error) {
 	return u.FindByID(ctx, uid)
 }
-func (u users) SetPassword(context.Context, string, string) error          { return nil }
-func (u users) Search(context.Context, string, int) ([]domain.User, error) { return nil, nil }
-func (u users) UpdateRole(context.Context, string, string) error           { return nil }
+func (u users) SetPassword(context.Context, string, string) error                { return nil }
+func (u users) Search(context.Context, string, int, bool) ([]domain.User, error) { return nil, nil }
+func (u users) UpdateRole(context.Context, string, string) error                 { return nil }
 
 type authStore struct {
 	users
