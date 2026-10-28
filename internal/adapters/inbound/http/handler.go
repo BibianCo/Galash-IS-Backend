@@ -397,12 +397,13 @@ func isLocalOrigin(origin string) bool {
 }
 
 type seedbedRequest struct {
-	Name                 string `json:"name"`
-	Description          string `json:"description"`
-	ResearchLine         string `json:"researchLine"`
-	Objective            string `json:"objective"`
-	ResponsibleTeacherID string `json:"responsibleTeacherId"`
-	ContactEmail         string `json:"contactEmail"`
+	Name                 string                 `json:"name"`
+	Description          string                 `json:"description"`
+	ResearchLine         string                 `json:"researchLine"`
+	Objective            string                 `json:"objective"`
+	ResponsibleTeacherID string                 `json:"responsibleTeacherId"`
+	ContactEmail         string                 `json:"contactEmail"`
+	Topics               *[]domain.SeedbedTopic `json:"topics"`
 }
 type visibilityRequest struct {
 	Status     string `json:"status"`
@@ -498,7 +499,7 @@ func (h *Handler) createSeedbed(w http.ResponseWriter, r *http.Request) {
 	s, err := h.seedbeds.Create(r.Context(), seedbedapp.CreateCommand{
 		Name: q.Name, Description: q.Description, ResearchLine: q.ResearchLine,
 		Objective: q.Objective, ResponsibleTeacherID: q.ResponsibleTeacherID,
-		ContactEmail: q.ContactEmail,
+		ContactEmail: q.ContactEmail, Topics: q.Topics,
 	})
 	if err != nil {
 		seedbedError(w, err)
@@ -579,7 +580,7 @@ func (h *Handler) updateSeedbed(w http.ResponseWriter, r *http.Request) {
 	s, err := h.seedbeds.Update(r.Context(), r.PathValue("id"), seedbedapp.UpdateCommand{
 		Name: q.Name, Description: q.Description, ResearchLine: q.ResearchLine,
 		Objective: q.Objective, ResponsibleTeacherID: q.ResponsibleTeacherID,
-		ContactEmail: q.ContactEmail,
+		ContactEmail: q.ContactEmail, Topics: q.Topics,
 	})
 	if err != nil {
 		seedbedError(w, err)

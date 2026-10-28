@@ -3,6 +3,7 @@ package seedbed_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	application "github.com/galash-uptc/backend/internal/application/seedbed"
@@ -202,5 +203,37 @@ func TestListBoundsPagination(t *testing.T) {
 	_, _ = service.List(context.Background(), "", "", 2, 0, false)
 	if r.page != 2 || r.size != 20 {
 		t.Fatalf("page=%d size=%d, want 2 and 20", r.page, r.size)
+	}
+}
+
+func TestTopicsAreOptionalLimitedAndTrimmed(t *testing.T) {
+	u, r := fixtures()
+	service := application.NewService(r, u)
+	topics := func(items ...domain.SeedbedTopic) *[]domain.SeedbedTopic { return &items }
+
+	command := validCommand()
+	command.Topics = topics(domain.SeedbedTopic{Title: " Datos ", Phrase: " Cómo se protegen "})
+	s, err := service.Create(context.Background(), command)
+	if err != nil || len(s.Topics) != 1 || s.Topics[0] != (domain.SeedbedTopic{Title: "Datos", Phrase: "Cómo se protegen"}) {
+		t.Fatalf("Create() topics=%+v err=%v", s.Topics, err)
+	}
+
+	for name, invalid := range map[string]*[]domain.SeedbedTopic{
+		"more than 4": topics(domain.SeedbedTopic{Title: "a"}, domain.SeedbedTopic{Title: "b"}, domain.SeedbedTopic{Title: "c"}, domain.SeedbedTopic{Title: "d"}, domain.SeedbedTopic{Title: "e"}),
+		"empty title": topics(domain.SeedbedTopic{Title: " ", Phrase: "p"}),
+		"long title":  topics(domain.SeedbedTopic{Title: strings.Repeat("á", 61)}),
+		"long phrase": topics(domain.SeedbedTopic{Title: "t", Phrase: strings.Repeat("é", 161)}),
+	} {
+		command := validCommand()
+		command.Topics = invalid
+		if _, err := service.Create(context.Background(), command); !errors.Is(err, domain.ErrInvalidSeedbed) {
+			t.Errorf("%s: error=%v, want ErrInvalidSeedbed", name, err)
+		}
+	}
+
+	// Omitted topics reach the repository as nil, which keeps the stored ones on update.
+	updated, err := service.Update(context.Background(), "public", validCommand())
+	if err != nil || updated.Topics != nil {
+		t.Fatalf("Update() without topics: topics=%+v err=%v", updated.Topics, err)
 	}
 }

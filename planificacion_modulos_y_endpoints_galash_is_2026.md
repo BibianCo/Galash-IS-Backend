@@ -49,9 +49,9 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `GET` | `/seedbeds` | Lista semilleros publicados; admite búsqueda, paginación y filtros por línea de investigación. `Admin` puede consultar también ocultos o inactivos. | Must / Visitante; vista completa para `Admin` | HU-SEM-02 |
-| `POST` | `/seedbeds` | Crea un semillero en estado `Borrador`. Recibe nombre, descripción, línea, objetivo, docente responsable y contacto; valida nombre único y responsable con rol `Docente`. Devuelve `201` e identificador. | Must / `Docente` o `Admin` | HU-SEM-01 |
+| `POST` | `/seedbeds` | Crea un semillero en estado `Borrador`. Recibe nombre, descripción, línea, objetivo, docente responsable, contacto y `topics` opcional (hasta 4 temas `{title, phrase}`; `title` obligatorio, máx. 60 caracteres; `phrase` máx. 160); valida nombre único y responsable con rol `Docente`. Devuelve `201` e identificador. | Must / `Docente` o `Admin` | HU-SEM-01 |
 | `GET` | `/seedbeds/{id}` | Consulta el detalle del semillero respetando su visibilidad. | Must / Visitante o rol autorizado | HU-SEM-02 |
-| `PATCH` | `/seedbeds/{id}` | Actualiza los datos del semillero; registra actor y fecha del cambio. | Must / Docente responsable o `Admin` | HU-SEM-01 |
+| `PATCH` | `/seedbeds/{id}` | Actualiza los datos del semillero; si `topics` se omite, conserva los temas actuales. Registra actor y fecha del cambio. | Must / Docente responsable o `Admin` | HU-SEM-01 |
 | `PATCH` | `/seedbeds/{id}/visibility` | Publica, oculta o marca inactivo el semillero sin eliminarlo. Estados mínimos: `Borrador`, `Publicado`, `Oculto` e `Inactivo`. | Must / Docente responsable o `Admin` | HU-SEM-01 |
 | `GET` | `/seedbeds/{id}/space` | Devuelve la vista compuesta del semillero: propósito, responsable y resumen de actividades y proyectos, aplicando permisos a información privada. | Must / Visitante o rol autorizado | HU-SEM-02 |
 | `GET` | `/seedbeds/{id}/members` | Consulta integrantes actuales; el historial de retiros queda restringido. | Must / Visitante según visibilidad; historial para `Docente` responsable o `Admin` | HU-SEM-02, HU-SEM-03 |
