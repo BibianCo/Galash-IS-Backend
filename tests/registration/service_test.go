@@ -21,13 +21,13 @@ func (r *repository) GetRegistrationDetail(context.Context, string) (domain.Regi
 func (r *repository) UpdateRegistrationStatus(context.Context, string, string, string, string) (domain.RegistrationRequest, error) { return domain.RegistrationRequest{}, nil }
 
 func validRequest() domain.RegistrationRequest {
-	return domain.RegistrationRequest{Name: "Ana", DocumentNumber: "123", StudentCode: "COD1", Phone: "300", BirthDate: "2000-01-01", BirthPlace: "Tunja", Address: "Calle 1", CvLAC: "https://cv", ORCID: "https://orcid", HighestEducation: "Maestría", HighestDegree: "Magíster", UndergraduateDegree: "Ingeniería", Affiliation: "Estudiante", ResearcherCategory: "Junior", MinCienciasCall: "2025"}
+	return domain.RegistrationRequest{BirthPlace: "Tunja", Address: "Calle 1", CvLAC: "https://cv", ORCID: "https://orcid", HighestEducation: "Maestría", HighestDegree: "Magíster", UndergraduateDegree: "Ingeniería", Affiliation: "Estudiante", ResearcherCategory: "Junior", MinCienciasCall: "2025"}
 }
 
 func TestCreateRejectsMissingRequiredField(t *testing.T) {
 	request := validRequest()
-	request.Phone = ""
-	_, _, err := application.NewService(&repository{}).Create(context.Background(), request, "")
+	request.Address = ""
+	_, _, err := application.NewService(&repository{}).Create(context.Background(), request, "user-id")
 	if err != domain.ErrIncompleteRegistration { t.Fatalf("error=%v", err) }
 }
 
@@ -35,4 +35,19 @@ func TestCreateReturnsOpaqueTrackingToken(t *testing.T) {
 	repo := &repository{}
 	result, token, err := application.NewService(repo).Create(context.Background(), validRequest(), "user-id")
 	if err != nil || result.Status != domain.RegistrationFiled || token == "" || token == repo.hash { t.Fatalf("result=%+v token=%q hash=%q error=%v", result, token, repo.hash, err) }
+}
+
+func TestCreateRequiresAccount(t *testing.T) {
+	repo := &repository{}
+	_, _, err := application.NewService(repo).Create(context.Background(), validRequest(), " ")
+	if err != domain.ErrInvalidSession || repo.hash != "" { t.Fatalf("error=%v hash=%q", err, repo.hash) }
+}
+
+func TestCreateDropsClientPersonalDataAndKeepsStudentCode(t *testing.T) {
+	repo := &repository{}
+	request := validRequest()
+	request.Name, request.DocumentNumber, request.Phone, request.BirthDate, request.StudentCode = "Otro", "999", "1", "1990-01-01", " COD9 "
+	if _, _, err := application.NewService(repo).Create(context.Background(), request, "user-id"); err != nil { t.Fatal(err) }
+	c := repo.created
+	if c.UserID != "user-id" || c.Name != "" || c.DocumentNumber != "" || c.Phone != "" || c.BirthDate != "" || c.StudentCode != "COD9" || c.Address != "Calle 1" { t.Fatalf("created=%+v", c) }
 }

@@ -700,17 +700,17 @@ func (h *Handler) createRegistration(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
 	}
-	userID := ""
-	if hasSessionCredential(r) {
-		actor, ok := h.actor(w, r)
-		if !ok {
-			return
-		}
-		userID = actor.ID
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
 	}
-	created, trackingToken, err := h.registrations.Create(r.Context(), request, userID)
-	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrInvalidRegistrationData) {
+	created, trackingToken, err := h.registrations.Create(r.Context(), request, actor.ID)
+	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrIncompleteProfile) {
 		writeError(w, 400, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, 409, err.Error())
 		return
 	}
 	if errors.Is(err, domain.ErrSeedbedNotFound) {

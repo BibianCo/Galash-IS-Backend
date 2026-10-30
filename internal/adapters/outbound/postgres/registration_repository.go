@@ -7,6 +7,7 @@ import (
 
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -14,7 +15,11 @@ type RegistrationRepository struct{ db *pgxpool.Pool }
 
 func NewRegistrationRepository(db *pgxpool.Pool) *RegistrationRepository { return &RegistrationRepository{db: db} }
 
-const registrationFields = `id,COALESCE(usuario_id::text,''),COALESCE(semillero_id::text,''),nombre,cc,cod,telefono,fecha_nacimiento::text,lugar_nacimiento,direccion_residencia,link_cvlac,link_orcid,maximo_nivel_estudio,titulo_maximo_nivel_estudio,titulo_pregrado,vinculacion,categoria_actual_investigador,convocatoria_minciencias,estado,COALESCE(observacion,''),fecha_radicacion,actualizado_en,COALESCE(responsable_id::text,'')`
+// Personal data comes from the linked account; request columns only hold legacy anonymous rows.
+const registrationFields = `s.id,COALESCE(s.usuario_id::text,''),COALESCE(s.semillero_id::text,''),COALESCE(s.nombre,trim(u.nombre||' '||COALESCE(u.apellido,'')),''),COALESCE(s.cc,u.dni,''),COALESCE(s.cod,u.codigo_estudiantil,''),COALESCE(s.telefono,u.telefono,''),COALESCE(COALESCE(s.fecha_nacimiento,u.fecha_nacimiento)::text,''),s.lugar_nacimiento,s.direccion_residencia,s.link_cvlac,s.link_orcid,s.maximo_nivel_estudio,s.titulo_maximo_nivel_estudio,s.titulo_pregrado,s.vinculacion,s.categoria_actual_investigador,s.convocatoria_minciencias,s.estado,COALESCE(s.observacion,''),s.fecha_radicacion,s.actualizado_en,COALESCE(s.responsable_id::text,'')`
+
+const registrationFrom = ` FROM s LEFT JOIN usuarios u ON u.id = s.usuario_id`
+const registrationSelect = `SELECT ` + registrationFields + ` FROM solicitudes_registro s LEFT JOIN usuarios u ON u.id = s.usuario_id`
 
 func scanRegistration(row pgx.Row) (domain.RegistrationRequest, error) {
 	var result domain.RegistrationRequest
@@ -23,24 +28,44 @@ func scanRegistration(row pgx.Row) (domain.RegistrationRequest, error) {
 }
 
 func (r *RegistrationRepository) CreateRegistration(ctx context.Context, q domain.RegistrationRequest, tokenHash string) (domain.RegistrationRequest, error) {
-	row := r.db.QueryRow(ctx, `INSERT INTO solicitudes_registro (usuario_id,semillero_id,nombre,cc,cod,telefono,fecha_nacimiento,lugar_nacimiento,direccion_residencia,link_cvlac,link_orcid,maximo_nivel_estudio,titulo_maximo_nivel_estudio,titulo_pregrado,vinculacion,categoria_actual_investigador,convocatoria_minciencias,estado,token_hash) VALUES (NULLIF($1,'')::uuid,NULLIF($2,'')::uuid,$3,$4,$5,$6,$7::date,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING `+registrationFields, q.UserID, q.SeedbedID, q.Name, q.DocumentNumber, q.StudentCode, q.Phone, q.BirthDate, q.BirthPlace, q.Address, q.CvLAC, q.ORCID, q.HighestEducation, q.HighestDegree, q.UndergraduateDegree, q.Affiliation, q.ResearcherCategory, q.MinCienciasCall, domain.RegistrationFiled, tokenHash)
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return domain.RegistrationRequest{}, err
+	}
+	defer tx.Rollback(ctx)
+	if q.StudentCode != "" {
+		if _, err := tx.Exec(ctx, `UPDATE usuarios SET codigo_estudiantil=$1 WHERE id=$2`, q.StudentCode, q.UserID); err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				return domain.RegistrationRequest{}, domain.ErrDuplicateIdentity
+			}
+			return domain.RegistrationRequest{}, err
+		}
+	}
+	// Selecting from usuarios makes a missing or incomplete account insert nothing.
+	row := tx.QueryRow(ctx, `WITH s AS (INSERT INTO solicitudes_registro (usuario_id,semillero_id,lugar_nacimiento,direccion_residencia,link_cvlac,link_orcid,maximo_nivel_estudio,titulo_maximo_nivel_estudio,titulo_pregrado,vinculacion,categoria_actual_investigador,convocatoria_minciencias,estado,token_hash) SELECT id,NULLIF($2,'')::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14 FROM usuarios WHERE id=$1 AND dni IS NOT NULL AND telefono IS NOT NULL AND fecha_nacimiento IS NOT NULL RETURNING *) SELECT `+registrationFields+registrationFrom, q.UserID, q.SeedbedID, q.BirthPlace, q.Address, q.CvLAC, q.ORCID, q.HighestEducation, q.HighestDegree, q.UndergraduateDegree, q.Affiliation, q.ResearcherCategory, q.MinCienciasCall, domain.RegistrationFiled, tokenHash)
 	created, err := scanRegistration(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.RegistrationRequest{}, domain.ErrIncompleteProfile
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "semillero") {
 			return domain.RegistrationRequest{}, domain.ErrSeedbedNotFound
 		}
 		return domain.RegistrationRequest{}, err
 	}
-	_, err = r.db.Exec(ctx, `INSERT INTO seguimiento_solicitud (solicitud_id,estado,comentario,responsable_id) VALUES ($1,$2,'Solicitud radicada',NULL)`, created.ID, created.Status)
-	return created, err
+	if _, err = tx.Exec(ctx, `INSERT INTO seguimiento_solicitud (solicitud_id,estado,comentario,responsable_id) VALUES ($1,$2,'Solicitud radicada',NULL)`, created.ID, created.Status); err != nil {
+		return domain.RegistrationRequest{}, err
+	}
+	return created, tx.Commit(ctx)
 }
 
 func (r *RegistrationRepository) GetRegistrationStatus(ctx context.Context, id, tokenHash, userID string) (domain.RegistrationRequest, error) {
 	var row pgx.Row
 	if userID != "" {
-		row = r.db.QueryRow(ctx, `SELECT `+registrationFields+` FROM solicitudes_registro WHERE id=$1 AND usuario_id=$2`, id, userID)
+		row = r.db.QueryRow(ctx, registrationSelect+` WHERE s.id=$1 AND s.usuario_id=$2`, id, userID)
 	} else {
-		row = r.db.QueryRow(ctx, `SELECT `+registrationFields+` FROM solicitudes_registro WHERE id=$1 AND token_hash=$2`, id, tokenHash)
+		row = r.db.QueryRow(ctx, registrationSelect+` WHERE s.id=$1 AND s.token_hash=$2`, id, tokenHash)
 	}
 	result, err := scanRegistration(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -52,12 +77,12 @@ func (r *RegistrationRepository) GetRegistrationStatus(ctx context.Context, id, 
 func (r *RegistrationRepository) ListRegistrations(ctx context.Context, status, from, to, seedbedID, responsibleID string) ([]domain.RegistrationRequest, error) {
 	where, args := []string{"TRUE"}, []any{}
 	add := func(value, clause string) { if strings.TrimSpace(value) != "" { args = append(args, value); where = append(where, clause+itoa(len(args))) } }
-	add(status, "estado=$")
-	add(seedbedID, "semillero_id=$")
-	add(responsibleID, "responsable_id=$")
-	if from != "" { args = append(args, from); where = append(where, "fecha_radicacion >= $"+itoa(len(args))+"::date") }
-	if to != "" { args = append(args, to); where = append(where, "fecha_radicacion < ($"+itoa(len(args))+"::date + interval '1 day')") }
-	rows, err := r.db.Query(ctx, `SELECT `+registrationFields+` FROM solicitudes_registro WHERE `+strings.Join(where, " AND ")+` ORDER BY fecha_radicacion DESC`, args...)
+	add(status, "s.estado=$")
+	add(seedbedID, "s.semillero_id=$")
+	add(responsibleID, "s.responsable_id=$")
+	if from != "" { args = append(args, from); where = append(where, "s.fecha_radicacion >= $"+itoa(len(args))+"::date") }
+	if to != "" { args = append(args, to); where = append(where, "s.fecha_radicacion < ($"+itoa(len(args))+"::date + interval '1 day')") }
+	rows, err := r.db.Query(ctx, registrationSelect+` WHERE `+strings.Join(where, " AND ")+` ORDER BY s.fecha_radicacion DESC`, args...)
 	if err != nil { return nil, err }
 	defer rows.Close()
 	result := []domain.RegistrationRequest{}
@@ -66,7 +91,7 @@ func (r *RegistrationRepository) ListRegistrations(ctx context.Context, status, 
 }
 
 func (r *RegistrationRepository) GetRegistrationDetail(ctx context.Context, id string) (domain.RegistrationDetail, error) {
-	request, err := scanRegistration(r.db.QueryRow(ctx, `SELECT `+registrationFields+` FROM solicitudes_registro WHERE id=$1`, id))
+	request, err := scanRegistration(r.db.QueryRow(ctx, registrationSelect+` WHERE s.id=$1`, id))
 	if errors.Is(err, pgx.ErrNoRows) { return domain.RegistrationDetail{}, domain.ErrRegistrationNotFound }
 	if err != nil { return domain.RegistrationDetail{}, err }
 	rows, err := r.db.Query(ctx, `SELECT estado,COALESCE(comentario,''),COALESCE(responsable_id::text,''),fecha FROM seguimiento_solicitud WHERE solicitud_id=$1 ORDER BY fecha`, id)
@@ -81,7 +106,7 @@ func (r *RegistrationRepository) UpdateRegistrationStatus(ctx context.Context, i
 	var current string
 	if err := r.db.QueryRow(ctx, `SELECT estado FROM solicitudes_registro WHERE id=$1`, id).Scan(&current); errors.Is(err, pgx.ErrNoRows) { return domain.RegistrationRequest{}, domain.ErrRegistrationNotFound } else if err != nil { return domain.RegistrationRequest{}, err }
 	if !allowedTransition(current, status) { return domain.RegistrationRequest{}, domain.ErrInvalidRegistrationTransition }
-	request, err := scanRegistration(r.db.QueryRow(ctx, `UPDATE solicitudes_registro SET estado=$1,observacion=$2,responsable_id=NULLIF($3,'')::uuid,actualizado_en=now() WHERE id=$4 RETURNING `+registrationFields, status, observation, responsibleID, id))
+	request, err := scanRegistration(r.db.QueryRow(ctx, `WITH s AS (UPDATE solicitudes_registro SET estado=$1,observacion=$2,responsable_id=NULLIF($3,'')::uuid,actualizado_en=now() WHERE id=$4 RETURNING *) SELECT `+registrationFields+registrationFrom, status, observation, responsibleID, id))
 	if err != nil { return domain.RegistrationRequest{}, err }
 	if _, err = r.db.Exec(ctx, `INSERT INTO seguimiento_solicitud (solicitud_id,estado,comentario,responsable_id) VALUES ($1,$2,$3,NULLIF($4,'')::uuid)`, id, status, observation, responsibleID); err != nil { return domain.RegistrationRequest{}, err }
 	if status == domain.RegistrationApproved { _, err = r.db.Exec(ctx, `UPDATE usuarios SET rol='estudiante' WHERE estado='activo' AND (id=NULLIF($1,'')::uuid OR dni=$2)`, request.UserID, request.DocumentNumber) }

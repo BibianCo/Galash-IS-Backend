@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"strings"
-	"time"
 
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -18,11 +17,15 @@ type Service struct {
 
 func NewService(repository ports.RegistrationRepository) *Service { return &Service{repository: repository} }
 
+// Create only accepts requests from an account; personal data is read from that account.
 func (s *Service) Create(ctx context.Context, request domain.RegistrationRequest, userID string) (domain.RegistrationRequest, string, error) {
+	if strings.TrimSpace(userID) == "" {
+		return domain.RegistrationRequest{}, "", domain.ErrInvalidSession
+	}
 	if err := validate(request); err != nil {
 		return domain.RegistrationRequest{}, "", err
 	}
-	request.UserID = userID
+	request = domain.RegistrationRequest{UserID: userID, SeedbedID: strings.TrimSpace(request.SeedbedID), StudentCode: strings.TrimSpace(request.StudentCode), BirthPlace: request.BirthPlace, Address: request.Address, CvLAC: request.CvLAC, ORCID: request.ORCID, HighestEducation: request.HighestEducation, HighestDegree: request.HighestDegree, UndergraduateDegree: request.UndergraduateDegree, Affiliation: request.Affiliation, ResearcherCategory: request.ResearcherCategory, MinCienciasCall: request.MinCienciasCall}
 	token, err := randomToken()
 	if err != nil {
 		return domain.RegistrationRequest{}, "", err
@@ -55,14 +58,11 @@ func (s *Service) UpdateStatus(ctx context.Context, id, status, observation, res
 }
 
 func validate(r domain.RegistrationRequest) error {
-	fields := []string{r.Name, r.DocumentNumber, r.StudentCode, r.Phone, r.BirthDate, r.BirthPlace, r.Address, r.CvLAC, r.ORCID, r.HighestEducation, r.HighestDegree, r.UndergraduateDegree, r.Affiliation, r.ResearcherCategory, r.MinCienciasCall}
+	fields := []string{r.BirthPlace, r.Address, r.CvLAC, r.ORCID, r.HighestEducation, r.HighestDegree, r.UndergraduateDegree, r.Affiliation, r.ResearcherCategory, r.MinCienciasCall}
 	for _, field := range fields {
 		if strings.TrimSpace(field) == "" {
 			return domain.ErrIncompleteRegistration
 		}
-	}
-	if _, err := time.Parse("2006-01-02", strings.TrimSpace(r.BirthDate)); err != nil {
-		return domain.ErrInvalidRegistrationData
 	}
 	return nil
 }
