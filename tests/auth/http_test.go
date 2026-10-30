@@ -395,7 +395,7 @@ func TestLogoutInvalidatesSessionAndClearsCookie(t *testing.T) {
 func TestRegisterIgnoresClientSuppliedRole(t *testing.T) {
 	repository := &repository{user: domain.User{ID: "user-id"}}
 	verifier := identityVerifier{identity: domain.Identity{UID: "firebase-id", Email: "ana@example.com"}}
-	body := `{"nombre":"Ana","apellido":"Pérez","tipo_dni":"CC","dni":"123","email":"ana@example.com","rol":"admin"}`
+	body := `{"nombre":"Ana","apellido":"Pérez","tipo_dni":"CC","dni":"123","email":"ana@example.com","fecha_nacimiento":"2001-05-20","telefono":"300","codigo_estudiantil":"2023","rol":"admin"}`
 	request := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer firebase-token")
 	response := httptest.NewRecorder()
@@ -407,6 +407,9 @@ func TestRegisterIgnoresClientSuppliedRole(t *testing.T) {
 	}
 	if repository.upsertedUser.Role == "admin" {
 		t.Fatal("client-supplied role reached the repository")
+	}
+	if u := repository.upsertedUser; u.BirthDate != "2001-05-20" || u.Phone != "300" || u.StudentCode != "2023" {
+		t.Fatalf("profile fields not mapped: %+v", u)
 	}
 }
 

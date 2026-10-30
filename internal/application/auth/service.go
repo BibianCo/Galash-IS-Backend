@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -19,6 +20,9 @@ type RegisterCommand struct {
 	DocumentType   string
 	DocumentNumber string
 	Email          string
+	StudentCode    string
+	BirthDate      string
+	Phone          string
 }
 
 type RegisterResult struct {
@@ -60,11 +64,17 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		return RegisterResult{}, errors.Join(domain.ErrInvalidIdentity, err)
 	}
 
-	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || identity.Email == "" {
+	if identity.Email == "" {
 		return RegisterResult{}, domain.ErrIncompleteIdentity
 	}
+	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || strings.TrimSpace(command.Phone) == "" {
+		return RegisterResult{}, domain.ErrInvalidSignup
+	}
+	if _, err := time.Parse("2006-01-02", strings.TrimSpace(command.BirthDate)); err != nil {
+		return RegisterResult{}, domain.ErrInvalidSignup
+	}
 	if !strings.EqualFold(strings.TrimSpace(command.Email), identity.Email) {
-		return RegisterResult{}, domain.ErrIncompleteIdentity
+		return RegisterResult{}, domain.ErrInvalidSignup
 	}
 
 	id, err := s.users.Upsert(ctx, domain.User{
@@ -74,6 +84,9 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		Email:          strings.TrimSpace(command.Email),
 		DocumentType:   command.DocumentType,
 		DocumentNumber: command.DocumentNumber,
+		StudentCode:    strings.TrimSpace(command.StudentCode),
+		BirthDate:      strings.TrimSpace(command.BirthDate),
+		Phone:          strings.TrimSpace(command.Phone),
 		Status:         "activo",
 	})
 	if err != nil {

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,7 +25,7 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 func (r *UserRepository) Upsert(ctx context.Context, user domain.User) (string, error) {
 	var id string
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO usuarios (firebase_uid, nombre, apellido, tipo_dni, dni, email, rol)
+		INSERT INTO usuarios (firebase_uid, nombre, apellido, tipo_dni, dni, email, codigo_estudiantil, fecha_nacimiento, telefono, rol)
 		VALUES (
 			$1,
 			$2,
@@ -31,6 +33,9 @@ func (r *UserRepository) Upsert(ctx context.Context, user domain.User) (string, 
 			NULLIF($4, ''),
 			NULLIF($5, ''),
 			$6,
+			NULLIF($7, ''),
+			NULLIF($8, '')::date,
+			NULLIF($9, ''),
 			'visitante'
 		)
 		ON CONFLICT (firebase_uid) DO UPDATE SET
@@ -38,10 +43,18 @@ func (r *UserRepository) Upsert(ctx context.Context, user domain.User) (string, 
 			apellido = COALESCE(NULLIF(EXCLUDED.apellido, ''), usuarios.apellido),
 			tipo_dni = COALESCE(NULLIF(EXCLUDED.tipo_dni, ''), usuarios.tipo_dni),
 			dni = COALESCE(NULLIF(EXCLUDED.dni, ''), usuarios.dni),
-			email = EXCLUDED.email
+			email = EXCLUDED.email,
+			codigo_estudiantil = COALESCE(EXCLUDED.codigo_estudiantil, usuarios.codigo_estudiantil),
+			fecha_nacimiento = COALESCE(EXCLUDED.fecha_nacimiento, usuarios.fecha_nacimiento),
+			telefono = COALESCE(EXCLUDED.telefono, usuarios.telefono)
 		RETURNING id`,
 		user.FirebaseUID, user.Name, user.LastName, user.DocumentType, user.DocumentNumber, user.Email,
+		user.StudentCode, user.BirthDate, user.Phone,
 	).Scan(&id)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return "", domain.ErrDuplicateIdentity
+	}
 	return id, err
 }
 
@@ -59,8 +72,8 @@ func (r *UserRepository) FindByFirebaseUID(ctx context.Context, uid string) (dom
 
 func (r *UserRepository) find(ctx context.Context, where string, arg string) (domain.User, error) {
 	var user domain.User
-	err := r.db.QueryRow(ctx, `SELECT id, firebase_uid, nombre, COALESCE(apellido, ''), email, rol, estado FROM usuarios `+where, arg).
-		Scan(&user.ID, &user.FirebaseUID, &user.Name, &user.LastName, &user.Email, &user.Role, &user.Status)
+	err := r.db.QueryRow(ctx, `SELECT id, firebase_uid, nombre, COALESCE(apellido, ''), email, COALESCE(tipo_dni, ''), COALESCE(dni, ''), COALESCE(codigo_estudiantil, ''), COALESCE(fecha_nacimiento::text, ''), COALESCE(telefono, ''), rol, estado FROM usuarios `+where, arg).
+		Scan(&user.ID, &user.FirebaseUID, &user.Name, &user.LastName, &user.Email, &user.DocumentType, &user.DocumentNumber, &user.StudentCode, &user.BirthDate, &user.Phone, &user.Role, &user.Status)
 	return user, err
 }
 

@@ -12,7 +12,7 @@ proyecto. Úsalo como referencia rápida para pruebas e integración.
 | Método | Ruta | Descripción | Autenticación | Respuestas |
 |---|---|---|---|---|
 | `GET` | `/health` | Estado del servicio y de la conexión a PostgreSQL | No requiere | `200` `{"status":"ok"}` · `503` `{"error":"base de datos no disponible"}` |
-| `POST` | `/auth/register` | Valida el ID token de Firebase y crea o actualiza el usuario en PostgreSQL | `Authorization: Bearer <FIREBASE_ID_TOKEN>` | `201` `{"id":"<uuid>","firebase_uid":"<uid>"}` · `400` cuerpo JSON inválido o token sin nombre/correo · `401` falta header o token inválido · `500` error al guardar |
+| `POST` | `/auth/register` | Valida el ID token de Firebase y crea o actualiza el usuario en PostgreSQL | `Authorization: Bearer <FIREBASE_ID_TOKEN>` | `201` `{"id":"<uuid>","firebase_uid":"<uid>"}` · `400` cuerpo JSON inválido, perfil incompleto o fecha inválida · `401` falta header o token inválido · `409` documento o código estudiantil de otra cuenta · `500` error al guardar |
 
 ### Ejemplo `POST /auth/register`
 
@@ -20,7 +20,7 @@ proyecto. Úsalo como referencia rápida para pruebas e integración.
 curl -X POST http://localhost:8080/auth/register \
   -H "Authorization: Bearer $FIREBASE_ID_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"nombre":"Ana","apellido":"Gómez"}'
+  -d '{"nombre":"Ana","apellido":"Gómez","tipo_dni":"CC","dni":"123","email":"ana@example.com","fecha_nacimiento":"2001-05-20","telefono":"3001234567","codigo_estudiantil":"202312345"}'
 ```
 
 ### Ejemplo `GET /health`
