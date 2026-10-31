@@ -105,7 +105,7 @@ func Sanitize(raw string) string {
 		switch tokenType {
 		case html.TextToken:
 			b.WriteString(token.String())
-		case html.StartTagToken:
+		case html.StartTagToken, html.SelfClosingTagToken:
 			if !allowed[token.Data] {
 				continue
 			}

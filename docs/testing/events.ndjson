@@ -381,3 +381,9 @@
 {"v":1,"id":"D020","t":"defect","test":"T085","run":"R084","sev":"low","s":"open","name":"Sanitize descarta <br/> autocerrado (SelfClosingTagToken no manejado): '<p>a<br/>b</p>' queda '<p>ab</p>'"}
 {"v":1,"id":"D021","t":"defect","test":"T087","run":"R084","sev":"medium","s":"open","name":"POST /admin/content/pages con slug duplicado responde HTTP 500: violación UNIQUE de contenido_paginas.slug no se traduce a error de dominio"}
 {"v":1,"id":"D022","t":"defect","test":"T087","run":"R084","sev":"medium","s":"open","name":"PATCH /admin/content/pages/{id} y POST .../publish con id no UUID responden HTTP 500 en vez de 404 (error 22P02 de PostgreSQL no mapeado a ErrContentNotFound)"}
+{"v":1,"id":"R084","t":"run","at":"2026-10-25T23:30:00Z","by":"agent","mode":"automated","cmd":"docker run golang:1.22 go test ./...; docker compose up -d --build auth"}
+{"v":1,"id":"X181","t":"result","run":"R084","test":"T085","s":"pass","ev":["tests/content/service_test.go","<p>a<br/>b</p> conserva el salto"]}
+{"v":1,"id":"X182","t":"result","run":"R084","test":"T087","s":"pass","ev":["contentErr mapea PostgreSQL 23505 a ErrDuplicateContent/HTTP 409","contentErr mapea PostgreSQL 22P02 y ErrNoRows a ErrContentNotFound/HTTP 404"]}
+{"v":1,"id":"D020","t":"defect","test":"T085","run":"R084","sev":"low","s":"closed","name":"Sanitize conserva br autocerrado y el salto de línea"}
+{"v":1,"id":"D021","t":"defect","test":"T087","run":"R084","sev":"medium","s":"closed","name":"Slug duplicado responde HTTP 409 con error de dominio"}
+{"v":1,"id":"D022","t":"defect","test":"T087","run":"R084","sev":"medium","s":"closed","name":"Ids no UUID responden HTTP 404 en PATCH y publish"}

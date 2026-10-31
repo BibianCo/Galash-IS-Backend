@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,13 +18,24 @@ func NewContentPageRepository(db *pgxpool.Pool) *ContentPageRepository {
 const pageCols = `p.id,p.slug,p.titulo,p.contenido,p.estado,p.autor_id,COALESCE(u.nombre||' '||COALESCE(u.apellido,''),''),p.creado_en,p.actualizado_en,p.publicado_en`
 const pageReturningCols = `id,slug,titulo,contenido,estado,autor_id,COALESCE((SELECT u.nombre||' '||COALESCE(u.apellido,'') FROM usuarios u WHERE u.id=autor_id),''),creado_en,actualizado_en,publicado_en`
 
+func contentErr(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.Is(err, pgx.ErrNoRows) || errors.As(err, &pgErr) && pgErr.Code == "22P02" {
+		return domain.ErrContentNotFound
+	}
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return domain.ErrDuplicateContent
+	}
+	return err
+}
+
 func scanPage(row pgx.Row) (domain.ContentPage, error) {
 	var p domain.ContentPage
 	err := row.Scan(&p.ID, &p.Slug, &p.Title, &p.Content, &p.Status, &p.AuthorID, &p.AuthorName, &p.CreatedAt, &p.UpdatedAt, &p.PublishedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return p, domain.ErrContentNotFound
 	}
-	return p, err
+	return p, contentErr(err)
 }
 func (r *ContentPageRepository) List(ctx context.Context, drafts bool) ([]domain.ContentPage, error) {
 	status := "publicado"

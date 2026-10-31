@@ -1740,6 +1740,8 @@ func contentError(w http.ResponseWriter, err error) {
 		writeError(w, 403, err.Error())
 	case errors.Is(err, domain.ErrContentNotFound):
 		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrDuplicateContent):
+		writeError(w, 409, err.Error())
 	case errors.Is(err, domain.ErrInvalidContent), errors.Is(err, domain.ErrInvalidContentTransition):
 		writeError(w, 400, err.Error())
 	default:
