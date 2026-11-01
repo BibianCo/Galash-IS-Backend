@@ -12,6 +12,7 @@ import (
 	firebaseadapter "github.com/galash-uptc/backend/internal/adapters/outbound/firebase"
 	postgresadapter "github.com/galash-uptc/backend/internal/adapters/outbound/postgres"
 	application "github.com/galash-uptc/backend/internal/application/auth"
+	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
@@ -51,8 +52,9 @@ func Run() error {
 	registrations := postgresadapter.NewRegistrationRepository(db)
 	research := postgresadapter.NewResearchRepository(db)
 	events := postgresadapter.NewEventRepository(db)
+	content := postgresadapter.NewContentPageRepository(db)
 	service := application.NewService(firebaseadapter.NewVerifier(firebaseAuth), users)
-	handler := httpadapter.NewHandlerWithEvents(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users))
+	handler := httpadapter.NewHandlerWithContent(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users), contentapp.NewService(content, users))
 	go purgeExpiredCredentials(ctx, service, time.Hour)
 	log.Printf("Auth escuchando en :%s", cfg.Port)
 	return http.ListenAndServe(":"+cfg.Port, handler.Routes())

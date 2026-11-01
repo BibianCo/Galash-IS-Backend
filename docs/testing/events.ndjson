@@ -381,3 +381,36 @@
 {"v": 1, "id": "X183", "t": "result", "run": "R064", "test": "T088", "s": "pass", "ev": ["tests/registration TestRepositoryReadsPersonalDataFromAccount ok against postgres"]}
 {"v": 1, "id": "X184", "t": "result", "run": "R064", "test": "T089", "s": "pass", "ev": ["tests/registration TestCreateWithoutSessionReturns401 ok"]}
 {"v": 1, "id": "X185", "t": "result", "run": "R064", "test": "T090", "s": "pass", "ev": ["002-008 ok over HEAD init.sql", "002-008 ok over new init.sql"]}
+{"v":1,"id":"T091","t":"test","area":"module-7-content-pages","p":"must","name":"Compilación y pruebas existentes del módulo de páginas institucionales"}
+{"v":1,"id":"R065","t":"run","at":"2026-10-25T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X186","t":"result","run":"R065","test":"T091","s":"pass","ev":["docker go test ./...","git diff --check"]}
+{"v":1,"id":"R066","t":"run","at":"2026-10-25T22:48:04Z","by":"agent","mode":"manual-api","cmd":"psql migration 007; curl -i http://localhost:8080/content/pages"}
+{"v":1,"id":"X187","t":"result","run":"R066","test":"T091","s":"pass","ev":["contenido_paginas creada","GET /content/pages HTTP 200"]}
+{"v":1,"id":"R067","t":"run","at":"2026-10-25T22:59:53Z","by":"agent","mode":"automated","cmd":"docker run golang:1.22 go test ./...; docker compose up -d --build auth"}
+{"v":1,"id":"X188","t":"result","run":"R067","test":"T091","s":"pass","ev":["go test ./...","auth container rebuilt","POST /admin/content/pages invalid session HTTP 401"]}
+{"v":1,"id":"R068","t":"run","at":"2026-10-25T23:00:00Z","by":"agent","mode":"automated","cmd":"docker run golang:1.22 go test ./...; docker compose up -d --build auth"}
+{"v":1,"id":"X189","t":"result","run":"R068","test":"T091","s":"pass","ev":["go test ./...","INSERT temporal en contenido_paginas con ROLLBACK","auth container rebuilt"]}
+{"v":1,"id":"T092","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-01 backend: visitante lista y consulta por slug historia, objetivos, misión, visión y áreas publicadas; borradores ocultos","file":"tests/content/http_test.go"}
+{"v":1,"id":"T093","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-02: borrador, edición parcial, publicación, autor y fecha; rechazo 401/403 sin permiso y 400 en datos inválidos","file":"tests/content/http_test.go"}
+{"v":1,"id":"T094","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-02: sanitización conserva solo formato permitido en creación y edición","file":"tests/content/http_test.go"}
+{"v":1,"id":"T095","t":"test","area":"module-7-content-pages","p":"must","name":"PT-INFO-02: PostgreSQL persiste borrador, nombre de autor, fecha de actualización y publicación","file":"tests/content/repository_test.go"}
+{"v":1,"id":"T096","t":"test","area":"module-7-content-pages","p":"should","name":"PT-INFO-02: errores del adaptador PostgreSQL (slug duplicado, id no UUID) responden error de cliente, no 500","file":"tests/content/repository_test.go"}
+{"v":1,"id":"E005","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local; ephemeral database galash_test_m7 in galash-postgres (postgres:16-alpine) on localhost:5433 initialized from database/init.sql, dropped after run"}
+{"v":1,"id":"R069","t":"run","at":"2026-10-25T23:30:00Z","build":"ff21632+tests","env":"E005","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1"}
+{"v":1,"id":"X190","t":"result","run":"R069","test":"T092","s":"pass","ev":["R069/go-test-content.txt"]}
+{"v":1,"id":"X191","t":"result","run":"R069","test":"T093","s":"pass","ev":["R069/go-test-content.txt"]}
+{"v":1,"id":"X192","t":"result","run":"R069","test":"T094","s":"fail","ev":["R069/go-test-content.txt"],"defect":"D020"}
+{"v":1,"id":"X193","t":"result","run":"R069","test":"T095","s":"pass","ev":["R069/go-test-content.txt"]}
+{"v":1,"id":"X194","t":"result","run":"R069","test":"T096","s":"fail","ev":["R069/go-test-content.txt"],"defect":["D021","D022"]}
+{"v":1,"id":"D020","t":"defect","test":"T094","run":"R069","sev":"low","s":"open","name":"Sanitize descarta <br/> autocerrado (SelfClosingTagToken no manejado): '<p>a<br/>b</p>' queda '<p>ab</p>'"}
+{"v":1,"id":"D021","t":"defect","test":"T096","run":"R069","sev":"medium","s":"open","name":"POST /admin/content/pages con slug duplicado responde HTTP 500: violación UNIQUE de contenido_paginas.slug no se traduce a error de dominio"}
+{"v":1,"id":"D022","t":"defect","test":"T096","run":"R069","sev":"medium","s":"open","name":"PATCH /admin/content/pages/{id} y POST .../publish con id no UUID responden HTTP 500 en vez de 404 (error 22P02 de PostgreSQL no mapeado a ErrContentNotFound)"}
+{"v":1,"id":"R070","t":"run","at":"2026-10-25T23:30:00Z","by":"agent","mode":"automated","cmd":"docker run golang:1.22 go test ./...; docker compose up -d --build auth"}
+{"v":1,"id":"X195","t":"result","run":"R070","test":"T094","s":"pass","ev":["tests/content/service_test.go","<p>a<br/>b</p> conserva el salto"]}
+{"v":1,"id":"X196","t":"result","run":"R070","test":"T096","s":"pass","ev":["contentErr mapea PostgreSQL 23505 a ErrDuplicateContent/HTTP 409","contentErr mapea PostgreSQL 22P02 y ErrNoRows a ErrContentNotFound/HTTP 404"]}
+{"v":1,"id":"D020","t":"defect","test":"T094","run":"R070","sev":"low","s":"closed","name":"Sanitize conserva br autocerrado y el salto de línea"}
+{"v":1,"id":"D021","t":"defect","test":"T096","run":"R070","sev":"medium","s":"closed","name":"Slug duplicado responde HTTP 409 con error de dominio"}
+{"v":1,"id":"D022","t":"defect","test":"T096","run":"R070","sev":"medium","s":"closed","name":"Ids no UUID responden HTTP 404 en PATCH y publish"}
+{"v":1,"id":"T097","t":"test","area":"module-7-content-pages","p":"must","name":"Rama M7 integrada con main compila, pasa vet y pruebas, y aplica migraciones 002-009 de forma idempotente"}
+{"v":1,"id":"R071","t":"run","at":"2026-11-01T00:00:00Z","build":"merge main ec3f85d into f18ffa6","by":"agent","mode":"automated","cmd":"go build ./...; go vet ./...; init.sql + migrations x2 on postgres:16-alpine; TEST_DATABASE_URL=<ephemeral> go test -count=1 ./..."}
+{"v":1,"id":"X197","t":"result","run":"R071","test":"T097","s":"pass","ev":["docs/testing/evidence/R071/merge-main-pr18.txt"]}

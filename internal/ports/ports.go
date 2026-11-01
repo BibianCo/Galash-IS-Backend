@@ -62,3 +62,12 @@ type EventRepository interface {
 	SetStatus(ctx context.Context, id, status string) (domain.Event, error)
 	HasConflict(ctx context.Context, event domain.Event, excludeID string) (bool, error)
 }
+
+type ContentPageRepository interface {
+	List(ctx context.Context, includeDrafts bool) ([]domain.ContentPage, error)
+	FindBySlug(ctx context.Context, slug string) (domain.ContentPage, error)
+	Find(ctx context.Context, id string) (domain.ContentPage, error)
+	Create(ctx context.Context, page domain.ContentPage) (domain.ContentPage, error)
+	Update(ctx context.Context, id string, title, content, slug string) (domain.ContentPage, error)
+	Publish(ctx context.Context, id string) (domain.ContentPage, error)
+}

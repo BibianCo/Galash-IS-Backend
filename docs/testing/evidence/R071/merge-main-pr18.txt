@@ -1,0 +1,13 @@
+Merge de main (ec3f85d) en feature/GSW-9-informacion-institucional (f18ffa6)
+go build ./... ok
+go vet ./... ok
+PostgreSQL 16 efimero (postgres:16-alpine): init.sql ok
+migraciones 002, 003, 004, 006, 007_seedbed_topics, 008, 009_content_pages: ok en primera y segunda aplicacion
+TEST_DATABASE_URL=<ephemeral> go test -count=1 ./...
+ok tests/auth
+ok tests/content
+ok tests/event
+ok tests/member
+ok tests/registration
+ok tests/research
+ok tests/seedbed
