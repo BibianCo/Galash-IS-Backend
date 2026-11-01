@@ -141,7 +141,7 @@ func TestSearchReturnsOnlyActiveMatchingUsers(t *testing.T) {
 		t.Fatalf("deactivate search fixture: %v", err)
 	}
 
-	users, err := repository.Search(ctx, strings.ToLower("uniquemember"+suffix), 10)
+	users, err := repository.Search(ctx, strings.ToLower("uniquemember"+suffix), 10, false)
 	if err != nil {
 		t.Fatalf("Search() error=%v", err)
 	}
@@ -149,7 +149,7 @@ func TestSearchReturnsOnlyActiveMatchingUsers(t *testing.T) {
 		t.Fatalf("Search() users=%+v, want only active fixture %q", users, activeUID)
 	}
 
-	byEmail, err := repository.Search(ctx, "active-"+suffix+"@example.test", 10)
+	byEmail, err := repository.Search(ctx, "active-"+suffix+"@example.test", 10, false)
 	if err != nil {
 		t.Fatalf("Search() by email error=%v", err)
 	}

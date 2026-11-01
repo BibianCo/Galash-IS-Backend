@@ -45,6 +45,7 @@ type repository struct {
 	updateRoleErr        error
 	searchQuery          string
 	searchLimit          int
+	searchInactive       bool
 	searchUsers          []domain.User
 	searchErr            error
 }
@@ -78,8 +79,8 @@ func (r *repository) SetPassword(_ context.Context, _ string, hash string) error
 	r.passwordHash = hash
 	return nil
 }
-func (r *repository) Search(_ context.Context, query string, limit int) ([]domain.User, error) {
-	r.searchQuery, r.searchLimit = query, limit
+func (r *repository) Search(_ context.Context, query string, limit int, includeInactive bool) ([]domain.User, error) {
+	r.searchQuery, r.searchLimit, r.searchInactive = query, limit, includeInactive
 	if r.searchErr != nil {
 		return nil, r.searchErr
 	}
@@ -161,7 +162,7 @@ func (r *repository) Consume(_ context.Context, tokenHash string) (string, error
 func validRegistration() application.RegisterCommand {
 	return application.RegisterCommand{
 		Name: "Ana", LastName: "Pérez", DocumentType: "CC", DocumentNumber: "123",
-		Email: "ana@example.com",
+		Email: "ana@example.com", BirthDate: "2001-05-20", Phone: "3001234567",
 	}
 }
 
@@ -175,7 +176,7 @@ func TestRegisterPersistsIdentityFields(t *testing.T) {
 	}
 	want := domain.User{
 		FirebaseUID: "firebase-id", Name: "Ana", LastName: "Pérez", Email: "ana@example.com",
-		DocumentType: "CC", DocumentNumber: "123", Status: "activo",
+		DocumentType: "CC", DocumentNumber: "123", BirthDate: "2001-05-20", Phone: "3001234567", Status: "activo",
 	}
 	if repository.upsertedUser != want {
 		t.Fatalf("Upsert() user=%+v, want %+v", repository.upsertedUser, want)
@@ -197,8 +198,8 @@ func TestRegisterRejectsInvalidInput(t *testing.T) {
 			command := validRegistration()
 			input.change(&command)
 			_, err := application.NewService(identity, &repository{user: domain.User{ID: "user-id"}}).Register(context.Background(), "token", command)
-			if !errors.Is(err, domain.ErrIncompleteIdentity) {
-				t.Fatalf("Register() error=%v, want ErrIncompleteIdentity", err)
+			if !errors.Is(err, domain.ErrInvalidSignup) {
+				t.Fatalf("Register() error=%v, want ErrInvalidSignup", err)
 			}
 		})
 	}
@@ -213,6 +214,9 @@ func TestRegisterRejectsMissingProfileFields(t *testing.T) {
 		{"missing document type", func(c *application.RegisterCommand) { c.DocumentType = "" }},
 		{"missing document number", func(c *application.RegisterCommand) { c.DocumentNumber = "" }},
 		{"missing email", func(c *application.RegisterCommand) { c.Email = "" }},
+		{"missing phone", func(c *application.RegisterCommand) { c.Phone = " " }},
+		{"missing birth date", func(c *application.RegisterCommand) { c.BirthDate = "" }},
+		{"invalid birth date", func(c *application.RegisterCommand) { c.BirthDate = "20/05/2001" }},
 	}
 	for _, input := range inputs {
 		t.Run(input.name, func(t *testing.T) {
@@ -221,8 +225,8 @@ func TestRegisterRejectsMissingProfileFields(t *testing.T) {
 			input.change(&command)
 
 			_, err := application.NewService(identity, repository).Register(context.Background(), "token", command)
-			if !errors.Is(err, domain.ErrIncompleteIdentity) {
-				t.Fatalf("Register() error=%v, want ErrIncompleteIdentity", err)
+			if !errors.Is(err, domain.ErrInvalidSignup) {
+				t.Fatalf("Register() error=%v, want ErrInvalidSignup", err)
 			}
 			if repository.upsertedUser != (domain.User{}) {
 				t.Fatalf("invalid registration was persisted: %+v", repository.upsertedUser)
@@ -424,6 +428,9 @@ func TestUpdateUserRoleRequiresAdminAndUsesTargetUID(t *testing.T) {
 	if repository.updatedUID != "target-uid" || repository.updatedRole != "profesor" {
 		t.Fatalf("updated target=%q role=%q", repository.updatedUID, repository.updatedRole)
 	}
+	if err := service.UpdateUserRole(context.Background(), login.Token, "target-uid", "Docente"); err != nil || repository.updatedRole != "docente" {
+		t.Fatalf("contract role docente: error=%v role=%q", err, repository.updatedRole)
+	}
 	if err := service.UpdateUserRole(context.Background(), login.Token, "admin-uid", "profesor"); !errors.Is(err, domain.ErrSelfRoleChange) {
 		t.Fatalf("self role change error=%v", err)
 	}
@@ -494,5 +501,16 @@ func TestSearchUsersRequiresQueryAndBoundsLimit(t *testing.T) {
 	}
 	if repository.searchLimit != 50 {
 		t.Fatalf("Search() limit=%d, want maximum limit 50", repository.searchLimit)
+	}
+}
+
+func TestRegisterStoresOptionalStudentCode(t *testing.T) {
+	repository := &repository{user: domain.User{ID: "user-id"}}
+	command := validRegistration()
+	command.StudentCode = " 202312345 "
+	_, err := application.NewService(identityVerifier{identity: domain.Identity{UID: "firebase-id", Email: "ana@example.com"}}, repository).
+		Register(context.Background(), "token", command)
+	if err != nil || repository.upsertedUser.StudentCode != "202312345" {
+		t.Fatalf("Register() error=%v student code=%q", err, repository.upsertedUser.StudentCode)
 	}
 }

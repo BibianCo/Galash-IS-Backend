@@ -10,6 +10,9 @@ type User struct {
 	Email          string `json:"email"`
 	DocumentType   string `json:"document_type"`
 	DocumentNumber string `json:"document_number"`
+	StudentCode    string `json:"student_code"`
+	BirthDate      string `json:"birth_date"`
+	Phone          string `json:"phone"`
 	Role           string `json:"role"`
 	Status         string `json:"status"`
 }

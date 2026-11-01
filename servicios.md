@@ -15,9 +15,19 @@ filas o marcar disponible solo con registro/handoff del backend.
 
 Sesion por cookie HttpOnly. `POST /auth/register` crea o sincroniza la cuenta,
 independiente de las solicitudes del M3. Requiere `Authorization: Bearer
-<FIREBASE_ID_TOKEN>` y `{"nombre","apellido","tipo_dni","dni","email"}`;
-sin password ni rol, email igual al token. El rol nuevo es `visitante` y el
-re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/handler.go`.
+<FIREBASE_ID_TOKEN>` y `{"nombre","apellido","tipo_dni","dni","email",
+"fecha_nacimiento","telefono"}` obligatorios (`fecha_nacimiento` en `AAAA-MM-DD`)
+más `codigo_estudiantil` opcional; sin password ni rol, email igual al token.
+`409` si `dni` o `codigo_estudiantil` ya son de otra cuenta. El rol nuevo es
+`visitante` y el re-registro conserva el rol existente. `GET /users/me`
+devuelve además `document_type`, `document_number`, `student_code`,
+`birth_date` y `phone` para prellenar formularios.
+
+`POST /registration-requests` (Únete) exige sesión (`401` sin ella). No envía
+`nombre`, `cc`, `telefono` ni `fechaNacimiento`: salen de la cuenta. `cod` es
+opcional (vacío se ignora; con valor actualiza la cuenta, `409` si es de otra).
+`400` si falta un campo académico o la cuenta no tiene documento, teléfono o
+fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 
 | Metodo | Ruta | Descripcion | Contrato | Uso |
 |---|---|---|---|---|
@@ -32,8 +42,7 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | PATCH | `/members/{id}` | edita perfil | M5 | [ ] |
 | PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [ ] |
 | GET | `/members/{id}/publications` | publicaciones visibles | M5 | [ ] |
-| GET | `/admin/members` | busq. admin | - | [ ] |
-| GET | `/find/user` | alias busq. | - | [ ] |
+| GET | `/admin/members` | busq. admin (requiere `q`) | M11 | [ ] |
 | PUT | `/users/roles` | alias rol | - | [ ] |
 | PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [ ] |
 | GET | `/seedbeds` | lista | M2 | [ ] |
@@ -45,7 +54,7 @@ re-registro conserva el rol existente. Rutas en `internal/adapters/inbound/http/
 | GET | `/seedbeds/{id}/members` | integrantes | M2 | [ ] |
 | POST | `/seedbeds/{id}/members` | vincula | M2 | [ ] |
 | DELETE | `/seedbeds/{id}/members/{userId}` | retiro | M2 | [ ] |
-| POST | `/registration-requests` | radica solicitud pública | M3 | [ ] |
+| POST | `/registration-requests` | radica solicitud de la cuenta en sesión | M3 | [ ] |
 | GET | `/registration-requests/{id}/status` | consulta propia con token/sesión | M3 | [ ] |
 | GET | `/admin/registration-requests` | lista administrativa | M3 | [ ] |
 | GET | `/admin/registration-requests/{id}` | detalle e historial administrativo | M3 | [ ] |
@@ -94,6 +103,10 @@ malformados o semillero inexistente responden `404`. En `POST
 /seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se
 calcula (`próxima`, `en curso`, `finalizada`).
 
+M2: los semilleros incluyen `topics` (máx. 4 `{title, phrase}`); en `PATCH
+/seedbeds/{id}` omitirlo conserva los temas. `GET /admin/members` responde
+`{"users": [...]}`, exige `q` e incluye cuentas inactivas.
+
 M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`,
 `imageUrl` y `registrationUrl`. Las fechas son RFC3339; los estados son
 `borrador`, `publicado`, `oculto` y `cancelado`. La agenda pública solo muestra
@@ -101,9 +114,8 @@ M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`
 la fecha de inicio. La escritura requiere sesión de `Docente` o `Admin`; el
 docente solo administra sus propios eventos.
 
-Fuera de contrato: `- /health` infraestructura · `- /admin/members` datos
-sensibles, decision pendiente · `- /find/user` alias legacy · `- /users/roles`
-alias de `PUT /users/{userId}/roles`.
+Fuera de contrato: `- /health` infraestructura · `- /users/roles` alias de
+`PUT /users/{userId}/roles`. `GET /admin/members` responde `400` sin `q`.
 
 ## PostgreSQL (Docker, host `5433`)
 

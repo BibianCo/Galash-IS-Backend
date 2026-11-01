@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/galash-uptc/backend/internal/domain"
 	"github.com/galash-uptc/backend/internal/ports"
@@ -19,6 +20,9 @@ type RegisterCommand struct {
 	DocumentType   string
 	DocumentNumber string
 	Email          string
+	StudentCode    string
+	BirthDate      string
+	Phone          string
 }
 
 type RegisterResult struct {
@@ -35,7 +39,8 @@ type Service struct {
 }
 
 // Roles are persisted in their canonical lowercase form.
-var allowedRoles = map[string]bool{"visitante": true, "estudiante": true, "profesor": true, "admin": true}
+// "docente" is the contract name; "profesor" stays for existing rows and callers.
+var allowedRoles = map[string]bool{"visitante": true, "estudiante": true, "docente": true, "profesor": true, "admin": true}
 
 func NewService(identities ports.IdentityVerifier, users ports.UserRepository) *Service {
 	s := &Service{identities: identities, users: users}
@@ -59,11 +64,17 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		return RegisterResult{}, errors.Join(domain.ErrInvalidIdentity, err)
 	}
 
-	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || identity.Email == "" {
+	if identity.Email == "" {
 		return RegisterResult{}, domain.ErrIncompleteIdentity
 	}
+	if command.Name == "" || command.LastName == "" || command.DocumentType == "" || command.DocumentNumber == "" || command.Email == "" || strings.TrimSpace(command.Phone) == "" {
+		return RegisterResult{}, domain.ErrInvalidSignup
+	}
+	if _, err := time.Parse("2006-01-02", strings.TrimSpace(command.BirthDate)); err != nil {
+		return RegisterResult{}, domain.ErrInvalidSignup
+	}
 	if !strings.EqualFold(strings.TrimSpace(command.Email), identity.Email) {
-		return RegisterResult{}, domain.ErrIncompleteIdentity
+		return RegisterResult{}, domain.ErrInvalidSignup
 	}
 
 	id, err := s.users.Upsert(ctx, domain.User{
@@ -73,6 +84,9 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		Email:          strings.TrimSpace(command.Email),
 		DocumentType:   command.DocumentType,
 		DocumentNumber: command.DocumentNumber,
+		StudentCode:    strings.TrimSpace(command.StudentCode),
+		BirthDate:      strings.TrimSpace(command.BirthDate),
+		Phone:          strings.TrimSpace(command.Phone),
 		Status:         "activo",
 	})
 	if err != nil {
@@ -132,6 +146,10 @@ func (s *Service) CurrentUser(ctx context.Context, token string) (domain.User, e
 }
 
 func (s *Service) SearchUsers(ctx context.Context, query string, limit int) ([]domain.User, error) {
+	return s.searchUsers(ctx, query, limit, false)
+}
+
+func (s *Service) searchUsers(ctx context.Context, query string, limit int, includeInactive bool) ([]domain.User, error) {
 	if s.userReader == nil || strings.TrimSpace(query) == "" {
 		return nil, domain.ErrIncompleteIdentity
 	}
@@ -141,7 +159,7 @@ func (s *Service) SearchUsers(ctx context.Context, query string, limit int) ([]d
 	if limit > 50 {
 		limit = 50
 	}
-	return s.userReader.Search(ctx, strings.TrimSpace(query), limit)
+	return s.userReader.Search(ctx, strings.TrimSpace(query), limit, includeInactive)
 }
 
 func (s *Service) SearchAdminUsers(ctx context.Context, token, query string, limit int) ([]domain.User, error) {
@@ -152,7 +170,8 @@ func (s *Service) SearchAdminUsers(ctx context.Context, token, query string, lim
 	if !strings.EqualFold(strings.TrimSpace(actor.Role), "admin") {
 		return nil, domain.ErrForbidden
 	}
-	return s.SearchUsers(ctx, query, limit)
+	// Admins must see inactive accounts to reactivate them (contract M11).
+	return s.searchUsers(ctx, query, limit, true)
 }
 
 func (s *Service) UpdateUserRole(ctx context.Context, token, targetUID, role string) error {

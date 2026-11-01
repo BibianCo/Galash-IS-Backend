@@ -15,7 +15,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 - Los cambios de estado relevantes conservan actor, fecha e historial. Desactivar u ocultar no implica borrar información histórica.
 - **Prioridad:** Must = primera versión; Should = versión posterior; Could = mejora deseable.
 - **Roles del sistema:** `Visitante`, `Estudiante`, `Docente` y `Admin`. No se crearán roles adicionales para representar coordinadores, directores o responsables.
-- **Visitante:** consulta la información pública y puede enviar solicitudes de registro.
+- **Visitante:** consulta la información pública y, con cuenta registrada y sesión iniciada, puede enviar solicitudes de registro.
 - **Estudiante:** consulta los semilleros y la información autorizada de sus actividades, proyectos y membresías.
 - **Docente:** puede ser responsable de semilleros y gestionar la información académica dentro del alcance autorizado.
 - **Admin:** administra globalmente usuarios, semilleros, contenidos, permisos y auditoría.
@@ -32,11 +32,13 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `POST` | `/auth/register` | Crea o sincroniza la cuenta local desde una identidad Firebase válida; no crea una solicitud del Módulo 3. | Must / Identidad Firebase válida | — |
 | `POST` | `/auth/sessions` | Valida credenciales de una cuenta activa y crea la sesión. Ante credenciales inválidas devuelve un mensaje genérico. | Must / Visitante | HU-AUTH-01 |
 | `DELETE` | `/auth/sessions/current` | Invalida la sesión actual. | Must / Estudiante, Docente o Admin | HU-AUTH-02 |
-| `GET` | `/users/me` | Devuelve el perfil mínimo y los roles y permisos efectivos del usuario autenticado. | Must / Estudiante, Docente o Admin | HU-AUTH-01, HU-TR-02 |
+| `GET` | `/users/me` | Devuelve el perfil mínimo (incluidos los datos básicos del alta) y los roles y permisos efectivos del usuario autenticado. | Must / Estudiante, Docente o Admin | HU-AUTH-01, HU-TR-02 |
 | `POST` | `/auth/password-recovery-requests` | Solicita recuperación por correo; la respuesta no revela si el correo está registrado. | Should / Visitante | HU-AUTH-03 |
 | `POST` | `/auth/password-resets` | Cambia la contraseña con un token vigente, de un solo uso. | Should / Visitante con token | HU-AUTH-03 |
 
-**Alta de cuenta independiente de solicitudes:** `POST /auth/register` requiere `Authorization: Bearer <FIREBASE_ID_TOKEN>` y un cuerpo JSON con `nombre`, `apellido`, `tipo_dni`, `dni` y `email` (todos obligatorios); el correo debe coincidir con el del token, ignorando mayúsculas y minúsculas y espacios exteriores. No acepta contraseña ni rol. Una cuenta nueva recibe el rol `visitante`; repetir el alta sincroniza los datos de perfil y conserva el rol existente. Responde `201` con `{"id":"<user-id>","firebase_uid":"<firebase-uid>"}`. Errores: `400` para JSON inválido o perfil incompleto/correo distinto, `401` para Bearer ausente o token inválido/revocado y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
+**Alta de cuenta independiente de solicitudes:** `POST /auth/register` requiere `Authorization: Bearer <FIREBASE_ID_TOKEN>` y un cuerpo JSON con `nombre`, `apellido`, `tipo_dni`, `dni`, `email`, `fecha_nacimiento` (`AAAA-MM-DD`) y `telefono` (todos obligatorios) y `codigo_estudiantil` opcional (vacío se ignora); el correo debe coincidir con el del token, ignorando mayúsculas y minúsculas y espacios exteriores. No acepta contraseña ni rol. Una cuenta nueva recibe el rol `visitante`; repetir el alta sincroniza los datos de perfil y conserva el rol existente. Responde `201` con `{"id":"<user-id>","firebase_uid":"<firebase-uid>"}`. Errores: `400` para JSON inválido, perfil incompleto/correo distinto o fecha inválida, `401` para Bearer ausente o token inválido/revocado, `409` si el `dni` o el `codigo_estudiantil` ya pertenecen a otra cuenta y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
+
+**Perfil en `GET /users/me`:** además de `id`, `name`, `last_name`, `email`, `role` y `status`, devuelve `document_type`, `document_number`, `student_code`, `birth_date` (`AAAA-MM-DD`) y `phone`; un dato no registrado llega como cadena vacía.
 
 **Reglas clave:** las contraseñas se almacenan con hash seguro; las sesiones expiran y se revocan al cerrar sesión. Solo `Admin` puede asignar o retirar los cuatro roles permitidos.
 
@@ -49,9 +51,9 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `GET` | `/seedbeds` | Lista semilleros publicados; admite búsqueda, paginación y filtros por línea de investigación. `Admin` puede consultar también ocultos o inactivos. | Must / Visitante; vista completa para `Admin` | HU-SEM-02 |
-| `POST` | `/seedbeds` | Crea un semillero en estado `Borrador`. Recibe nombre, descripción, línea, objetivo, docente responsable y contacto; valida nombre único y responsable con rol `Docente`. Devuelve `201` e identificador. | Must / `Docente` o `Admin` | HU-SEM-01 |
+| `POST` | `/seedbeds` | Crea un semillero en estado `Borrador`. Recibe nombre, descripción, línea, objetivo, docente responsable, contacto y `topics` opcional (hasta 4 temas `{title, phrase}`; `title` obligatorio, máx. 60 caracteres; `phrase` máx. 160); valida nombre único y responsable con rol `Docente`. Devuelve `201` e identificador. | Must / `Docente` o `Admin` | HU-SEM-01 |
 | `GET` | `/seedbeds/{id}` | Consulta el detalle del semillero respetando su visibilidad. | Must / Visitante o rol autorizado | HU-SEM-02 |
-| `PATCH` | `/seedbeds/{id}` | Actualiza los datos del semillero; registra actor y fecha del cambio. | Must / Docente responsable o `Admin` | HU-SEM-01 |
+| `PATCH` | `/seedbeds/{id}` | Actualiza los datos del semillero; si `topics` se omite, conserva los temas actuales. Registra actor y fecha del cambio. | Must / Docente responsable o `Admin` | HU-SEM-01 |
 | `PATCH` | `/seedbeds/{id}/visibility` | Publica, oculta o marca inactivo el semillero sin eliminarlo. Estados mínimos: `Borrador`, `Publicado`, `Oculto` e `Inactivo`. | Must / Docente responsable o `Admin` | HU-SEM-01 |
 | `GET` | `/seedbeds/{id}/space` | Devuelve la vista compuesta del semillero: propósito, responsable y resumen de actividades y proyectos, aplicando permisos a información privada. | Must / Visitante o rol autorizado | HU-SEM-02 |
 | `GET` | `/seedbeds/{id}/members` | Consulta integrantes actuales; el historial de retiros queda restringido. | Must / Visitante según visibilidad; historial para `Docente` responsable o `Admin` | HU-SEM-02, HU-SEM-03 |
@@ -66,11 +68,13 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `POST` | `/registration-requests` | Registra una solicitud con sus datos y un `seedbedId` opcional validado contra un semillero existente; estado inicial `Radicada`. Devuelve identificador y mecanismo seguro de seguimiento. | Must / Visitante | HU-AUTH-04 |
+| `POST` | `/registration-requests` | Registra una solicitud de la cuenta en sesión con sus datos y un `seedbedId` opcional validado contra un semillero existente; estado inicial `Radicada`. Devuelve identificador y mecanismo seguro de seguimiento. | Must / Visitante con cuenta y sesión | HU-AUTH-04 |
 | `GET` | `/registration-requests/{id}/status` | Consulta estado, fecha de actualización y observaciones autorizadas. Requiere credencial de seguimiento segura o sesión del solicitante. | Must / Visitante o `Estudiante` autorizado | HU-AUTH-05 |
 | `GET` | `/admin/registration-requests` | Lista solicitudes con filtros por estado, fecha, semillero y responsable. | Must / `Admin` | HU-AUTH-06 |
 | `GET` | `/admin/registration-requests/{id}` | Consulta detalle e historial de cambios de una solicitud. | Must / `Admin` | HU-AUTH-06 |
 | `PATCH` | `/admin/registration-requests/{id}/status` | Actualiza estado, observaciones autorizadas y responsable; valida permisos y registra auditoría. | Must / `Admin` | HU-AUTH-05, HU-AUTH-06 |
+
+**Datos de la solicitud:** `POST /registration-requests` requiere sesión; sin sesión válida responde `401`. Los datos personales (`nombre`, `cc`, `telefono`, `fechaNacimiento`) no se envían: se toman de la cuenta referenciada por `userId` y no se copian en la solicitud. `cod` es opcional: vacío se ignora y con valor actualiza el `codigo_estudiantil` de la cuenta (`409` si pertenece a otra cuenta). Obligatorios: `lugarNacimiento`, `direccionResidencia`, `linkCvLAC`, `linkORCID`, `maximoNivelEstudio`, `tituloMaximoNivelEstudio`, `tituloPregrado`, `vinculacion`, `categoriaActualInvestigador` y `convocatoriaMinCiencias`; si falta alguno, o la cuenta no tiene documento, teléfono o fecha de nacimiento, responde `400`. Las respuestas de consulta siguen devolviendo `nombre`, `cc`, `cod`, `telefono` y `fechaNacimiento`, leídos de la cuenta.
 
 **Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
 
@@ -208,6 +212,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `PUT` | `/roles/{roleId}/permissions` | Asigna o retira permisos del rol; no permite crear roles fuera del catálogo ni autoasignarse privilegios. | Must / Admin | HU-TR-01 |
 | `GET` | `/users/{userId}/roles` | Consulta roles asignados a un usuario. | Must / Admin | HU-TR-01 |
 | `PUT` | `/users/{userId}/roles` | Reemplaza o asigna uno de los cuatro roles con validación de permisos y prevención de autoasignación. | Must / Admin | HU-AUTH-01, HU-TR-01 |
+| `GET` | `/admin/members` | Busca cuentas por nombre o correo (búsqueda obligatoria) e incluye inactivas, `firebase_uid`, email, documento, rol y estado. Solo vista administrativa. | Must / Admin | HU-AUTH-01, HU-TR-01 |
 | `GET` | `/users/me/dashboard` | Devuelve resumen de tareas y accesos permitidos según rol y contexto. | Must / Estudiante, Docente o Admin | HU-TR-02 |
 
 **Regla:** todos los endpoints de escritura deben comprobar el permiso requerido y el contexto (por ejemplo, pertenencia al semillero). La interfaz solo consume los permisos; no los concede.

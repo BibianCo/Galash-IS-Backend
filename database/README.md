@@ -28,3 +28,28 @@ creada, ejecuta:
 docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
   -d "${POSTGRES_DB:-galash}" < database/migrations/004_member_publications.sql
 ```
+
+Para guardar los datos básicos en la cuenta (código estudiantil, fecha de
+nacimiento y teléfono) y dejar de copiarlos en las solicitudes, ejecuta:
+
+```bash
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
+  -d "${POSTGRES_DB:-galash}" < database/migrations/008_user_basic_profile.sql
+```
+
+## Datos sintéticos (desarrollo local)
+
+`database/seed/seed.sh` carga datos ficticios en el PostgreSQL del compose:
+14 usuarios (docentes, estudiantes, uno inactivo y un visitante), 3 semilleros
+publicados y 1 borrador, integrantes, proyectos, actividades, solicitudes de
+registro en todos los estados con su historial, y eventos de agenda. Es
+idempotente: puede ejecutarse varias veces.
+
+```bash
+database/seed/seed.sh          # cargar
+database/seed/seed.sh --reset  # borrar solo los datos sintéticos (ids 5eed…)
+```
+
+Los usuarios sintéticos no tienen cuenta Firebase y no pueden iniciar sesión.
+La clave de seguimiento de la solicitud sintética N es `synthetic-token-N`.
+Nunca ejecutar en una base con datos reales de producción.

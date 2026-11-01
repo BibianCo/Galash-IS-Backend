@@ -7,6 +7,9 @@ CREATE TABLE usuarios (
     apellido TEXT,
     tipo_dni TEXT,
     dni TEXT UNIQUE,
+    codigo_estudiantil TEXT UNIQUE,
+    fecha_nacimiento DATE,
+    telefono TEXT,
     email TEXT NOT NULL,
     password_hash TEXT,
     rol TEXT NOT NULL DEFAULT 'visitante',
@@ -51,6 +54,7 @@ ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS objetivo TEXT;
 ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS email_contacto TEXT;
 ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Borrador';
 ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS visibilidad TEXT NOT NULL DEFAULT 'Borrador';
+ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS temas JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE semilleros ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
 
@@ -71,11 +75,12 @@ CREATE TABLE solicitudes_registro (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id UUID REFERENCES usuarios(id),
     semillero_id UUID REFERENCES semilleros(id),
-    nombre TEXT NOT NULL,
-    cc TEXT NOT NULL,
-    cod TEXT NOT NULL,
-    telefono TEXT NOT NULL,
-    fecha_nacimiento DATE NOT NULL,
+    -- Personal data lives in usuarios; these columns only keep legacy anonymous requests.
+    nombre TEXT,
+    cc TEXT,
+    cod TEXT,
+    telefono TEXT,
+    fecha_nacimiento DATE,
     lugar_nacimiento TEXT NOT NULL,
     direccion_residencia TEXT NOT NULL,
     link_cvlac TEXT NOT NULL,

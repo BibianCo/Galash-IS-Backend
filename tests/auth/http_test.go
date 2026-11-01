@@ -184,12 +184,21 @@ func TestAdminMembersRequiresSessionAndReturnsAdminFields(t *testing.T) {
 		t.Fatalf("unauthenticated status=%d, want %d", unauthorized.Code, http.StatusUnauthorized)
 	}
 
-	request := httptest.NewRequest(http.MethodGet, "/find/user?q=ana", nil)
+	legacy := httptest.NewRecorder()
+	server.ServeHTTP(legacy, httptest.NewRequest(http.MethodGet, "/find/user?q=ana", nil))
+	if legacy.Code != http.StatusNotFound {
+		t.Fatalf("legacy alias status=%d, want %d", legacy.Code, http.StatusNotFound)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/admin/members?q=ana", nil)
 	request.AddCookie(loginCookie(t, server))
 	response := httptest.NewRecorder()
 	server.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.searchInactive {
+		t.Error("admin search must include inactive accounts")
 	}
 	for _, expected := range []string{"member-firebase-uid", "ana@example.test", "12345"} {
 		if !strings.Contains(response.Body.String(), expected) {
@@ -386,7 +395,7 @@ func TestLogoutInvalidatesSessionAndClearsCookie(t *testing.T) {
 func TestRegisterIgnoresClientSuppliedRole(t *testing.T) {
 	repository := &repository{user: domain.User{ID: "user-id"}}
 	verifier := identityVerifier{identity: domain.Identity{UID: "firebase-id", Email: "ana@example.com"}}
-	body := `{"nombre":"Ana","apellido":"Pérez","tipo_dni":"CC","dni":"123","email":"ana@example.com","rol":"admin"}`
+	body := `{"nombre":"Ana","apellido":"Pérez","tipo_dni":"CC","dni":"123","email":"ana@example.com","fecha_nacimiento":"2001-05-20","telefono":"300","codigo_estudiantil":"2023","rol":"admin"}`
 	request := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer firebase-token")
 	response := httptest.NewRecorder()
@@ -398,6 +407,9 @@ func TestRegisterIgnoresClientSuppliedRole(t *testing.T) {
 	}
 	if repository.upsertedUser.Role == "admin" {
 		t.Fatal("client-supplied role reached the repository")
+	}
+	if u := repository.upsertedUser; u.BirthDate != "2001-05-20" || u.Phone != "300" || u.StudentCode != "2023" {
+		t.Fatalf("profile fields not mapped: %+v", u)
 	}
 }
 

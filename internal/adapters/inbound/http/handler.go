@@ -27,6 +27,9 @@ type registerRequest struct {
 	TipoDNI  string `json:"tipo_dni"`
 	DNI      string `json:"dni"`
 	Email    string `json:"email"`
+	Codigo   string `json:"codigo_estudiantil"`
+	Fecha    string `json:"fecha_nacimiento"`
+	Telefono string `json:"telefono"`
 }
 
 type sessionRequest struct {
@@ -106,7 +109,6 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("PATCH /members/{id}", h.updateMember)
 	mux.HandleFunc("PATCH /members/{id}/status", h.setMemberStatus)
 	mux.HandleFunc("GET /members/{id}/publications", h.memberPublications)
-	mux.HandleFunc("GET /find/user", h.adminMembers)
 	mux.HandleFunc("GET /admin/members", h.adminMembers)
 	mux.HandleFunc("PUT /users/roles", h.updateRole)
 	mux.HandleFunc("PUT /users/{userId}/roles", h.updateRole)
@@ -411,12 +413,13 @@ func isLocalOrigin(origin string) bool {
 }
 
 type seedbedRequest struct {
-	Name                 string `json:"name"`
-	Description          string `json:"description"`
-	ResearchLine         string `json:"researchLine"`
-	Objective            string `json:"objective"`
-	ResponsibleTeacherID string `json:"responsibleTeacherId"`
-	ContactEmail         string `json:"contactEmail"`
+	Name                 string                 `json:"name"`
+	Description          string                 `json:"description"`
+	ResearchLine         string                 `json:"researchLine"`
+	Objective            string                 `json:"objective"`
+	ResponsibleTeacherID string                 `json:"responsibleTeacherId"`
+	ContactEmail         string                 `json:"contactEmail"`
+	Topics               *[]domain.SeedbedTopic `json:"topics"`
 }
 type visibilityRequest struct {
 	Status     string `json:"status"`
@@ -512,7 +515,7 @@ func (h *Handler) createSeedbed(w http.ResponseWriter, r *http.Request) {
 	s, err := h.seedbeds.Create(r.Context(), seedbedapp.CreateCommand{
 		Name: q.Name, Description: q.Description, ResearchLine: q.ResearchLine,
 		Objective: q.Objective, ResponsibleTeacherID: q.ResponsibleTeacherID,
-		ContactEmail: q.ContactEmail,
+		ContactEmail: q.ContactEmail, Topics: q.Topics,
 	})
 	if err != nil {
 		seedbedError(w, err)
@@ -593,7 +596,7 @@ func (h *Handler) updateSeedbed(w http.ResponseWriter, r *http.Request) {
 	s, err := h.seedbeds.Update(r.Context(), r.PathValue("id"), seedbedapp.UpdateCommand{
 		Name: q.Name, Description: q.Description, ResearchLine: q.ResearchLine,
 		Objective: q.Objective, ResponsibleTeacherID: q.ResponsibleTeacherID,
-		ContactEmail: q.ContactEmail,
+		ContactEmail: q.ContactEmail, Topics: q.Topics,
 	})
 	if err != nil {
 		seedbedError(w, err)
@@ -710,17 +713,17 @@ func (h *Handler) createRegistration(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
 	}
-	userID := ""
-	if hasSessionCredential(r) {
-		actor, ok := h.actor(w, r)
-		if !ok {
-			return
-		}
-		userID = actor.ID
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
 	}
-	created, trackingToken, err := h.registrations.Create(r.Context(), request, userID)
-	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrInvalidRegistrationData) {
+	created, trackingToken, err := h.registrations.Create(r.Context(), request, actor.ID)
+	if errors.Is(err, domain.ErrIncompleteRegistration) || errors.Is(err, domain.ErrIncompleteProfile) {
 		writeError(w, 400, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, 409, err.Error())
 		return
 	}
 	if errors.Is(err, domain.ErrSeedbedNotFound) {
@@ -1636,10 +1639,15 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	result, err := h.service.Register(r.Context(), token, application.RegisterCommand{
 		Name: request.Nombre, LastName: request.Apellido,
 		DocumentType: request.TipoDNI, DocumentNumber: request.DNI,
-		Email: request.Email,
+		Email: request.Email, StudentCode: request.Codigo,
+		BirthDate: request.Fecha, Phone: request.Telefono,
 	})
-	if errors.Is(err, domain.ErrIncompleteIdentity) {
+	if errors.Is(err, domain.ErrIncompleteIdentity) || errors.Is(err, domain.ErrInvalidSignup) {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, http.StatusConflict, err.Error())
 		return
 	}
 	if errors.Is(err, domain.ErrInvalidIdentity) {
