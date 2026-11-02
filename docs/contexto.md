@@ -42,6 +42,12 @@ GALASH-UPTC web system for academic management, research, and communication.
 - `GET /admin/members` (contract M11) requires `q`, includes inactive accounts and returns `{users: [...]}`; the legacy alias `/find/user` no longer exists. `PUT /users/{userId}/roles` accepts `docente` (contract name) and `profesor` (legacy).
 - Seedbeds have `topics` (max 4 `{title, phrase}`, JSONB column `temas`, migration `007_seedbed_topics.sql`); omitted on `PATCH` they keep their value.
 - `database/seed/seed.sh [--reset]` loads or deletes idempotent synthetic development data (ids `5eed…`).
+- El módulo 8 implementa las siete rutas de comunicados: borradores, publicación,
+  adjuntos referenciados PDF/Word/Excel, confirmación idempotente de lectura y
+  estado de lectura por docente. `GET /announcements` muestra publicados y los
+  borradores propios; Admin puede ver todos los borradores. Docente administra
+  sus propios comunicados y Admin puede administrar todos; solo usuarios activos
+  con esos roles acceden.
 
 ## Record
 

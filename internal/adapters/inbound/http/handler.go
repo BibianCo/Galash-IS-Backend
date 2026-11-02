@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	announcementapp "github.com/galash-uptc/backend/internal/application/announcement"
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
@@ -51,6 +52,7 @@ type Handler struct {
 	members       *memberapp.Service
 	events        *eventapp.Service
 	content       *contentapp.Service
+	announcements *announcementapp.Service
 	db            ports.HealthChecker
 }
 
@@ -81,6 +83,11 @@ func NewHandlerWithEvents(service *application.Service, db ports.HealthChecker, 
 func NewHandlerWithContent(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service) *Handler {
 	h := NewHandlerWithEvents(service, db, seedbed, registration, research, members, events)
 	h.content = content
+	return h
+}
+func NewHandlerWithAnnouncements(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service) *Handler {
+	h := NewHandlerWithContent(service, db, seedbed, registration, research, members, events, content)
+	h.announcements = announcements
 	return h
 }
 
@@ -158,6 +165,13 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /admin/content/pages", h.createPage)
 	mux.HandleFunc("PATCH /admin/content/pages/{id}", h.updatePage)
 	mux.HandleFunc("POST /admin/content/pages/{id}/publish", h.publishPage)
+	mux.HandleFunc("GET /announcements", h.listAnnouncements)
+	mux.HandleFunc("POST /announcements", h.createAnnouncement)
+	mux.HandleFunc("GET /announcements/{id}", h.getAnnouncement)
+	mux.HandleFunc("PATCH /announcements/{id}", h.updateAnnouncement)
+	mux.HandleFunc("POST /announcements/{id}/publish", h.publishAnnouncement)
+	mux.HandleFunc("POST /announcements/{id}/read-confirmations", h.confirmAnnouncementRead)
+	mux.HandleFunc("GET /announcements/{id}/read-status", h.announcementReadStatus)
 	return localCORS(mux)
 }
 
@@ -1847,4 +1861,152 @@ func (h *Handler) publishPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, p)
+}
+
+type announcementRequest struct {
+	Title       string                          `json:"title"`
+	Description string                          `json:"description"`
+	Attachments []domain.AnnouncementAttachment `json:"attachments"`
+}
+
+func (h *Handler) announcementReady(w http.ResponseWriter) bool {
+	if h.announcements == nil {
+		writeError(w, 500, "módulo de comunicados no configurado")
+		return false
+	}
+	return true
+}
+func announcementError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, 403, err.Error())
+	case errors.Is(err, domain.ErrAnnouncementNotFound):
+		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrInvalidAnnouncement), errors.Is(err, domain.ErrInvalidAnnouncementTransition):
+		writeError(w, 400, err.Error())
+	default:
+		log.Printf("error del módulo de comunicados: %v", err)
+		writeError(w, 500, "no fue posible procesar el comunicado")
+	}
+}
+func decodeAnnouncement(r *http.Request) (domain.Announcement, error) {
+	var q announcementRequest
+	if err := json.NewDecoder(r.Body).Decode(&q); err != nil {
+		return domain.Announcement{}, errors.New("cuerpo JSON inválido")
+	}
+	return domain.Announcement{Title: q.Title, Description: q.Description, Attachments: q.Attachments}, nil
+}
+func (h *Handler) listAnnouncements(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	items, e := h.announcements.List(r.Context(), a.ID)
+	if e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"announcements": items})
+}
+func (h *Handler) createAnnouncement(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	q, e := decodeAnnouncement(r)
+	if e != nil {
+		writeError(w, 400, e.Error())
+		return
+	}
+	item, e := h.announcements.Create(r.Context(), q, a.ID)
+	if e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 201, item)
+}
+func (h *Handler) getAnnouncement(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	item, e := h.announcements.Find(r.Context(), r.PathValue("id"), a.ID)
+	if e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 200, item)
+}
+func (h *Handler) updateAnnouncement(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	q, e := decodeAnnouncement(r)
+	if e != nil {
+		writeError(w, 400, e.Error())
+		return
+	}
+	item, e := h.announcements.Update(r.Context(), r.PathValue("id"), q, a.ID)
+	if e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 200, item)
+}
+func (h *Handler) publishAnnouncement(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	item, e := h.announcements.Publish(r.Context(), r.PathValue("id"), a.ID)
+	if e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 200, item)
+}
+func (h *Handler) confirmAnnouncementRead(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	if e := h.announcements.Confirm(r.Context(), r.PathValue("id"), a.ID); e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]string{"message": "lectura confirmada"})
+}
+func (h *Handler) announcementReadStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.announcementReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	items, e := h.announcements.ReadStatus(r.Context(), r.PathValue("id"), a.ID)
+	if e != nil {
+		announcementError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"readStatus": items})
 }

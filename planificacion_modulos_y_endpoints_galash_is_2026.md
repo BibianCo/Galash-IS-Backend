@@ -169,7 +169,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `GET` | `/announcements` | Lista comunicados visibles para el usuario autenticado e indica si ya confirmó lectura. | Must / Docente o Admin autorizado | HU-COM-02 |
+| `GET` | `/announcements` | Lista comunicados publicados y, para el autor o un Admin, también los borradores visibles; indica si el usuario autenticado ya confirmó lectura. | Must / Docente o Admin autorizado | HU-COM-02 |
 | `POST` | `/announcements` | Crea comunicado con título, descripción y referencias a archivos adjuntos permitidos. | Must / Docente o Admin autorizado | HU-COM-01 |
 | `GET` | `/announcements/{id}` | Consulta comunicado y descarga autorizada de sus adjuntos. | Must / Docente o Admin autorizado | HU-COM-01, HU-COM-02 |
 | `PATCH` | `/announcements/{id}` | Edita comunicado conforme a permisos y estado de publicación. | Must / Docente o Admin autorizado | HU-COM-01 |

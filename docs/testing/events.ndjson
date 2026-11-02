@@ -414,3 +414,12 @@
 {"v":1,"id":"T097","t":"test","area":"module-7-content-pages","p":"must","name":"Rama M7 integrada con main compila, pasa vet y pruebas, y aplica migraciones 002-009 de forma idempotente"}
 {"v":1,"id":"R071","t":"run","at":"2026-11-01T00:00:00Z","build":"merge main ec3f85d into f18ffa6","by":"agent","mode":"automated","cmd":"go build ./...; go vet ./...; init.sql + migrations x2 on postgres:16-alpine; TEST_DATABASE_URL=<ephemeral> go test -count=1 ./..."}
 {"v":1,"id":"X197","t":"result","run":"R071","test":"T097","s":"pass","ev":["docs/testing/evidence/R071/merge-main-pr18.txt"]}
+{"v":1,"id":"T098","t":"test","area":"module-8-announcements","p":"must","name":"Announcement service validates allowed attachments, enforces active Docente/Admin access, and assigns the authenticated author"}
+{"v":1,"id":"R072","t":"run","at":"2026-11-01T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X198","t":"result","run":"R072","test":"T098","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T099","t":"test","area":"module-8-announcements","p":"must","name":"Publishing a draft announcement uses the correct PostgreSQL identifier parameter and records internal errors in service logs"}
+{"v":1,"id":"R073","t":"run","at":"2026-11-02T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X199","t":"result","run":"R073","test":"T099","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T100","t":"test","area":"module-8-announcements","p":"must","name":"Announcement listing exposes own drafts to Docente and all drafts to Admin while retaining published visibility"}
+{"v":1,"id":"R074","t":"run","at":"2026-11-02T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; git diff --check"}
+{"v":1,"id":"X200","t":"result","run":"R074","test":"T100","s":"pass","ev":["go test ./...","git diff --check"]}

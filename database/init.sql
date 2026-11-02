@@ -217,6 +217,9 @@ CREATE TABLE IF NOT EXISTS propuesta_historial (id UUID PRIMARY KEY DEFAULT gen_
 CREATE TABLE IF NOT EXISTS semillero_resenas (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), semillero_id UUID NOT NULL REFERENCES semilleros(id), autor_id UUID NOT NULL REFERENCES usuarios(id), texto TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'pendiente', nota_moderacion TEXT, creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), moderado_en TIMESTAMPTZ);
 CREATE TABLE IF NOT EXISTS contenido_paginas (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), slug TEXT NOT NULL UNIQUE, titulo TEXT NOT NULL, contenido TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'borrador', autor_id UUID NOT NULL REFERENCES usuarios(id), creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(), publicado_en TIMESTAMPTZ);
 CREATE INDEX IF NOT EXISTS contenido_paginas_estado_idx ON contenido_paginas(estado, slug);
+CREATE TABLE IF NOT EXISTS comunicados (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), titulo TEXT NOT NULL, descripcion TEXT NOT NULL, adjuntos JSONB NOT NULL DEFAULT '[]', estado TEXT NOT NULL DEFAULT 'borrador', autor_id UUID NOT NULL REFERENCES usuarios(id), creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(), publicado_en TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS comunicados_lecturas (comunicado_id UUID NOT NULL REFERENCES comunicados(id) ON DELETE CASCADE, usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE, confirmado_en TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (comunicado_id, usuario_id));
+CREATE INDEX IF NOT EXISTS comunicados_estado_idx ON comunicados(estado, creado_en DESC);
 
 CREATE TABLE eventos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
