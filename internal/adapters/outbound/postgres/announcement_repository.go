@@ -59,8 +59,8 @@ func (r *AnnouncementRepository) List(ctx context.Context, userID string, includ
 	}
 	return out, rows.Err()
 }
-func (r *AnnouncementRepository) Find(ctx context.Context, id, userID string) (domain.Announcement, error) {
-	return scanAnnouncement(r.db.QueryRow(ctx, `SELECT `+announcementCols+` FROM comunicados c JOIN usuarios u ON u.id=c.autor_id WHERE c.id=$2 AND (c.estado='publicado' OR c.autor_id=$1)`, userID, id))
+func (r *AnnouncementRepository) Find(ctx context.Context, id, userID string, includeAllDrafts bool) (domain.Announcement, error) {
+	return scanAnnouncement(r.db.QueryRow(ctx, `SELECT `+announcementCols+` FROM comunicados c JOIN usuarios u ON u.id=c.autor_id WHERE c.id=$2 AND (c.estado='publicado' OR c.autor_id=$1 OR ($3 AND c.estado='borrador'))`, userID, id, includeAllDrafts))
 }
 func (r *AnnouncementRepository) Create(ctx context.Context, a domain.Announcement) (domain.Announcement, error) {
 	raw, _ := json.Marshal(a.Attachments)

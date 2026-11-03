@@ -57,10 +57,11 @@ func (s *Service) List(ctx context.Context, actor string) ([]domain.Announcement
 	return s.repo.List(ctx, actor, strings.EqualFold(u.Role, "admin"))
 }
 func (s *Service) Find(ctx context.Context, id, actor string) (domain.Announcement, error) {
-	if _, e := s.actor(ctx, actor); e != nil {
+	u, e := s.actor(ctx, actor)
+	if e != nil {
 		return domain.Announcement{}, e
 	}
-	return s.repo.Find(ctx, id, actor)
+	return s.repo.Find(ctx, id, actor, strings.EqualFold(u.Role, "admin"))
 }
 func (s *Service) Create(ctx context.Context, a domain.Announcement, actor string) (domain.Announcement, error) {
 	if _, e := s.actor(ctx, actor); e != nil {
@@ -77,7 +78,7 @@ func (s *Service) Update(ctx context.Context, id string, a domain.Announcement, 
 	if e != nil {
 		return a, e
 	}
-	old, e := s.repo.Find(ctx, id, actor)
+	old, e := s.repo.Find(ctx, id, actor, strings.EqualFold(u.Role, "admin"))
 	if e != nil {
 		return a, e
 	}
@@ -106,7 +107,7 @@ func (s *Service) Publish(ctx context.Context, id, actor string) (domain.Announc
 	if e != nil {
 		return domain.Announcement{}, e
 	}
-	old, e := s.repo.Find(ctx, id, actor)
+	old, e := s.repo.Find(ctx, id, actor, strings.EqualFold(u.Role, "admin"))
 	if e != nil {
 		return domain.Announcement{}, e
 	}
@@ -119,10 +120,11 @@ func (s *Service) Publish(ctx context.Context, id, actor string) (domain.Announc
 	return s.repo.Publish(ctx, id)
 }
 func (s *Service) Confirm(ctx context.Context, id, actor string) error {
-	if _, e := s.actor(ctx, actor); e != nil {
+	u, e := s.actor(ctx, actor)
+	if e != nil {
 		return e
 	}
-	if _, e := s.repo.Find(ctx, id, actor); e != nil {
+	if _, e := s.repo.Find(ctx, id, actor, strings.EqualFold(u.Role, "admin")); e != nil {
 		return e
 	}
 	return s.repo.ConfirmRead(ctx, id, actor)
@@ -132,7 +134,7 @@ func (s *Service) ReadStatus(ctx context.Context, id, actor string) ([]domain.An
 	if e != nil {
 		return nil, e
 	}
-	a, e := s.repo.Find(ctx, id, actor)
+	a, e := s.repo.Find(ctx, id, actor, strings.EqualFold(u.Role, "admin"))
 	if e != nil {
 		return nil, e
 	}

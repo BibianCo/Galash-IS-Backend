@@ -22,13 +22,15 @@ func (users) UpdateRole(context.Context, string, string) error                 {
 type repo struct {
 	created          domain.Announcement
 	includeAllDrafts bool
+	findAllDrafts    bool
 }
 
 func (r *repo) List(_ context.Context, _ string, includeAllDrafts bool) ([]domain.Announcement, error) {
 	r.includeAllDrafts = includeAllDrafts
 	return nil, nil
 }
-func (r *repo) Find(context.Context, string, string) (domain.Announcement, error) {
+func (r *repo) Find(_ context.Context, _ string, _ string, includeAllDrafts bool) (domain.Announcement, error) {
+	r.findAllDrafts = includeAllDrafts
 	return r.created, nil
 }
 func (r *repo) Create(_ context.Context, a domain.Announcement) (domain.Announcement, error) {
@@ -75,5 +77,21 @@ func TestListIncludesAllDraftsOnlyForAdmin(t *testing.T) {
 	teacherService := announcement.NewService(teacherRepo, users{domain.User{ID: "teacher", Role: "Docente", Status: "activo"}})
 	if _, err := teacherService.List(context.Background(), "teacher"); err != nil || teacherRepo.includeAllDrafts {
 		t.Fatalf("teacher list requested other drafts: error=%v includeAllDrafts=%v", err, teacherRepo.includeAllDrafts)
+	}
+}
+
+func TestAdminFindRequestsOtherAuthorsDrafts(t *testing.T) {
+	r := &repo{created: domain.Announcement{ID: "draft", Status: "borrador", AuthorID: "other"}}
+	s := announcement.NewService(r, users{domain.User{ID: "admin", Role: "Admin", Status: "activo"}})
+	if _, err := s.Find(context.Background(), "draft", "admin"); err != nil || !r.findAllDrafts {
+		t.Fatalf("admin cannot request another author's draft: error=%v findAllDrafts=%v", err, r.findAllDrafts)
+	}
+}
+
+func TestDocenteFindDoesNotRequestOtherAuthorsDrafts(t *testing.T) {
+	r := &repo{created: domain.Announcement{ID: "draft", Status: "borrador", AuthorID: "other"}}
+	s := announcement.NewService(r, users{domain.User{ID: "teacher", Role: "Docente", Status: "activo"}})
+	if _, err := s.Find(context.Background(), "draft", "teacher"); err != nil || r.findAllDrafts {
+		t.Fatalf("teacher requested another author's draft: error=%v findAllDrafts=%v", err, r.findAllDrafts)
 	}
 }
