@@ -48,3 +48,7 @@ var ErrInternalCalendarNotFound = errors.New("evento del cronograma interno no e
 var ErrInvalidInternalCalendar = errors.New("el tipo, título, semillero, participantes y rango de fechas del evento son inválidos")
 var ErrInternalCalendarConflict = errors.New("ya existe un evento del cronograma en el mismo horario para un participante")
 var ErrInvalidInternalCalendarTransition = errors.New("el evento del cronograma ya está cancelado")
+var ErrOfficialLinkNotFound = errors.New("enlace oficial no encontrado")
+var ErrInvalidOfficialLink = errors.New("el nombre, descripción, categoría, orden y una URL HTTP/HTTPS válida son obligatorios")
+var ErrInvalidOfficialLinkCategory = errors.New("la categoría del enlace oficial no es válida")
+var ErrInvalidOfficialLinkStatus = errors.New("el estado debe ser activo, inactivo u oculto")

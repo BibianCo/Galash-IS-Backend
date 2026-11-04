@@ -16,6 +16,7 @@ import (
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
 	calendarapp "github.com/galash-uptc/backend/internal/application/internalcalendar"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
+	officiallinkapp "github.com/galash-uptc/backend/internal/application/officiallink"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	researchapp "github.com/galash-uptc/backend/internal/application/research"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
@@ -53,6 +54,7 @@ type Handler struct {
 	members       *memberapp.Service
 	events        *eventapp.Service
 	content       *contentapp.Service
+	officialLinks *officiallinkapp.Service
 	announcements *announcementapp.Service
 	calendar      *calendarapp.Service
 	db            ports.HealthChecker
@@ -95,6 +97,11 @@ func NewHandlerWithAnnouncements(service *application.Service, db ports.HealthCh
 func NewHandlerWithCalendar(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service, calendar *calendarapp.Service) *Handler {
 	h := NewHandlerWithAnnouncements(service, db, seedbed, registration, research, members, events, content, announcements)
 	h.calendar = calendar
+	return h
+}
+func NewHandlerWithOfficialLinks(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service, calendar *calendarapp.Service, links *officiallinkapp.Service) *Handler {
+	h := NewHandlerWithCalendar(service, db, seedbed, registration, research, members, events, content, announcements, calendar)
+	h.officialLinks = links
 	return h
 }
 
@@ -185,6 +192,10 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /internal-calendar/events/{id}", h.getInternalCalendar)
 	mux.HandleFunc("PATCH /internal-calendar/events/{id}", h.updateInternalCalendar)
 	mux.HandleFunc("DELETE /internal-calendar/events/{id}", h.deleteInternalCalendar)
+	mux.HandleFunc("GET /links", h.listOfficialLinks)
+	mux.HandleFunc("POST /links", h.createOfficialLink)
+	mux.HandleFunc("PATCH /links/{id}", h.updateOfficialLink)
+	mux.HandleFunc("PATCH /links/{id}/status", h.updateOfficialLinkStatus)
 	return localCORS(mux)
 }
 
@@ -2079,4 +2090,149 @@ func (h *Handler) announcementReadStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"readStatus": items})
+}
+
+type officialLinkRequest struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	URL         *string `json:"url"`
+	Category    *string `json:"category"`
+	Visible     *bool   `json:"visible"`
+	Order       *int    `json:"order"`
+}
+type officialLinkCreateRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Category    string `json:"category"`
+	Visible     *bool  `json:"visible"`
+	Order       int    `json:"order"`
+}
+
+func (h *Handler) officialLinksReady(w http.ResponseWriter) bool {
+	if h.officialLinks == nil {
+		writeError(w, 500, "módulo de enlaces oficiales no configurado")
+		return false
+	}
+	return true
+}
+func officialLinkError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, 403, err.Error())
+	case errors.Is(err, domain.ErrOfficialLinkNotFound):
+		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrInvalidOfficialLink), errors.Is(err, domain.ErrInvalidOfficialLinkCategory), errors.Is(err, domain.ErrInvalidOfficialLinkStatus):
+		writeError(w, 400, err.Error())
+	default:
+		writeError(w, 500, "no fue posible procesar el enlace oficial")
+	}
+}
+func (h *Handler) listOfficialLinks(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	includeAll := false
+	if hasSessionCredential(r) {
+		a, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		includeAll = strings.EqualFold(a.Role, "admin") && strings.EqualFold(a.Status, "activo")
+	}
+	items, err := h.officialLinks.List(r.Context(), r.URL.Query().Get("category"), includeAll)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"links": items})
+}
+func (h *Handler) createOfficialLink(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q officialLinkCreateRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	visible := true
+	if q.Visible != nil {
+		visible = *q.Visible
+	}
+	item, err := h.officialLinks.Create(r.Context(), domain.OfficialLink{Name: q.Name, Description: q.Description, URL: q.URL, Category: q.Category, Visible: visible, Order: q.Order}, a.ID)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 201, item)
+}
+func (h *Handler) updateOfficialLink(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	item, err := h.officialLinks.Find(r.Context(), r.PathValue("id"), a.ID)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	var q officialLinkRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	if q.Name != nil {
+		item.Name = *q.Name
+	}
+	if q.Description != nil {
+		item.Description = *q.Description
+	}
+	if q.URL != nil {
+		item.URL = *q.URL
+	}
+	if q.Category != nil {
+		item.Category = *q.Category
+	}
+	if q.Visible != nil {
+		item.Visible = *q.Visible
+	}
+	if q.Order != nil {
+		item.Order = *q.Order
+	}
+	updated, err := h.officialLinks.Update(r.Context(), r.PathValue("id"), a.ID, item)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 200, updated)
+}
+func (h *Handler) updateOfficialLinkStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q struct {
+		Status string `json:"status"`
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	item, err := h.officialLinks.SetStatus(r.Context(), r.PathValue("id"), a.ID, q.Status)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 200, item)
 }

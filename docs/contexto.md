@@ -54,7 +54,9 @@ GALASH-UPTC web system for academic management, research, and communication.
   por semillero y participantes; conserva historial y restringe la visibilidad
   de estudiantes a sus semilleros. Solo el director, un delegado activo del
   semillero o Admin crean, actualizan y cancelan; los solapes de horario de un
-  participante se rechazan al crear y al actualizar.
+   participante se rechazan al crear y al actualizar.
+- El módulo 10 implementa los cuatro endpoints de enlaces oficiales: consulta pública filtrable por categoría y orden, creación y edición exclusiva de Admin con validación HTTP/HTTPS, cambios de estado sin borrado y registro PostgreSQL de cada alta o modificación.
+- En `GET /links`, visitantes y usuarios no administradores solo reciben enlaces activos y visibles; un `Admin` activo autenticado puede consultar enlaces en cualquier estado.
 
 ## Record
 
