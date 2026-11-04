@@ -2,6 +2,7 @@ package seedbed
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -96,6 +97,41 @@ func (s *Service) CanManage(ctx context.Context, actorID, id string) error {
 		return domain.ErrForbidden
 	}
 	return nil
+}
+
+// CanOperate allows Admin, the director or an active delegate: the seedbed managers.
+func (s *Service) CanOperate(ctx context.Context, actorID, id string) error {
+	if _, err := s.repo.Find(ctx, id); err != nil {
+		return domain.ErrSeedbedNotFound
+	}
+	if actor, err := s.users.FindByID(ctx, actorID); err == nil && strings.EqualFold(actor.Role, "admin") {
+		return nil
+	}
+	managed, err := s.repo.ManagedSeedbeds(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(managed, id) {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+func (s *Service) ManagedSeedbeds(ctx context.Context, userID string) ([]string, error) {
+	return s.repo.ManagedSeedbeds(ctx, userID)
+}
+
+// SetDelegates replaces the delegates; only the director or Admin may do it.
+func (s *Service) SetDelegates(ctx context.Context, actor, id string, userIDs []string) error {
+	if err := s.CanManage(ctx, actor, id); err != nil {
+		return err
+	}
+	if userIDs == nil {
+		userIDs = []string{}
+	}
+	if len(userIDs) > 2 || len(userIDs) == 2 && userIDs[0] == userIDs[1] {
+		return domain.ErrInvalidDelegates
+	}
+	return s.repo.SetDelegates(ctx, id, userIDs)
 }
 func (s *Service) List(ctx context.Context, q, line string, page, size int, private bool) ([]domain.Seedbed, error) {
 	if page < 1 {

@@ -16,9 +16,9 @@ type EventRepository struct{ db *pgxpool.Pool }
 func NewEventRepository(db *pgxpool.Pool) *EventRepository { return &EventRepository{db: db} }
 
 const eventSQL = `e.id,e.titulo,COALESCE(e.descripcion,''),e.tipo,e.inicia_en,e.termina_en,e.organizador_id,
- COALESCE(u.nombre||' '||COALESCE(u.apellido,''),''),COALESCE(e.lugar,''),COALESCE(e.enlace,''),COALESCE(e.imagen_url,''),COALESCE(e.enlace_inscripcion,''),e.estado,e.creado_en,e.actualizado_en`
+ COALESCE(u.nombre||' '||COALESCE(u.apellido,''),''),COALESCE(e.semillero_id::text,''),COALESCE(e.lugar,''),COALESCE(e.enlace,''),COALESCE(e.imagen_url,''),COALESCE(e.enlace_inscripcion,''),e.estado,e.creado_en,e.actualizado_en`
 const eventReturningSQL = `id,titulo,COALESCE(descripcion,''),tipo,inicia_en,termina_en,organizador_id,
- COALESCE((SELECT u.nombre||' '||COALESCE(u.apellido,'') FROM usuarios u WHERE u.id=organizador_id),''),COALESCE(lugar,''),COALESCE(enlace,''),COALESCE(imagen_url,''),COALESCE(enlace_inscripcion,''),estado,creado_en,actualizado_en`
+ COALESCE((SELECT u.nombre||' '||COALESCE(u.apellido,'') FROM usuarios u WHERE u.id=organizador_id),''),COALESCE(semillero_id::text,''),COALESCE(lugar,''),COALESCE(enlace,''),COALESCE(imagen_url,''),COALESCE(enlace_inscripcion,''),estado,creado_en,actualizado_en`
 
 func eventErr(err error) error {
 	var pgErr *pgconn.PgError
@@ -29,7 +29,7 @@ func eventErr(err error) error {
 }
 func scanEvent(row pgx.Row) (domain.Event, error) {
 	var e domain.Event
-	err := row.Scan(&e.ID, &e.Title, &e.Description, &e.Type, &e.StartAt, &e.EndAt, &e.OrganizerID, &e.OrganizerName, &e.Venue, &e.MeetingURL, &e.ImageURL, &e.RegistrationURL, &e.Status, &e.CreatedAt, &e.UpdatedAt)
+	err := row.Scan(&e.ID, &e.Title, &e.Description, &e.Type, &e.StartAt, &e.EndAt, &e.OrganizerID, &e.OrganizerName, &e.SeedbedID, &e.Venue, &e.MeetingURL, &e.ImageURL, &e.RegistrationURL, &e.Status, &e.CreatedAt, &e.UpdatedAt)
 	return e, eventErr(err)
 }
 func (r *EventRepository) List(ctx context.Context, typ, status string, from, to *time.Time) ([]domain.Event, error) {
@@ -52,7 +52,7 @@ func (r *EventRepository) Find(ctx context.Context, id string) (domain.Event, er
 	return scanEvent(r.db.QueryRow(ctx, `SELECT `+eventSQL+` FROM eventos e JOIN usuarios u ON u.id=e.organizador_id WHERE e.id=$1`, id))
 }
 func (r *EventRepository) Create(ctx context.Context, e domain.Event) (domain.Event, error) {
-	return scanEvent(r.db.QueryRow(ctx, `INSERT INTO eventos(titulo,descripcion,tipo,inicia_en,termina_en,organizador_id,lugar,enlace,imagen_url,enlace_inscripcion,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING `+eventReturningSQL, e.Title, e.Description, e.Type, e.StartAt, e.EndAt, e.OrganizerID, e.Venue, e.MeetingURL, e.ImageURL, e.RegistrationURL, e.Status))
+	return scanEvent(r.db.QueryRow(ctx, `INSERT INTO eventos(titulo,descripcion,tipo,inicia_en,termina_en,organizador_id,lugar,enlace,imagen_url,enlace_inscripcion,estado,semillero_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NULLIF($12,'')::uuid) RETURNING `+eventReturningSQL, e.Title, e.Description, e.Type, e.StartAt, e.EndAt, e.OrganizerID, e.Venue, e.MeetingURL, e.ImageURL, e.RegistrationURL, e.Status, e.SeedbedID))
 }
 func (r *EventRepository) Update(ctx context.Context, id string, e domain.Event) (domain.Event, error) {
 	return scanEvent(r.db.QueryRow(ctx, `UPDATE eventos SET titulo=$2,descripcion=$3,tipo=$4,inicia_en=$5,termina_en=$6,lugar=$7,enlace=$8,imagen_url=$9,enlace_inscripcion=$10,actualizado_en=now() WHERE id=$1 RETURNING `+eventReturningSQL, id, e.Title, e.Description, e.Type, e.StartAt, e.EndAt, e.Venue, e.MeetingURL, e.ImageURL, e.RegistrationURL))

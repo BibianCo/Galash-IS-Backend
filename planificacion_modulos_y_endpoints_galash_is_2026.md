@@ -20,6 +20,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 - **Docente:** puede ser responsable de semilleros y gestionar la información académica dentro del alcance autorizado.
 - **Admin:** administra globalmente usuarios, semilleros, contenidos, permisos y auditoría.
 - **Acceso:** cada endpoint indica uno o más de estos roles. Además del rol, el backend debe validar el contexto, por ejemplo, que el `Docente` sea responsable del semillero.
+- **Director y delegados (relaciones, no roles):** el director de un semillero es su docente responsable (`responsibleTeacherId`). El director (o `Admin`) puede designar hasta 2 delegados entre los integrantes activos del semillero (`Estudiante` o `Docente` con cuenta activa). Director y delegados son los *gestores* del semillero: atienden sus solicitudes de registro, eventos, cronograma interno y actividades. Los delegados no editan el semillero, sus integrantes ni sus delegados. Retirar a un integrante le quita la delegación.
 
 ## 3. Módulos funcionales
 
@@ -38,7 +39,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 **Alta de cuenta independiente de solicitudes:** `POST /auth/register` requiere `Authorization: Bearer <FIREBASE_ID_TOKEN>` y un cuerpo JSON con `nombre`, `apellido`, `tipo_dni`, `dni`, `email`, `fecha_nacimiento` (`AAAA-MM-DD`) y `telefono` (todos obligatorios) y `codigo_estudiantil` opcional (vacío se ignora); el correo debe coincidir con el del token, ignorando mayúsculas y minúsculas y espacios exteriores. No acepta contraseña ni rol. Una cuenta nueva recibe el rol `visitante`; repetir el alta sincroniza los datos de perfil y conserva el rol existente. Responde `201` con `{"id":"<user-id>","firebase_uid":"<firebase-uid>"}`. Errores: `400` para JSON inválido, perfil incompleto/correo distinto o fecha inválida, `401` para Bearer ausente o token inválido/revocado, `409` si el `dni` o el `codigo_estudiantil` ya pertenecen a otra cuenta y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
 
-**Perfil en `GET /users/me`:** además de `id`, `name`, `last_name`, `email`, `role` y `status`, devuelve `document_type`, `document_number`, `student_code`, `birth_date` (`AAAA-MM-DD`) y `phone`; un dato no registrado llega como cadena vacía.
+**Perfil en `GET /users/me`:** además de `id`, `name`, `last_name`, `email`, `role` y `status`, devuelve `document_type`, `document_number`, `student_code`, `birth_date` (`AAAA-MM-DD`) y `phone`; un dato no registrado llega como cadena vacía. También devuelve `managed_seedbed_ids`: lista (posiblemente vacía) de ids de semilleros de los que el usuario es director o delegado activo; no incluye el acceso global de `Admin`.
 
 **Reglas clave:** las contraseñas se almacenan con hash seguro; las sesiones expiran y se revocan al cerrar sesión. Solo `Admin` puede asignar o retirar los cuatro roles permitidos.
 
@@ -56,9 +57,10 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `PATCH` | `/seedbeds/{id}` | Actualiza los datos del semillero; si `topics` se omite, conserva los temas actuales. Registra actor y fecha del cambio. | Must / Docente responsable o `Admin` | HU-SEM-01 |
 | `PATCH` | `/seedbeds/{id}/visibility` | Publica, oculta o marca inactivo el semillero sin eliminarlo. Estados mínimos: `Borrador`, `Publicado`, `Oculto` e `Inactivo`. | Must / Docente responsable o `Admin` | HU-SEM-01 |
 | `GET` | `/seedbeds/{id}/space` | Devuelve la vista compuesta del semillero: propósito, responsable y resumen de actividades y proyectos, aplicando permisos a información privada. | Must / Visitante o rol autorizado | HU-SEM-02 |
-| `GET` | `/seedbeds/{id}/members` | Consulta integrantes actuales; el historial de retiros queda restringido. | Must / Visitante según visibilidad; historial para `Docente` responsable o `Admin` | HU-SEM-02, HU-SEM-03 |
+| `GET` | `/seedbeds/{id}/members` | Consulta integrantes actuales; el historial de retiros queda restringido. Cada integrante incluye `delegate` (`true` si es delegado activo). | Must / Visitante según visibilidad; historial para `Docente` responsable o `Admin` | HU-SEM-02, HU-SEM-03 |
 | `POST` | `/seedbeds/{id}/members` | Vincula un usuario existente con rol `Estudiante` o `Docente`; no crea roles internos adicionales. | Must / Docente responsable o `Admin` | HU-SEM-03 |
-| `DELETE` | `/seedbeds/{id}/members/{userId}` | Registra la fecha de retiro y quita el acceso operativo, conservando el historial. | Must / Docente responsable o `Admin` | HU-SEM-03 |
+| `DELETE` | `/seedbeds/{id}/members/{userId}` | Registra la fecha de retiro y quita el acceso operativo (incluida la delegación), conservando el historial. | Must / Docente responsable o `Admin` | HU-SEM-03 |
+| `PUT` | `/seedbeds/{id}/delegates` | Reemplaza los delegados del semillero. Cuerpo `{"userIds":["<user-id>"]}` con 0 a 2 ids distintos de integrantes activos con cuenta activa; lista vacía retira a todos. Responde `204`. Errores: `400` lista inválida (más de 2, repetidos o algún id no es integrante activo), `401` sin sesión, `403` si no es director ni `Admin`, `404` semillero inexistente. | Must / Docente responsable o `Admin` | HU-SEM-03 |
 
 **Contrato de alta:** el servicio debe rechazar nombres duplicados, responsables inexistentes o usuarios que no tengan rol `Docente`. La respuesta debe incluir el `id`, el estado inicial y el `responsibleTeacherId` para que los demás módulos puedan establecer la relación con el semillero.
 
@@ -68,15 +70,15 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `POST` | `/registration-requests` | Registra una solicitud de la cuenta en sesión con sus datos y un `seedbedId` opcional validado contra un semillero existente; estado inicial `Radicada`. Devuelve identificador y mecanismo seguro de seguimiento. | Must / Visitante con cuenta y sesión | HU-AUTH-04 |
+| `POST` | `/registration-requests` | Registra una solicitud de la cuenta en sesión con sus datos y un `seedbedId` obligatorio validado contra un semillero existente (`400` si falta o no existe); estado inicial `Radicada`. Devuelve identificador y mecanismo seguro de seguimiento. | Must / Visitante con cuenta y sesión | HU-AUTH-04 |
 | `GET` | `/registration-requests/{id}/status` | Consulta estado, fecha de actualización y observaciones autorizadas. Requiere credencial de seguimiento segura o sesión del solicitante. | Must / Visitante o `Estudiante` autorizado | HU-AUTH-05 |
-| `GET` | `/admin/registration-requests` | Lista solicitudes con filtros por estado, fecha, semillero y responsable. | Must / `Admin` | HU-AUTH-06 |
-| `GET` | `/admin/registration-requests/{id}` | Consulta detalle e historial de cambios de una solicitud. | Must / `Admin` | HU-AUTH-06 |
-| `PATCH` | `/admin/registration-requests/{id}/status` | Actualiza estado, observaciones autorizadas y responsable; valida permisos y registra auditoría. | Must / `Admin` | HU-AUTH-05, HU-AUTH-06 |
+| `GET` | `/admin/registration-requests` | Lista solicitudes con filtros por estado, fecha, semillero y responsable. `Admin` ve todas; director o delegado solo las de sus semilleros (lista vacía si no gestiona ninguno). | Must / `Admin`, director o delegado | HU-AUTH-06 |
+| `GET` | `/admin/registration-requests/{id}` | Consulta detalle e historial de cambios de una solicitud. | Must / `Admin`, director o delegado del semillero de la solicitud | HU-AUTH-06 |
+| `PATCH` | `/admin/registration-requests/{id}/status` | Actualiza estado, observaciones autorizadas y responsable; valida permisos y registra auditoría. | Must / `Admin`, director o delegado del semillero de la solicitud | HU-AUTH-05, HU-AUTH-06 |
 
 **Datos de la solicitud:** `POST /registration-requests` requiere sesión; sin sesión válida responde `401`. Los datos personales (`nombre`, `cc`, `telefono`, `fechaNacimiento`) no se envían: se toman de la cuenta referenciada por `userId` y no se copian en la solicitud. `cod` es opcional: vacío se ignora y con valor actualiza el `codigo_estudiantil` de la cuenta (`409` si pertenece a otra cuenta). Obligatorios: `lugarNacimiento`, `direccionResidencia`, `linkCvLAC`, `linkORCID`, `maximoNivelEstudio`, `tituloMaximoNivelEstudio`, `tituloPregrado`, `vinculacion`, `categoriaActualInvestigador` y `convocatoriaMinCiencias`; si falta alguno, o la cuenta no tiene documento, teléfono o fecha de nacimiento, responde `400`. Las respuestas de consulta siguen devolviendo `nombre`, `cc`, `cod`, `telefono` y `fechaNacimiento`, leídos de la cuenta.
 
-**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
+**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. Basta una sola decisión: la atiende el primer gestor (director o delegado) o `Admin` que la procese; si otro ya cambió el estado, la transición se rechaza con `400`. Sin permiso sobre la solicitud responde `403`. Las solicitudes antiguas sin semillero solo las gestiona `Admin`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
 
 ### Módulo 4. Actividades, proyectos y propuestas de investigación
 
@@ -87,9 +89,9 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `GET` | `/seedbeds/{seedbedId}/activities` | Lista actividades; permite filtrar por periodo y estado (próxima, en curso o finalizada). | Must / Visitante según visibilidad; detalle privado restringido | HU-SEM-02, HU-SEM-04 |
-| `POST` | `/seedbeds/{seedbedId}/activities` | Registra actividad con responsables y evidencias opcionales. | Must / Docente responsable o Admin | HU-SEM-04 |
+| `POST` | `/seedbeds/{seedbedId}/activities` | Registra actividad con responsables y evidencias opcionales. | Must / Director, delegado o Admin | HU-SEM-04 |
 | `GET` | `/activities/{id}` | Consulta el detalle de una actividad. | Must / Visitante según visibilidad | HU-SEM-04 |
-| `PATCH` | `/activities/{id}` | Modifica datos, estado o responsables de una actividad. | Must / Docente responsable o Admin | HU-SEM-04 |
+| `PATCH` | `/activities/{id}` | Modifica datos, estado o responsables de una actividad. | Must / Director, delegado o Admin | HU-SEM-04 |
 
 #### Proyectos y avance
 
@@ -143,12 +145,12 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `GET` | `/events` | Lista eventos en formato de agenda; permite filtros por tipo, fecha y estado, diferencia vencidos de próximos y, para `Admin` autenticado, incluye borradores, publicados, cancelados y ocultos. | Must / Visitante o Admin autorizado | HU-EVT-03 |
-| `POST` | `/events` | Crea evento en borrador con fecha, hora, organizador, lugar/enlace e imagen opcional. | Must / Docente o Admin autorizado | HU-EVT-01 |
+| `POST` | `/events` | Crea evento en borrador con fecha, hora, organizador, lugar/enlace e imagen opcional, y `seedbedId` opcional del semillero dueño (fijo después de creado). | Must / Docente o Admin; con `seedbedId`, director o delegado de ese semillero (o `Admin`) | HU-EVT-01 |
 | `GET` | `/events/{id}` | Consulta detalle e información de inscripción, si existe. | Must / Visitante si está publicado | HU-EVT-03 |
-| `PATCH` | `/events/{id}` | Actualiza los datos del evento y registra fecha de modificación. | Must / Docente responsable o Admin | HU-EVT-02 |
-| `POST` | `/events/{id}/publish` | Publica un evento en borrador u oculto. | Must / Docente responsable o Admin | HU-EVT-01, HU-EVT-02 |
-| `POST` | `/events/{id}/cancel` | Cancela el evento conservando su información histórica. | Must / Docente responsable o Admin | HU-EVT-02 |
-| `POST` | `/events/{id}/hide` | Oculta el evento sin borrarlo. | Must / Docente responsable o Admin | HU-EVT-02 |
+| `PATCH` | `/events/{id}` | Actualiza los datos del evento y registra fecha de modificación. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |
+| `POST` | `/events/{id}/publish` | Publica un evento en borrador u oculto. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-01, HU-EVT-02 |
+| `POST` | `/events/{id}/cancel` | Cancela el evento conservando su información histórica. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |
+| `POST` | `/events/{id}/hide` | Oculta el evento sin borrarlo. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |
 
 ### Módulo 7. Información institucional
 
@@ -184,10 +186,10 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `GET` | `/internal-calendar/events` | Consulta eventos internos por rango de fechas, vista semanal/mensual y semillero. Los estudiantes solo ven los de su semillero. | Must / Estudiante, Docente o Admin | HU-CRO-01 |
-| `POST` | `/internal-calendar/events` | Crea reunión o hito con título, fechas, horas y participantes. | Must / Docente o Admin | HU-CRO-01 |
+| `POST` | `/internal-calendar/events` | Crea reunión o hito con título, fechas, horas y participantes. | Must / Director o delegado del semillero, o Admin | HU-CRO-01 |
 | `GET` | `/internal-calendar/events/{id}` | Consulta detalle y participantes según permisos. | Must / Estudiante, Docente o Admin autorizado | HU-CRO-01 |
-| `PATCH` | `/internal-calendar/events/{id}` | Actualiza evento interno o participantes. | Must / Docente o Admin autorizado | HU-CRO-01 |
-| `DELETE` | `/internal-calendar/events/{id}` | Cancela/elimina lógicamente un evento interno conservando trazabilidad. | Must / Docente o Admin autorizado | HU-CRO-01 |
+| `PATCH` | `/internal-calendar/events/{id}` | Actualiza evento interno o participantes. | Must / Director o delegado del semillero, o Admin | HU-CRO-01 |
+| `DELETE` | `/internal-calendar/events/{id}` | Cancela/elimina lógicamente un evento interno conservando trazabilidad. | Must / Director o delegado del semillero, o Admin | HU-CRO-01 |
 
 ### Módulo 10. Enlaces oficiales
 

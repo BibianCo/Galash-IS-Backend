@@ -185,3 +185,26 @@ func TestLinkAndWithdrawMemberRequireResponsibleOrAdmin(t *testing.T) {
 		t.Errorf("added=%q removed=%q, want student", s.repo.added, s.repo.removed)
 	}
 }
+
+func TestPutDelegatesEndpoint(t *testing.T) {
+	s := newServer(t)
+	body := `{"userIds":["student"]}`
+	expect(t, "anonymous", s.do(t, http.MethodPut, "/seedbeds/public/delegates", "", body), http.StatusUnauthorized)
+	expect(t, "other teacher", s.do(t, http.MethodPut, "/seedbeds/public/delegates", "other", body), http.StatusForbidden)
+	expect(t, "too many", s.do(t, http.MethodPut, "/seedbeds/public/delegates", "teacher", `{"userIds":["a","b","c"]}`), http.StatusBadRequest)
+	expect(t, "missing seedbed", s.do(t, http.MethodPut, "/seedbeds/missing/delegates", "admin", body), http.StatusNotFound)
+	expect(t, "director", s.do(t, http.MethodPut, "/seedbeds/public/delegates", "teacher", body), http.StatusNoContent)
+	expect(t, "delegate cannot reassign", s.do(t, http.MethodPut, "/seedbeds/public/delegates", "student", `{"userIds":[]}`), http.StatusForbidden)
+}
+
+func TestCurrentUserListsManagedSeedbeds(t *testing.T) {
+	s := newServer(t)
+	s.repo.delegates = map[string][]string{"hidden": {"student"}}
+	for user, want := range map[string]string{"student": `"managed_seedbed_ids":["hidden"]`, "other": `"managed_seedbed_ids":[]`} {
+		response := s.do(t, http.MethodGet, "/users/me", user, "")
+		expect(t, user, response, http.StatusOK)
+		if !strings.Contains(response.Body.String(), want) || !strings.Contains(response.Body.String(), `"role"`) {
+			t.Errorf("%s: body=%s, want %s", user, response.Body.String(), want)
+		}
+	}
+}

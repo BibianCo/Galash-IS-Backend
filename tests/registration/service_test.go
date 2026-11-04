@@ -21,7 +21,7 @@ func (r *repository) CreateRegistration(_ context.Context, request domain.Regist
 func (r *repository) GetRegistrationStatus(context.Context, string, string, string) (domain.RegistrationRequest, error) {
 	return domain.RegistrationRequest{}, nil
 }
-func (r *repository) ListRegistrations(context.Context, string, string, string, string, string) ([]domain.RegistrationRequest, error) {
+func (r *repository) ListRegistrations(context.Context, string, string, string, string, string, []string) ([]domain.RegistrationRequest, error) {
 	return nil, nil
 }
 func (r *repository) GetRegistrationDetail(context.Context, string) (domain.RegistrationDetail, error) {
@@ -32,7 +32,7 @@ func (r *repository) UpdateRegistrationStatus(context.Context, string, string, s
 }
 
 func validRequest() domain.RegistrationRequest {
-	return domain.RegistrationRequest{BirthPlace: "Tunja", Address: "Calle 1", CvLAC: "https://cv", ORCID: "https://orcid", HighestEducation: "Maestría", HighestDegree: "Magíster", UndergraduateDegree: "Ingeniería", Affiliation: "Estudiante", ResearcherCategory: "Junior", MinCienciasCall: "2025"}
+	return domain.RegistrationRequest{SeedbedID: "seedbed-id", BirthPlace: "Tunja", Address: "Calle 1", CvLAC: "https://cv", ORCID: "https://orcid", HighestEducation: "Maestría", HighestDegree: "Magíster", UndergraduateDegree: "Ingeniería", Affiliation: "Estudiante", ResearcherCategory: "Junior", MinCienciasCall: "2025"}
 }
 
 func TestCreateRejectsMissingRequiredField(t *testing.T) {

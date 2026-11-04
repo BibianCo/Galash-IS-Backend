@@ -37,6 +37,7 @@ type SeedbedMember struct {
 	Role     string     `json:"role"`
 	JoinedAt time.Time  `json:"joinedAt"`
 	LeftAt   *time.Time `json:"leftAt,omitempty"`
+	Delegate bool       `json:"delegate"`
 }
 
 type ActivitySummary struct {

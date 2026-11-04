@@ -128,6 +128,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /seedbeds/{id}/members", h.listSeedbedMembers)
 	mux.HandleFunc("POST /seedbeds/{id}/members", h.addSeedbedMember)
 	mux.HandleFunc("DELETE /seedbeds/{id}/members/{userId}", h.removeSeedbedMember)
+	mux.HandleFunc("PUT /seedbeds/{id}/delegates", h.setSeedbedDelegates)
 	mux.HandleFunc("POST /registration-requests", h.createRegistration)
 	mux.HandleFunc("GET /registration-requests/{id}/status", h.registrationStatus)
 	mux.HandleFunc("GET /admin/registration-requests", h.listRegistrationRequests)
@@ -207,6 +208,7 @@ type eventRequest struct {
 	MeetingURL      string     `json:"meetingUrl"`
 	ImageURL        string     `json:"imageUrl"`
 	RegistrationURL string     `json:"registrationUrl"`
+	SeedbedID       string     `json:"seedbedId"`
 }
 type eventPatchRequest struct {
 	Title           *string         `json:"title"`
@@ -242,7 +244,7 @@ func eventError(w http.ResponseWriter, err error) {
 	}
 }
 func eventFromRequest(q eventRequest) domain.Event {
-	e := domain.Event{Title: q.Title, Description: q.Description, Type: q.Type, EndAt: q.EndAt, Venue: q.Venue, MeetingURL: q.MeetingURL, ImageURL: q.ImageURL, RegistrationURL: q.RegistrationURL}
+	e := domain.Event{Title: q.Title, Description: q.Description, Type: q.Type, EndAt: q.EndAt, Venue: q.Venue, MeetingURL: q.MeetingURL, ImageURL: q.ImageURL, RegistrationURL: q.RegistrationURL, SeedbedID: q.SeedbedID}
 	if q.StartAt != nil {
 		e.StartAt = *q.StartAt
 	}
@@ -471,7 +473,7 @@ func seedbedError(w http.ResponseWriter, err error) {
 		writeError(w, 404, err.Error())
 	case errors.Is(err, domain.ErrMemberNotFound):
 		writeError(w, 404, err.Error())
-	case errors.Is(err, domain.ErrInvalidSeedbed), errors.Is(err, domain.ErrInvalidTeacher), errors.Is(err, domain.ErrInvalidSeedbedStatus):
+	case errors.Is(err, domain.ErrInvalidSeedbed), errors.Is(err, domain.ErrInvalidTeacher), errors.Is(err, domain.ErrInvalidSeedbedStatus), errors.Is(err, domain.ErrInvalidDelegates):
 		writeError(w, 400, err.Error())
 	case errors.Is(err, domain.ErrDuplicateSeedbed):
 		writeError(w, 409, err.Error())
@@ -709,6 +711,27 @@ func (h *Handler) removeSeedbedMember(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(204)
 }
+func (h *Handler) setSeedbedDelegates(w http.ResponseWriter, r *http.Request) {
+	if !h.seedbedReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q struct {
+		UserIDs []string `json:"userIds"`
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	if err := h.seedbeds.SetDelegates(r.Context(), a.ID, r.PathValue("id"), q.UserIDs); err != nil {
+		seedbedError(w, err)
+		return
+	}
+	w.WriteHeader(204)
+}
 
 func (h *Handler) registrationReady(w http.ResponseWriter) bool {
 	if h.registrations == nil {
@@ -799,14 +822,49 @@ func (h *Handler) adminRegistration(w http.ResponseWriter, r *http.Request) (dom
 	return a, true
 }
 
+// registrationAccess loads a request that Admin or a manager (director or delegate) of its seedbed may handle.
+func (h *Handler) registrationAccess(w http.ResponseWriter, r *http.Request) (domain.User, domain.RegistrationDetail, bool) {
+	a, ok := h.actor(w, r)
+	if !ok {
+		return a, domain.RegistrationDetail{}, false
+	}
+	item, err := h.registrations.Detail(r.Context(), r.PathValue("id"))
+	if errors.Is(err, domain.ErrRegistrationNotFound) {
+		writeError(w, 404, err.Error())
+		return a, item, false
+	}
+	if err != nil {
+		writeError(w, 500, "no fue posible consultar el detalle")
+		return a, item, false
+	}
+	if !strings.EqualFold(a.Role, "admin") && (item.SeedbedID == "" || h.seedbeds == nil || h.seedbeds.CanOperate(r.Context(), a.ID, item.SeedbedID) != nil) {
+		writeError(w, 403, "sin permiso sobre la solicitud")
+		return a, item, false
+	}
+	return a, item, true
+}
+
 func (h *Handler) listRegistrationRequests(w http.ResponseWriter, r *http.Request) {
 	if !h.registrationReady(w) {
 		return
 	}
-	if _, ok := h.adminRegistration(w, r); !ok {
+	a, ok := h.actor(w, r)
+	if !ok {
 		return
 	}
-	items, err := h.registrations.List(r.Context(), r.URL.Query().Get("estado"), r.URL.Query().Get("desde"), r.URL.Query().Get("hasta"), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("responsableId"))
+	var scope []string // nil: Admin sees every request
+	if !strings.EqualFold(a.Role, "admin") {
+		scope = []string{}
+		if h.seedbeds != nil {
+			managed, err := h.seedbeds.ManagedSeedbeds(r.Context(), a.ID)
+			if err != nil {
+				writeError(w, 500, "no fue posible consultar las solicitudes")
+				return
+			}
+			scope = append(scope, managed...)
+		}
+	}
+	items, err := h.registrations.List(r.Context(), r.URL.Query().Get("estado"), r.URL.Query().Get("desde"), r.URL.Query().Get("hasta"), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("responsableId"), scope)
 	if err != nil {
 		writeError(w, 500, "no fue posible consultar las solicitudes")
 		return
@@ -818,26 +876,16 @@ func (h *Handler) registrationDetail(w http.ResponseWriter, r *http.Request) {
 	if !h.registrationReady(w) {
 		return
 	}
-	if _, ok := h.adminRegistration(w, r); !ok {
-		return
+	if _, item, ok := h.registrationAccess(w, r); ok {
+		writeJSON(w, 200, item)
 	}
-	item, err := h.registrations.Detail(r.Context(), r.PathValue("id"))
-	if errors.Is(err, domain.ErrRegistrationNotFound) {
-		writeError(w, 404, err.Error())
-		return
-	}
-	if err != nil {
-		writeError(w, 500, "no fue posible consultar el detalle")
-		return
-	}
-	writeJSON(w, 200, item)
 }
 
 func (h *Handler) updateRegistrationStatus(w http.ResponseWriter, r *http.Request) {
 	if !h.registrationReady(w) {
 		return
 	}
-	actor, ok := h.adminRegistration(w, r)
+	actor, _, ok := h.registrationAccess(w, r)
 	if !ok {
 		return
 	}
@@ -1636,7 +1684,17 @@ func (h *Handler) currentUser(w http.ResponseWriter, r *http.Request) {
 		invalidSession(w, r, "sesión inválida o expirada")
 		return
 	}
-	writeJSON(w, http.StatusOK, user)
+	managed := []string{}
+	if h.seedbeds != nil {
+		if managed, err = h.seedbeds.ManagedSeedbeds(r.Context(), user.ID); err != nil {
+			writeError(w, http.StatusInternalServerError, "no fue posible consultar el perfil")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, struct {
+		domain.User
+		ManagedSeedbedIDs []string `json:"managed_seedbed_ids"`
+	}{user, managed})
 }
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {

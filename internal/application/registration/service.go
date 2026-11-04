@@ -41,8 +41,9 @@ func (s *Service) Status(ctx context.Context, id, token, userID string) (domain.
 	return s.repository.GetRegistrationStatus(ctx, id, hashToken(token), userID)
 }
 
-func (s *Service) List(ctx context.Context, status, from, to, seedbedID, responsibleID string) ([]domain.RegistrationRequest, error) {
-	return s.repository.ListRegistrations(ctx, status, from, to, seedbedID, responsibleID)
+// List restricts results to seedbedIDs unless it is nil (Admin).
+func (s *Service) List(ctx context.Context, status, from, to, seedbedID, responsibleID string, seedbedIDs []string) ([]domain.RegistrationRequest, error) {
+	return s.repository.ListRegistrations(ctx, status, from, to, seedbedID, responsibleID, seedbedIDs)
 }
 
 func (s *Service) Detail(ctx context.Context, id string) (domain.RegistrationDetail, error) {
@@ -58,7 +59,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id, status, observation, res
 }
 
 func validate(r domain.RegistrationRequest) error {
-	fields := []string{r.BirthPlace, r.Address, r.CvLAC, r.ORCID, r.HighestEducation, r.HighestDegree, r.UndergraduateDegree, r.Affiliation, r.ResearcherCategory, r.MinCienciasCall}
+	fields := []string{r.SeedbedID, r.BirthPlace, r.Address, r.CvLAC, r.ORCID, r.HighestEducation, r.HighestDegree, r.UndergraduateDegree, r.Affiliation, r.ResearcherCategory, r.MinCienciasCall}
 	for _, field := range fields {
 		if strings.TrimSpace(field) == "" {
 			return domain.ErrIncompleteRegistration
