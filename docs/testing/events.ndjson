@@ -490,3 +490,44 @@
 {"v": 1, "id": "R084", "t": "run", "at": "2026-11-04T00:00:00Z", "build": "bd98b69+wip", "by": "agent", "mode": "automated", "cmd": "go test ./tests/... -count=1 con TEST_DATABASE_URL en contenedor desechable postgres:16-alpine + database/init.sql"}
 {"v": 1, "id": "X244", "t": "result", "run": "R084", "test": "T119", "s": "pass", "ev": ["tests/registration: TestRepositoryReadsPersonalDataFromAccount"]}
 {"v": 1, "id": "X245", "t": "result", "run": "R084", "test": "T120", "s": "pass", "ev": ["tests/seedbed: TestRepositoryDelegatesAreActiveMembersOnly"]}
+{"v":1,"id":"T121","t":"test","area":"module-9-internal-calendar","p":"must","name":"Rechaza tipo y rango de fechas inválidos"}
+{"v":1,"id":"T122","t":"test","area":"module-9-internal-calendar","p":"must","name":"Restringe creación a Docente o Admin"}
+{"v":1,"id":"R085","t":"run","at":"2026-11-04T00:00:00Z","build":"merge-main-module-9","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X246","t":"result","run":"R085","test":"T121","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"X247","t":"result","run":"R085","test":"T122","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T123","t":"test","area":"module-9-internal-calendar","p":"must","name":"GET de cronograma sin seedbedId no convierte cadena vacía a UUID y responde 200"}
+{"v":1,"id":"R086","t":"run","at":"2026-11-04T00:00:00Z","build":"module-9-empty-seedbed-filter-fix","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X248","t":"result","run":"R086","test":"T123","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T124","t":"test","area":"module-9-internal-calendar","p":"must","name":"HTTP M9: sesión obligatoria, estudiante solo consulta su semillero y no escribe (PT-CRO-01, PT-TR-01)","file":"tests/internalcalendar/http_test.go","fn":"TestCalendarAccessControl"}
+{"v":1,"id":"T125","t":"test","area":"module-9-internal-calendar","p":"must","name":"HTTP M9: validación de payload, tipo, rango, participantes y filtros from/to/view (PT-CRO-01)","file":"tests/internalcalendar/http_test.go","fn":"TestCalendarCreateValidation"}
+{"v":1,"id":"T126","t":"test","area":"module-9-internal-calendar","p":"must","name":"HTTP M9: PATCH parcial, conflicto 409, cancelación lógica e idempotencia (PT-CRO-01, TDB-T08)","file":"tests/internalcalendar/http_test.go","fn":"TestCalendarPatchConflictAndCancel"}
+{"v":1,"id":"T127","t":"test","area":"module-9-internal-calendar","p":"must","name":"PostgreSQL M9: persiste participantes, historial creado/actualizado/cancelado y conserva evento cancelado (TDB-T01, TDB-T08)","file":"tests/internalcalendar/repository_test.go","fn":"TestRepositoryPersistsParticipantsHistoryAndCancel"}
+{"v":1,"id":"T128","t":"test","area":"module-9-internal-calendar","p":"must","name":"PostgreSQL M9: visibilidad por semillero/rol, retirados y filtros por semillero y rango (PT-CRO-01, TDB-T12)","file":"tests/internalcalendar/repository_test.go","fn":"TestRepositoryVisibilityAndFilters"}
+{"v":1,"id":"T129","t":"test","area":"module-9-internal-calendar","p":"must","name":"PostgreSQL M9: integridad de participantes/semillero, CHECK de tipo/estado, rollback y conflictos de horario (TDB-T02, TDB-T03)","file":"tests/internalcalendar/repository_test.go","fn":"TestRepositoryIntegrityAndConflicts"}
+{"v":1,"id":"T130","t":"test","area":"module-9-internal-calendar","p":"must","name":"Servicio+PostgreSQL M9: solo director, delegado del semillero o Admin crean, actualizan y cancelan (PT-TR-01, contrato M9)","file":"tests/internalcalendar/repository_test.go","fn":"TestServiceRestrictsWritesToSeedbedManagers"}
+{"v":1,"id":"E007","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local; ephemeral PostgreSQL 16 (postgres:16-alpine, container galash-test-m9) on localhost:55439 initialized from database/init.sql, removed after run"}
+{"v":1,"id":"R087","t":"run","at":"2026-11-04T20:05:00Z","build":"520aa26+tests","env":"E007","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; go vet ./tests/internalcalendar/; git diff --check"}
+{"v":1,"id":"X249","t":"result","run":"R087","test":"T124","s":"pass","ev":["R087/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X250","t":"result","run":"R087","test":"T125","s":"pass","ev":["R087/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X251","t":"result","run":"R087","test":"T126","s":"pass","ev":["R087/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X252","t":"result","run":"R087","test":"T127","s":"pass","ev":["R087/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X253","t":"result","run":"R087","test":"T128","s":"pass","ev":["R087/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X254","t":"result","run":"R087","test":"T129","s":"fail","ev":["R087/internalcalendar-go-test.txt"],"defect":"D027"}
+{"v":1,"id":"X255","t":"result","run":"R087","test":"T130","s":"fail","ev":["R087/internalcalendar-go-test.txt"],"defect":["D025","D026"]}
+{"v":1,"id":"D025","t":"defect","test":"T130","run":"R087","sev":"high","s":"open","name":"M9: cualquier Docente crea eventos en cualquier semillero; Create no verifica director/delegado del semillero exigido por el contrato (internalcalendar/service.go Create)"}
+{"v":1,"id":"D026","t":"defect","test":"T130","run":"R087","sev":"medium","s":"open","name":"M9: delegados del semillero (semillero_miembros.delegado) no pueden crear, actualizar ni cancelar; roleAllowed excluye Estudiante y CanManage ignora delegados"}
+{"v":1,"id":"D027","t":"defect","test":"T129","run":"R087","sev":"medium","s":"open","name":"M9: HasConflict nunca detecta solapes al crear; c.id<>NULLIF('','')::uuid evalúa NULL y POST acepta horarios en conflicto (409 solo funciona en PATCH)"}
+{"v":1,"id":"T131","t":"test","area":"module-9-internal-calendar","p":"must","name":"Servicio M9: creación exige director/delegado del semillero o Admin, no rol Docente (reemplaza T115/T122, contrato M9)","file":"tests/internalcalendar/service_test.go","fn":"TestCreateRequiresSeedbedManager"}
+{"v":1,"id":"R088","t":"run","at":"2026-11-04T20:30:00Z","build":"520aa26+fix-D025-D026-D027","env":"E007","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; go vet ./internal/... ./tests/internalcalendar/; git diff --check"}
+{"v":1,"id":"X256","t":"result","run":"R088","test":"T124","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X257","t":"result","run":"R088","test":"T125","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X258","t":"result","run":"R088","test":"T126","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X259","t":"result","run":"R088","test":"T127","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X260","t":"result","run":"R088","test":"T128","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X261","t":"result","run":"R088","test":"T129","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X262","t":"result","run":"R088","test":"T130","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X263","t":"result","run":"R088","test":"T131","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"X264","t":"result","run":"R088","test":"T121","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
+{"v":1,"id":"D025","t":"defect","test":"T130","run":"R088","sev":"high","s":"closed","name":"Corregido: Create/Update/Cancel exigen CanManage (director o delegado activo del semillero, o Admin) en vez del rol Docente"}
+{"v":1,"id":"D026","t":"defect","test":"T130","run":"R088","sev":"medium","s":"closed","name":"Corregido: CanManage incluye delegados activos (semillero_miembros.delegado, no retirados, cuenta activa) de cualquier rol"}
+{"v":1,"id":"D027","t":"defect","test":"T129","run":"R088","sev":"medium","s":"closed","name":"Corregido: HasConflict usa IS DISTINCT FROM para la exclusión vacía; POST detecta solapes"}

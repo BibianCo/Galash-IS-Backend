@@ -1,0 +1,26 @@
+=== RUN   TestCalendarAccessControl
+--- PASS: TestCalendarAccessControl (0.00s)
+=== RUN   TestCalendarCreateValidation
+--- PASS: TestCalendarCreateValidation (0.00s)
+=== RUN   TestCalendarPatchConflictAndCancel
+--- PASS: TestCalendarPatchConflictAndCancel (0.00s)
+=== RUN   TestRepositoryPersistsParticipantsHistoryAndCancel
+--- PASS: TestRepositoryPersistsParticipantsHistoryAndCancel (0.11s)
+=== RUN   TestRepositoryVisibilityAndFilters
+--- PASS: TestRepositoryVisibilityAndFilters (0.11s)
+=== RUN   TestRepositoryIntegrityAndConflicts
+    repository_test.go:264: overlap shared participant: conflict = false, <nil>; want true
+--- FAIL: TestRepositoryIntegrityAndConflicts (0.09s)
+=== RUN   TestServiceRestrictsWritesToSeedbedManagers
+    repository_test.go:285: docente outside seedbed A creates event: err = <nil>, want forbidden
+    repository_test.go:307: delegate create: err = no tiene permisos para esta operación, want success
+    repository_test.go:311: delegate update: err = no tiene permisos para esta operación, want success
+    repository_test.go:314: delegate cancel: err = no tiene permisos para esta operación, want success
+--- FAIL: TestServiceRestrictsWritesToSeedbedManagers (0.08s)
+=== RUN   TestCreateRejectsInvalidTypeAndRange
+--- PASS: TestCreateRejectsInvalidTypeAndRange (0.00s)
+=== RUN   TestCreateRequiresTeacherOrAdmin
+--- PASS: TestCreateRequiresTeacherOrAdmin (0.00s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/internalcalendar	0.393s
+FAIL

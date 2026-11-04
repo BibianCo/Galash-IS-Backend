@@ -44,3 +44,7 @@ var ErrInvalidContentTransition = errors.New("la página institucional no puede 
 var ErrAnnouncementNotFound = errors.New("comunicado no encontrado")
 var ErrInvalidAnnouncement = errors.New("el título, la descripción y los adjuntos válidos son obligatorios")
 var ErrInvalidAnnouncementTransition = errors.New("el comunicado no puede editarse o publicarse en su estado actual")
+var ErrInternalCalendarNotFound = errors.New("evento del cronograma interno no encontrado")
+var ErrInvalidInternalCalendar = errors.New("el tipo, título, semillero, participantes y rango de fechas del evento son inválidos")
+var ErrInternalCalendarConflict = errors.New("ya existe un evento del cronograma en el mismo horario para un participante")
+var ErrInvalidInternalCalendarTransition = errors.New("el evento del cronograma ya está cancelado")

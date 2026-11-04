@@ -14,6 +14,7 @@ import (
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
+	calendarapp "github.com/galash-uptc/backend/internal/application/internalcalendar"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	researchapp "github.com/galash-uptc/backend/internal/application/research"
@@ -53,6 +54,7 @@ type Handler struct {
 	events        *eventapp.Service
 	content       *contentapp.Service
 	announcements *announcementapp.Service
+	calendar      *calendarapp.Service
 	db            ports.HealthChecker
 }
 
@@ -88,6 +90,11 @@ func NewHandlerWithContent(service *application.Service, db ports.HealthChecker,
 func NewHandlerWithAnnouncements(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service) *Handler {
 	h := NewHandlerWithContent(service, db, seedbed, registration, research, members, events, content)
 	h.announcements = announcements
+	return h
+}
+func NewHandlerWithCalendar(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service, calendar *calendarapp.Service) *Handler {
+	h := NewHandlerWithAnnouncements(service, db, seedbed, registration, research, members, events, content, announcements)
+	h.calendar = calendar
 	return h
 }
 
@@ -173,6 +180,11 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /announcements/{id}/publish", h.publishAnnouncement)
 	mux.HandleFunc("POST /announcements/{id}/read-confirmations", h.confirmAnnouncementRead)
 	mux.HandleFunc("GET /announcements/{id}/read-status", h.announcementReadStatus)
+	mux.HandleFunc("GET /internal-calendar/events", h.listInternalCalendar)
+	mux.HandleFunc("POST /internal-calendar/events", h.createInternalCalendar)
+	mux.HandleFunc("GET /internal-calendar/events/{id}", h.getInternalCalendar)
+	mux.HandleFunc("PATCH /internal-calendar/events/{id}", h.updateInternalCalendar)
+	mux.HandleFunc("DELETE /internal-calendar/events/{id}", h.deleteInternalCalendar)
 	return localCORS(mux)
 }
 

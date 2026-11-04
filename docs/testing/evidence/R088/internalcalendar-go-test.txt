@@ -1,0 +1,20 @@
+=== RUN   TestCalendarAccessControl
+--- PASS: TestCalendarAccessControl (0.00s)
+=== RUN   TestCalendarCreateValidation
+--- PASS: TestCalendarCreateValidation (0.00s)
+=== RUN   TestCalendarPatchConflictAndCancel
+--- PASS: TestCalendarPatchConflictAndCancel (0.00s)
+=== RUN   TestRepositoryPersistsParticipantsHistoryAndCancel
+--- PASS: TestRepositoryPersistsParticipantsHistoryAndCancel (0.07s)
+=== RUN   TestRepositoryVisibilityAndFilters
+--- PASS: TestRepositoryVisibilityAndFilters (0.08s)
+=== RUN   TestRepositoryIntegrityAndConflicts
+--- PASS: TestRepositoryIntegrityAndConflicts (0.08s)
+=== RUN   TestServiceRestrictsWritesToSeedbedManagers
+--- PASS: TestServiceRestrictsWritesToSeedbedManagers (0.09s)
+=== RUN   TestCreateRejectsInvalidTypeAndRange
+--- PASS: TestCreateRejectsInvalidTypeAndRange (0.00s)
+=== RUN   TestCreateRequiresSeedbedManager
+--- PASS: TestCreateRequiresSeedbedManager (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/internalcalendar	0.323s
