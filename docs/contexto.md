@@ -52,7 +52,9 @@ GALASH-UPTC web system for academic management, research, and communication.
 - El módulo 9 implementa el cronograma interno con cinco rutas para consultar,
   crear, detallar, actualizar y cancelar lógicamente reuniones, tutorías e hitos
   por semillero y participantes; conserva historial y restringe la visibilidad
-  de estudiantes a sus semilleros.
+  de estudiantes a sus semilleros. Solo el director, un delegado activo del
+  semillero o Admin crean, actualizan y cancelan; los solapes de horario de un
+  participante se rechazan al crear y al actualizar.
 
 ## Record
 

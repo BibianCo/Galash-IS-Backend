@@ -184,13 +184,17 @@ func (r *InternalCalendarRepository) CanManage(ctx context.Context, e domain.Int
 	if role == "admin" || role == "Admin" {
 		return true, nil
 	}
+	// Contract M9: only the seedbed director or an active delegate manages its calendar.
+	// Compared as text so an invalid seedbed ID is simply "not a manager".
 	var ok bool
-	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM semilleros WHERE id=$1 AND lider_id=$2) OR $2=$3`, e.SeedbedID, actorID, e.OrganizerID).Scan(&ok)
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM semilleros WHERE id::text=$1 AND lider_id::text=$2)
+		OR EXISTS(SELECT 1 FROM semillero_miembros sm JOIN usuarios u ON u.id=sm.usuario_id
+			WHERE sm.semillero_id::text=$1 AND sm.usuario_id::text=$2 AND sm.delegado AND sm.retirado_en IS NULL AND u.estado='activo')`, e.SeedbedID, actorID).Scan(&ok)
 	return ok, err
 }
 func (r *InternalCalendarRepository) HasConflict(ctx context.Context, e domain.InternalCalendarEvent, exclude string) (bool, error) {
 	var ok bool
-	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM cronograma_interno c JOIN cronograma_interno_participantes p ON p.evento_id=c.id WHERE c.id<>NULLIF($1,'')::uuid AND c.estado='activo' AND c.inicia_en<$3 AND c.termina_en>$2 AND p.usuario_id=ANY($4::uuid[]))`, exclude, e.StartAt, e.EndAt, e.ParticipantIDs).Scan(&ok)
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM cronograma_interno c JOIN cronograma_interno_participantes p ON p.evento_id=c.id WHERE c.id IS DISTINCT FROM NULLIF($1,'')::uuid AND c.estado='activo' AND c.inicia_en<$3 AND c.termina_en>$2 AND p.usuario_id=ANY($4::uuid[]))`, exclude, e.StartAt, e.EndAt, e.ParticipantIDs).Scan(&ok)
 	return ok, err
 }
 func (r *InternalCalendarRepository) Cancel(ctx context.Context, id, actorID string) (domain.InternalCalendarEvent, error) {

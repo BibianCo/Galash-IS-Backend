@@ -458,3 +458,16 @@ IDs asignados reutilizan casos existentes de esta matriz; PT-COM-* sigue la conv
 |`TestRepositoryAdminFindsListedDraft`|`tests/announcements/repository_test.go`|TDB-T08|Admin consulta borrador listado (D023, corregido en 29757d1).|
 |`TestRepositoryReadConfirmation`|`tests/announcements/repository_test.go`|TDB-T03, TDB-T12|Sin lectura en borrador, conserva primera fecha, estado por docente activo.|
 |`TestRepositoryReferentialIntegrity`|`tests/announcements/repository_test.go`|TDB-T02|FK de autor y cascada de lecturas.|
+
+## Trazabilidad de pruebas automatizadas: cronograma interno (M9)
+IDs asignados reutilizan casos existentes de esta matriz; PT-CRO-01 sigue la convención PT-<sufijo>→HU-<sufijo> (HU-CRO-01).
+|Prueba automatizada|Archivo|ID(s) de matriz|Correspondencia|
+|---|---|---|---|
+|`TestCalendarAccessControl`|`tests/internalcalendar/http_test.go`|PT-CRO-01, PT-TR-01|401 sin sesión en las 5 rutas; estudiante consulta su semillero y recibe 403 al crear, editar o cancelar; ajeno no ve el evento.|
+|`TestCalendarCreateValidation`|`tests/internalcalendar/http_test.go`|PT-CRO-01|JSON, tipo, rango, título, semillero y participantes inválidos (400); filtros `from`/`to`/`view` y rango semanal/mensual.|
+|`TestCalendarPatchConflictAndCancel`|`tests/internalcalendar/http_test.go`|PT-CRO-01, TDB-T08|PATCH parcial, 409 por solape, cancelación lógica, doble cancelación y edición de cancelado (400).|
+|`TestRepositoryPersistsParticipantsHistoryAndCancel`|`tests/internalcalendar/repository_test.go`|TDB-T01, TDB-T08|Participantes con datos, historial creado/actualizado/cancelado y evento cancelado consultable.|
+|`TestRepositoryVisibilityAndFilters`|`tests/internalcalendar/repository_test.go`|PT-CRO-01, TDB-T12|Estudiante solo ve su semillero; retirado pierde acceso; filtros por semillero y rango.|
+|`TestRepositoryIntegrityAndConflicts`|`tests/internalcalendar/repository_test.go`|TDB-T02, TDB-T03|Participante ajeno/retirado/inexistente, semillero inexistente, CHECK de tipo/estado, rollback y conflictos de horario (D027, corregido en R088).|
+|`TestServiceRestrictsWritesToSeedbedManagers`|`tests/internalcalendar/repository_test.go`|PT-TR-01, PT-CRO-01|Solo director, delegado o Admin escriben según contrato M9 (D025 y D026, corregidos en R088).|
+|`TestCreateRequiresSeedbedManager`|`tests/internalcalendar/service_test.go`|PT-TR-01|Docente no gestor rechazado; delegado estudiante crea (reemplaza `TestCreateRequiresTeacherOrAdmin`).|

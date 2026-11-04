@@ -29,6 +29,18 @@ func valid(e domain.InternalCalendarEvent) bool {
 	return e.SeedbedID != "" && strings.TrimSpace(e.Title) != "" && !e.StartAt.IsZero() && !e.EndAt.IsZero() && e.EndAt.After(e.StartAt) && (typ == "reunion" || typ == "tutoria" || typ == "hito") && len(e.ParticipantIDs) > 0
 }
 
+// manager enforces contract M9 writes: seedbed director, active delegate (any member role) or Admin.
+func (s *Service) manager(ctx context.Context, e domain.InternalCalendarEvent, actor domain.User) error {
+	can, err := s.repo.CanManage(ctx, e, actor.ID, actor.Role)
+	if err != nil {
+		return err
+	}
+	if !can {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
 func (s *Service) List(ctx context.Context, actor domain.User, seedbedID string, from, to *time.Time) ([]domain.InternalCalendarEvent, error) {
 	if !roleAllowed(actor.Role, "estudiante", "docente", "profesor", "admin") {
 		return nil, domain.ErrForbidden
@@ -40,11 +52,11 @@ func (s *Service) List(ctx context.Context, actor domain.User, seedbedID string,
 }
 
 func (s *Service) Create(ctx context.Context, e domain.InternalCalendarEvent, actor domain.User) (domain.InternalCalendarEvent, error) {
-	if !roleAllowed(actor.Role, "docente", "profesor", "admin") {
-		return e, domain.ErrForbidden
-	}
 	if !valid(e) {
 		return e, domain.ErrInvalidInternalCalendar
+	}
+	if err := s.manager(ctx, e, actor); err != nil {
+		return e, err
 	}
 	e.OrganizerID = actor.ID
 	conflict, err := s.repo.HasConflict(ctx, e, "")
@@ -66,19 +78,12 @@ func (s *Service) Find(ctx context.Context, id string, actor domain.User) (domai
 }
 
 func (s *Service) Update(ctx context.Context, id string, e domain.InternalCalendarEvent, actor domain.User) (domain.InternalCalendarEvent, error) {
-	if !roleAllowed(actor.Role, "docente", "profesor", "admin") {
-		return e, domain.ErrForbidden
-	}
 	old, err := s.repo.Find(ctx, actor.ID, actor.Role, id)
 	if err != nil {
 		return e, err
 	}
-	can, err := s.repo.CanManage(ctx, old, actor.ID, actor.Role)
-	if err != nil {
+	if err := s.manager(ctx, old, actor); err != nil {
 		return e, err
-	}
-	if !can {
-		return e, domain.ErrForbidden
 	}
 	if old.Status == "cancelado" {
 		return e, domain.ErrInvalidInternalCalendarTransition
@@ -98,19 +103,12 @@ func (s *Service) Update(ctx context.Context, id string, e domain.InternalCalend
 }
 
 func (s *Service) Cancel(ctx context.Context, id string, actor domain.User) (domain.InternalCalendarEvent, error) {
-	if !roleAllowed(actor.Role, "docente", "profesor", "admin") {
-		return domain.InternalCalendarEvent{}, domain.ErrForbidden
-	}
 	e, err := s.repo.Find(ctx, actor.ID, actor.Role, id)
 	if err != nil {
 		return e, err
 	}
-	can, err := s.repo.CanManage(ctx, e, actor.ID, actor.Role)
-	if err != nil {
+	if err := s.manager(ctx, e, actor); err != nil {
 		return e, err
-	}
-	if !can {
-		return e, domain.ErrForbidden
 	}
 	if e.Status == "cancelado" {
 		return e, domain.ErrInvalidInternalCalendarTransition

@@ -143,9 +143,10 @@ crearlo; `400` si no existe). Sin `seedbedId` crea `Docente` o `Admin`; con
 
 M9 usa `seedbedId`, `type` (`reunion`, `tutoria` o `hito`), `title`, `description`,
 `startAt`, `endAt` y `participantIds`. Las fechas son RFC3339. Los estudiantes
-solo consultan eventos del semillero al que pertenecen; Docente y Admin crean,
-actualizan y cancelan según autorización. La eliminación es lógica y conserva
-historial.
+solo consultan eventos del semillero al que pertenecen; el director o un
+delegado del semillero (o Admin) crean, actualizan y cancelan (`403` en otro
+caso). Un solape de horario de un participante responde `409`. La eliminación
+es lógica y conserva historial.
 
 Fuera de contrato: `- /health` infraestructura · `- /users/roles` alias de
 `PUT /users/{userId}/roles`. `GET /admin/members` responde `400` sin `q`.

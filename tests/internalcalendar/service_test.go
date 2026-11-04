@@ -18,15 +18,18 @@ func TestCreateRejectsInvalidTypeAndRange(t *testing.T) {
 	}
 }
 
-func TestCreateRequiresTeacherOrAdmin(t *testing.T) {
-	s := calendarapp.NewService(&fakeRepository{})
+// Contract M9: writes depend on being seedbed director/delegate or Admin, not on the Docente role.
+func TestCreateRequiresSeedbedManager(t *testing.T) {
 	e := domain.InternalCalendarEvent{SeedbedID: "seedbed", Type: "hito", Title: "Entrega", StartAt: time.Now(), EndAt: time.Now().Add(time.Hour), ParticipantIDs: []string{"student"}}
-	if _, err := s.Create(context.Background(), e, domain.User{ID: "student", Role: "estudiante"}); err != domain.ErrForbidden {
-		t.Fatalf("error = %v, want forbidden", err)
+	if _, err := calendarapp.NewService(&fakeRepository{}).Create(context.Background(), e, domain.User{ID: "teacher", Role: "docente"}); err != domain.ErrForbidden {
+		t.Fatalf("non-manager docente error = %v, want forbidden", err)
+	}
+	if _, err := calendarapp.NewService(&fakeRepository{manager: true}).Create(context.Background(), e, domain.User{ID: "delegate", Role: "estudiante"}); err != nil {
+		t.Fatalf("delegate student error = %v, want nil", err)
 	}
 }
 
-type fakeRepository struct{}
+type fakeRepository struct{ manager bool }
 
 func (*fakeRepository) List(context.Context, string, string, string, *time.Time, *time.Time) ([]domain.InternalCalendarEvent, error) {
 	return nil, nil
@@ -43,8 +46,8 @@ func (*fakeRepository) Update(context.Context, domain.InternalCalendarEvent) (do
 func (*fakeRepository) Cancel(context.Context, string, string) (domain.InternalCalendarEvent, error) {
 	return domain.InternalCalendarEvent{}, nil
 }
-func (*fakeRepository) CanManage(context.Context, domain.InternalCalendarEvent, string, string) (bool, error) {
-	return true, nil
+func (r *fakeRepository) CanManage(context.Context, domain.InternalCalendarEvent, string, string) (bool, error) {
+	return r.manager, nil
 }
 func (*fakeRepository) HasConflict(context.Context, domain.InternalCalendarEvent, string) (bool, error) {
 	return false, nil
