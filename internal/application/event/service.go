@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,12 +12,13 @@ import (
 )
 
 type Service struct {
-	repo  ports.EventRepository
-	users ports.UserReader
+	repo     ports.EventRepository
+	users    ports.UserReader
+	seedbeds ports.SeedbedRepository
 }
 
-func NewService(repo ports.EventRepository, users ports.UserReader) *Service {
-	return &Service{repo: repo, users: users}
+func NewService(repo ports.EventRepository, users ports.UserReader, seedbeds ports.SeedbedRepository) *Service {
+	return &Service{repo: repo, users: users, seedbeds: seedbeds}
 }
 
 func isRole(u domain.User, roles ...string) bool {
@@ -28,15 +30,25 @@ func isRole(u domain.User, roles ...string) bool {
 	return false
 }
 
-func (s *Service) actorCanManage(ctx context.Context, actor, owner string) error {
+// actorCanManage allows Admin, the organizing Docente, or a manager (director or delegate) of the event's seedbed.
+func (s *Service) actorCanManage(ctx context.Context, actor string, e domain.Event) error {
 	u, err := s.users.FindByID(ctx, actor)
-	if err != nil || !isRole(u, "admin", "docente", "profesor") {
+	if err != nil {
 		return domain.ErrForbidden
 	}
-	if !isRole(u, "admin") && actor != owner {
-		return domain.ErrForbidden
+	if isRole(u, "admin") || isRole(u, "docente", "profesor") && actor == e.OrganizerID {
+		return nil
 	}
-	return nil
+	if e.SeedbedID != "" && s.seedbeds != nil {
+		managed, err := s.seedbeds.ManagedSeedbeds(ctx, actor)
+		if err != nil {
+			return err
+		}
+		if slices.Contains(managed, e.SeedbedID) {
+			return nil
+		}
+	}
+	return domain.ErrForbidden
 }
 
 func validURL(value string) bool {
@@ -86,15 +98,26 @@ func (s *Service) FindForUpdate(ctx context.Context, id, actor string) (domain.E
 	if err != nil {
 		return e, err
 	}
-	if err := s.actorCanManage(ctx, actor, e.OrganizerID); err != nil {
+	if err := s.actorCanManage(ctx, actor, e); err != nil {
 		return domain.Event{}, err
 	}
 	return e, nil
 }
 
 func (s *Service) Create(ctx context.Context, event domain.Event, actor string) (domain.Event, error) {
-	u, err := s.users.FindByID(ctx, actor)
-	if err != nil || !isRole(u, "admin", "docente", "profesor") {
+	event.SeedbedID = strings.TrimSpace(event.SeedbedID)
+	if event.SeedbedID != "" {
+		if s.seedbeds == nil {
+			return event, domain.ErrInvalidEvent
+		}
+		if _, err := s.seedbeds.Find(ctx, event.SeedbedID); err != nil {
+			return event, domain.ErrInvalidEvent
+		}
+		// The creator becomes organizer, so a seedbed event must come from Admin or one of its managers.
+		if err := s.actorCanManage(ctx, actor, domain.Event{SeedbedID: event.SeedbedID}); err != nil {
+			return event, err
+		}
+	} else if u, err := s.users.FindByID(ctx, actor); err != nil || !isRole(u, "admin", "docente", "profesor") {
 		return event, domain.ErrForbidden
 	}
 	if !validEvent(event) {
@@ -117,7 +140,7 @@ func (s *Service) Find(ctx context.Context, id string, actor string) (domain.Eve
 		return e, err
 	}
 	if e.Status != "publicado" {
-		if actor == "" || s.actorCanManage(ctx, actor, e.OrganizerID) != nil {
+		if actor == "" || s.actorCanManage(ctx, actor, e) != nil {
 			return domain.Event{}, domain.ErrEventNotFound
 		}
 	}
@@ -129,13 +152,13 @@ func (s *Service) Update(ctx context.Context, id string, update domain.Event, ac
 	if err != nil {
 		return update, err
 	}
-	if err = s.actorCanManage(ctx, actor, old.OrganizerID); err != nil {
+	if err = s.actorCanManage(ctx, actor, old); err != nil {
 		return update, err
 	}
 	if old.Status == "cancelado" {
 		return update, domain.ErrInvalidEventTransition
 	}
-	update.ID, update.OrganizerID, update.Status = old.ID, old.OrganizerID, old.Status
+	update.ID, update.OrganizerID, update.Status, update.SeedbedID = old.ID, old.OrganizerID, old.Status, old.SeedbedID
 	if !validEvent(update) {
 		return update, domain.ErrInvalidEvent
 	}
@@ -154,7 +177,7 @@ func (s *Service) SetStatus(ctx context.Context, id, status, actor string) (doma
 	if err != nil {
 		return e, err
 	}
-	if err = s.actorCanManage(ctx, actor, e.OrganizerID); err != nil {
+	if err = s.actorCanManage(ctx, actor, e); err != nil {
 		return e, err
 	}
 	if status == "publicado" && e.Status != "borrador" && e.Status != "oculto" {

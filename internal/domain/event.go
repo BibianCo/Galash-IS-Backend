@@ -11,6 +11,7 @@ type Event struct {
 	EndAt           *time.Time `json:"endAt,omitempty"`
 	OrganizerID     string     `json:"organizerId"`
 	OrganizerName   string     `json:"organizerName,omitempty"`
+	SeedbedID       string     `json:"seedbedId,omitempty"`
 	Venue           string     `json:"venue"`
 	MeetingURL      string     `json:"meetingUrl"`
 	ImageURL        string     `json:"imageUrl"`

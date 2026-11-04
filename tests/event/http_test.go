@@ -15,6 +15,7 @@ import (
 	authapp "github.com/galash-uptc/backend/internal/application/auth"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
 	"github.com/galash-uptc/backend/internal/domain"
+	"github.com/galash-uptc/backend/internal/ports"
 )
 
 type healthChecker struct{}
@@ -129,6 +130,22 @@ func (r *repository) HasConflict(_ context.Context, e domain.Event, excludeID st
 	return false, nil
 }
 
+// seedbeds: "sb" is directed by "teacher" and "delegate" is its delegate.
+type seedbeds struct{ ports.SeedbedRepository }
+
+func (seedbeds) Find(_ context.Context, id string) (domain.Seedbed, error) {
+	if id != "sb" {
+		return domain.Seedbed{}, domain.ErrSeedbedNotFound
+	}
+	return domain.Seedbed{ID: id, ResponsibleTeacherID: "teacher"}, nil
+}
+func (seedbeds) ManagedSeedbeds(_ context.Context, uid string) ([]string, error) {
+	if uid == "teacher" || uid == "delegate" {
+		return []string{"sb"}, nil
+	}
+	return []string{}, nil
+}
+
 type server struct {
 	handler http.Handler
 	auth    *authapp.Service
@@ -138,14 +155,15 @@ type server struct {
 func newServer(t *testing.T) server {
 	t.Helper()
 	u := users{
-		"admin":   {ID: "admin", Role: "admin", Status: "activo"},
-		"teacher": {ID: "teacher", Role: "docente", Status: "activo"},
-		"other":   {ID: "other", Role: "profesor", Status: "activo"},
-		"student": {ID: "student", Role: "estudiante", Status: "activo"},
+		"admin":    {ID: "admin", Role: "admin", Status: "activo"},
+		"teacher":  {ID: "teacher", Role: "docente", Status: "activo"},
+		"other":    {ID: "other", Role: "profesor", Status: "activo"},
+		"student":  {ID: "student", Role: "estudiante", Status: "activo"},
+		"delegate": {ID: "delegate", Role: "estudiante", Status: "activo"},
 	}
 	repo := &repository{events: map[string]domain.Event{}}
 	auth := authapp.NewService(verifier{}, &authStore{users: u, sessions: map[string]string{}})
-	handler := httpadapter.NewHandlerWithEvents(auth, healthChecker{}, nil, nil, nil, nil, eventapp.NewService(repo, u)).Routes()
+	handler := httpadapter.NewHandlerWithEvents(auth, healthChecker{}, nil, nil, nil, nil, eventapp.NewService(repo, u, seedbeds{})).Routes()
 	return server{handler: handler, auth: auth, repo: repo}
 }
 
@@ -333,4 +351,25 @@ func TestAgendaFiltersAndDetail(t *testing.T) {
 	expect(t, "draft other teacher", s.do(t, http.MethodGet, "/events/"+draft.ID, "other", ""), http.StatusNotFound)
 	expect(t, "draft owner", s.do(t, http.MethodGet, "/events/"+draft.ID, "teacher", ""), http.StatusOK)
 	expect(t, "draft admin", s.do(t, http.MethodGet, "/events/"+draft.ID, "admin", ""), http.StatusOK)
+}
+
+func TestSeedbedEventsAreManagedByDirectorAndDelegates(t *testing.T) {
+	s := newServer(t)
+	seedbedEvent := `{"title":"Reunión","type":"evento","startAt":"2030-06-01T14:00:00Z","seedbedId":"sb"}`
+	expect(t, "plain student", s.do(t, http.MethodPost, "/events", "student", seedbedEvent), http.StatusForbidden)
+	expect(t, "docente outside seedbed", s.do(t, http.MethodPost, "/events", "other", seedbedEvent), http.StatusForbidden)
+	expect(t, "unknown seedbed", s.do(t, http.MethodPost, "/events", "admin", strings.Replace(seedbedEvent, `"sb"`, `"nope"`, 1)), http.StatusBadRequest)
+	created := expect(t, "delegate creates", s.do(t, http.MethodPost, "/events", "delegate", seedbedEvent), http.StatusCreated)
+	if created.SeedbedID != "sb" || created.OrganizerID != "delegate" {
+		t.Fatalf("created=%+v", created)
+	}
+	path := "/events/" + created.ID
+	expect(t, "director edits", s.do(t, http.MethodPatch, path, "teacher", `{"title":"Reunión 2"}`), http.StatusOK)
+	expect(t, "outsider edits", s.do(t, http.MethodPatch, path, "other", `{"title":"x"}`), http.StatusForbidden)
+	expect(t, "delegate publishes", s.do(t, http.MethodPost, path+"/publish", "delegate", ""), http.StatusOK)
+	if got := s.repo.events[created.ID].SeedbedID; got != "sb" {
+		t.Fatalf("seedbed changed after update: %q", got)
+	}
+	// Without seedbed, a student cannot create events at all.
+	expect(t, "student without seedbed", s.do(t, http.MethodPost, "/events", "delegate", virtual), http.StatusForbidden)
 }

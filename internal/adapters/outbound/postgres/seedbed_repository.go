@@ -156,7 +156,7 @@ func (r *SeedbedRepository) ListMembers(ctx context.Context, id string, history 
 	if history {
 		where = ``
 	}
-	rows, err := r.db.Query(ctx, `SELECT sm.usuario_id,u.nombre,COALESCE(u.apellido,''),u.rol,sm.ingreso_en,sm.retirado_en FROM semillero_miembros sm JOIN usuarios u ON u.id=sm.usuario_id WHERE sm.semillero_id=$1 `+where+` ORDER BY u.nombre`, id)
+	rows, err := r.db.Query(ctx, `SELECT sm.usuario_id,u.nombre,COALESCE(u.apellido,''),u.rol,sm.ingreso_en,sm.retirado_en,sm.delegado FROM semillero_miembros sm JOIN usuarios u ON u.id=sm.usuario_id WHERE sm.semillero_id=$1 `+where+` ORDER BY u.nombre`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (r *SeedbedRepository) ListMembers(ctx context.Context, id string, history 
 	out := []domain.SeedbedMember{}
 	for rows.Next() {
 		var m domain.SeedbedMember
-		if err := rows.Scan(&m.UserID, &m.Name, &m.LastName, &m.Role, &m.JoinedAt, &m.LeftAt); err != nil {
+		if err := rows.Scan(&m.UserID, &m.Name, &m.LastName, &m.Role, &m.JoinedAt, &m.LeftAt, &m.Delegate); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -176,9 +176,41 @@ func (r *SeedbedRepository) AddMember(ctx context.Context, sid, uid string) erro
 	return err
 }
 func (r *SeedbedRepository) RemoveMember(ctx context.Context, sid, uid string) error {
-	res, err := r.db.Exec(ctx, `UPDATE semillero_miembros SET retirado_en=now() WHERE semillero_id=$1 AND usuario_id=$2 AND retirado_en IS NULL`, sid, uid)
+	res, err := r.db.Exec(ctx, `UPDATE semillero_miembros SET retirado_en=now(),delegado=false WHERE semillero_id=$1 AND usuario_id=$2 AND retirado_en IS NULL`, sid, uid)
 	if err == nil && res.RowsAffected() == 0 {
 		return domain.ErrMemberNotFound
 	}
 	return err
+}
+
+// ManagedSeedbeds returns the seedbeds the user directs or is an active delegate of.
+func (r *SeedbedRepository) ManagedSeedbeds(ctx context.Context, uid string) ([]string, error) {
+	rows, err := r.db.Query(ctx, `SELECT id::text FROM semilleros WHERE lider_id::text=$1
+		UNION SELECT sm.semillero_id::text FROM semillero_miembros sm JOIN usuarios u ON u.id=sm.usuario_id
+		WHERE sm.usuario_id::text=$1 AND sm.delegado AND sm.retirado_en IS NULL AND u.estado='activo'`, uid)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
+// SetDelegates replaces the delegates atomically; every id must be an active member with an active account.
+func (r *SeedbedRepository) SetDelegates(ctx context.Context, sid string, uids []string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, `UPDATE semillero_miembros SET delegado=false WHERE semillero_id=$1 AND delegado`, sid); err != nil {
+		return err
+	}
+	res, err := tx.Exec(ctx, `UPDATE semillero_miembros sm SET delegado=true FROM usuarios u
+		WHERE u.id=sm.usuario_id AND u.estado='activo' AND sm.semillero_id=$1 AND sm.retirado_en IS NULL AND sm.usuario_id::text=ANY($2)`, sid, uids)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() != int64(len(uids)) {
+		return domain.ErrInvalidDelegates
+	}
+	return tx.Commit(ctx)
 }
