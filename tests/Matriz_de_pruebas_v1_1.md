@@ -443,3 +443,18 @@ Estado inicial: Pendiente en todas.
 |TU-T12|Aplicar encuesta posterior y entrevista sobre confianza, claridad y satisfacción.|TU-14|Investigador UX|Resumen anonimizado con métricas, comentarios agrupados, patrones y acciones.|
 |TU-T13|Repetir tareas después de correcciones y comparar con línea base.|TU-15|QA líder e investigador UX|Reporte de regresión con versiones, métricas, hallazgos cerrados y resultado.|
 |TU-T14|Consolidar hallazgos por frecuencia, impacto, perfil, dispositivo y severidad.|TU-01 a TU-15|QA líder y líder de proyecto|Registro con ID, descripción, evidencia, frecuencia, severidad, responsable, fecha y estado.|
+
+## Trazabilidad de pruebas automatizadas: comunicados (M8)
+IDs asignados reutilizan casos existentes de esta matriz; PT-COM-* sigue la convención PT-<sufijo>→HU-<sufijo>.
+|Prueba automatizada|Archivo|ID(s) de matriz|Correspondencia|
+|---|---|---|---|
+|`TestAnnouncementAccessControl`|`tests/announcements/http_test.go`|PT-COM-01, PT-TR-01|Rechaza sin sesión (401) y rol estudiante (403).|
+|`TestAnnouncementCreateValidation`|`tests/announcements/http_test.go`|PT-COM-01|Valida título, descripción, adjuntos PDF/Word/Excel, URL y autor de sesión.|
+|`TestAnnouncementEditAndPublishLifecycle`|`tests/announcements/http_test.go`|PT-COM-01|Edita borrador, publica, bloquea edición/republicación y borradores ajenos.|
+|`TestAdminManagesOtherAuthorsDraft`|`tests/announcements/http_test.go`|PT-COM-01, PT-TR-01|Admin abre, edita y publica borrador ajeno (D023, corregido en 29757d1).|
+|`TestAnnouncementReadConfirmationAndStatus`|`tests/announcements/http_test.go`|PT-COM-02|Confirmación idempotente y panel Leído/Pendiente solo para autor/Admin.|
+|`TestInactiveTeacherIsForbidden`|`tests/announcements/service_test.go`|PT-TR-01|Docente inactivo rechazado.|
+|`TestRepositoryDraftVisibilityAndPublish`|`tests/announcements/repository_test.go`|TDB-T01, TDB-T08|Persistencia, visibilidad de borradores y fechas.|
+|`TestRepositoryAdminFindsListedDraft`|`tests/announcements/repository_test.go`|TDB-T08|Admin consulta borrador listado (D023, corregido en 29757d1).|
+|`TestRepositoryReadConfirmation`|`tests/announcements/repository_test.go`|TDB-T03, TDB-T12|Sin lectura en borrador, conserva primera fecha, estado por docente activo.|
+|`TestRepositoryReferentialIntegrity`|`tests/announcements/repository_test.go`|TDB-T02|FK de autor y cascada de lecturas.|

@@ -91,6 +91,13 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/admin/content/pages` | crea página en borrador | M7 | [ ] |
 | PATCH | `/admin/content/pages/{id}` | edita página y sanitiza contenido | M7 | [ ] |
 | POST | `/admin/content/pages/{id}/publish` | publica página vigente | M7 | [ ] |
+| GET | `/announcements` | comunicados publicados, borradores propios y todos los borradores para Admin; lectura propia | M8 | [ ] |
+| POST | `/announcements` | crea comunicado con adjuntos permitidos | M8 | [ ] |
+| GET | `/announcements/{id}` | detalle y adjuntos autorizados | M8 | [ ] |
+| PATCH | `/announcements/{id}` | edita comunicado en borrador | M8 | [ ] |
+| POST | `/announcements/{id}/publish` | publica comunicado | M8 | [ ] |
+| POST | `/announcements/{id}/read-confirmations` | confirma lectura idempotente | M8 | [ ] |
+| GET | `/announcements/{id}/read-status` | trazabilidad por docente para autor/admin | M8 | [ ] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y
