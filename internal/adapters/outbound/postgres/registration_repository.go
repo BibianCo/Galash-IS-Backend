@@ -74,12 +74,13 @@ func (r *RegistrationRepository) GetRegistrationStatus(ctx context.Context, id, 
 	return result, err
 }
 
-func (r *RegistrationRepository) ListRegistrations(ctx context.Context, status, from, to, seedbedID, responsibleID string) ([]domain.RegistrationRequest, error) {
+func (r *RegistrationRepository) ListRegistrations(ctx context.Context, status, from, to, seedbedID, responsibleID string, seedbedIDs []string) ([]domain.RegistrationRequest, error) {
 	where, args := []string{"TRUE"}, []any{}
 	add := func(value, clause string) { if strings.TrimSpace(value) != "" { args = append(args, value); where = append(where, clause+itoa(len(args))) } }
 	add(status, "s.estado=$")
 	add(seedbedID, "s.semillero_id=$")
 	add(responsibleID, "s.responsable_id=$")
+	if seedbedIDs != nil { args = append(args, seedbedIDs); where = append(where, "s.semillero_id::text = ANY($"+itoa(len(args))+")") }
 	if from != "" { args = append(args, from); where = append(where, "s.fecha_radicacion >= $"+itoa(len(args))+"::date") }
 	if to != "" { args = append(args, to); where = append(where, "s.fecha_radicacion < ($"+itoa(len(args))+"::date + interval '1 day')") }
 	rows, err := r.db.Query(ctx, registrationSelect+` WHERE `+strings.Join(where, " AND ")+` ORDER BY s.fecha_radicacion DESC`, args...)
@@ -103,15 +104,28 @@ func (r *RegistrationRepository) GetRegistrationDetail(ctx context.Context, id s
 }
 
 func (r *RegistrationRepository) UpdateRegistrationStatus(ctx context.Context, id, status, observation, responsibleID string) (domain.RegistrationRequest, error) {
-	var current string
-	if err := r.db.QueryRow(ctx, `SELECT estado FROM solicitudes_registro WHERE id=$1`, id).Scan(&current); errors.Is(err, pgx.ErrNoRows) { return domain.RegistrationRequest{}, domain.ErrRegistrationNotFound } else if err != nil { return domain.RegistrationRequest{}, err }
-	if !allowedTransition(current, status) { return domain.RegistrationRequest{}, domain.ErrInvalidRegistrationTransition }
-	request, err := scanRegistration(r.db.QueryRow(ctx, `WITH s AS (UPDATE solicitudes_registro SET estado=$1,observacion=$2,responsable_id=NULLIF($3,'')::uuid,actualizado_en=now() WHERE id=$4 RETURNING *) SELECT `+registrationFields+registrationFrom, status, observation, responsibleID, id))
+	// One transaction: an approval never leaves the request approved without role or membership.
+	tx, err := r.db.Begin(ctx)
 	if err != nil { return domain.RegistrationRequest{}, err }
-	if _, err = r.db.Exec(ctx, `INSERT INTO seguimiento_solicitud (solicitud_id,estado,comentario,responsable_id) VALUES ($1,$2,$3,NULLIF($4,'')::uuid)`, id, status, observation, responsibleID); err != nil { return domain.RegistrationRequest{}, err }
-	if status == domain.RegistrationApproved { _, err = r.db.Exec(ctx, `UPDATE usuarios SET rol='estudiante' WHERE estado='activo' AND (id=NULLIF($1,'')::uuid OR dni=$2)`, request.UserID, request.DocumentNumber) }
-	if err == nil && request.UserID != "" && (status == domain.RegistrationApproved || status == domain.RegistrationRejected || status == domain.RegistrationPending) { _, err = r.db.Exec(ctx, `INSERT INTO notificaciones (usuario_id,tipo,mensaje) VALUES ($1,'registration-request',$2)`, request.UserID, "La solicitud "+request.ID+" cambió al estado "+status+". "+observation) }
-	return request, err
+	defer tx.Rollback(ctx)
+	var current string
+	if err := tx.QueryRow(ctx, `SELECT estado FROM solicitudes_registro WHERE id=$1`, id).Scan(&current); errors.Is(err, pgx.ErrNoRows) { return domain.RegistrationRequest{}, domain.ErrRegistrationNotFound } else if err != nil { return domain.RegistrationRequest{}, err }
+	if !allowedTransition(current, status) { return domain.RegistrationRequest{}, domain.ErrInvalidRegistrationTransition }
+	request, err := scanRegistration(tx.QueryRow(ctx, `WITH s AS (UPDATE solicitudes_registro SET estado=$1,observacion=$2,responsable_id=NULLIF($3,'')::uuid,actualizado_en=now() WHERE id=$4 AND estado=$5 RETURNING *) SELECT `+registrationFields+registrationFrom, status, observation, responsibleID, id, current))
+	if errors.Is(err, pgx.ErrNoRows) { return domain.RegistrationRequest{}, domain.ErrInvalidRegistrationTransition }
+	if err != nil { return domain.RegistrationRequest{}, err }
+	if _, err = tx.Exec(ctx, `INSERT INTO seguimiento_solicitud (solicitud_id,estado,comentario,responsable_id) VALUES ($1,$2,$3,NULLIF($4,'')::uuid)`, id, status, observation, responsibleID); err != nil { return domain.RegistrationRequest{}, err }
+	if status == domain.RegistrationApproved {
+		if _, err = tx.Exec(ctx, `UPDATE usuarios SET rol='estudiante' WHERE estado='activo' AND (id=NULLIF($1,'')::uuid OR dni=$2)`, request.UserID, request.DocumentNumber); err != nil { return domain.RegistrationRequest{}, err }
+		// Approval joins the applicant to the requested seedbed; rejoining clears a previous withdrawal.
+		if request.UserID != "" && request.SeedbedID != "" {
+			if _, err = tx.Exec(ctx, `INSERT INTO semillero_miembros (semillero_id,usuario_id) VALUES ($1,$2) ON CONFLICT (semillero_id,usuario_id) DO UPDATE SET retirado_en=NULL`, request.SeedbedID, request.UserID); err != nil { return domain.RegistrationRequest{}, err }
+		}
+	}
+	if request.UserID != "" && (status == domain.RegistrationApproved || status == domain.RegistrationRejected || status == domain.RegistrationPending) {
+		if _, err = tx.Exec(ctx, `INSERT INTO notificaciones (usuario_id,tipo,mensaje) VALUES ($1,'registration-request',$2)`, request.UserID, "La solicitud "+request.ID+" cambió al estado "+status+". "+observation); err != nil { return domain.RegistrationRequest{}, err }
+	}
+	return request, tx.Commit(ctx)
 }
 
 func allowedTransition(from, to string) bool {

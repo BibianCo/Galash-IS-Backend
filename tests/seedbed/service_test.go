@@ -3,6 +3,7 @@ package seedbed_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -37,6 +38,7 @@ type repository struct {
 	private, history bool
 	visibility       string
 	added, removed   string
+	delegates        map[string][]string
 }
 
 func (r *repository) Create(_ context.Context, s domain.Seedbed) (domain.Seedbed, error) {
@@ -76,6 +78,23 @@ func (r *repository) AddMember(_ context.Context, _, userID string) error {
 }
 func (r *repository) RemoveMember(_ context.Context, _, userID string) error {
 	r.removed = userID
+	return nil
+}
+
+func (r *repository) ManagedSeedbeds(_ context.Context, uid string) ([]string, error) {
+	out := []string{}
+	for id, s := range r.seedbeds {
+		if s.ResponsibleTeacherID == uid || slices.Contains(r.delegates[id], uid) {
+			out = append(out, id)
+		}
+	}
+	return out, nil
+}
+func (r *repository) SetDelegates(_ context.Context, id string, uids []string) error {
+	if r.delegates == nil {
+		r.delegates = map[string][]string{}
+	}
+	r.delegates[id] = uids
 	return nil
 }
 
@@ -235,5 +254,51 @@ func TestTopicsAreOptionalLimitedAndTrimmed(t *testing.T) {
 	updated, err := service.Update(context.Background(), "public", validCommand())
 	if err != nil || updated.Topics != nil {
 		t.Fatalf("Update() without topics: topics=%+v err=%v", updated.Topics, err)
+	}
+}
+
+func TestOnlyDirectorOrAdminSetsAtMostTwoDistinctDelegates(t *testing.T) {
+	u, r := fixtures()
+	service := application.NewService(r, u)
+	ctx := context.Background()
+	if err := service.SetDelegates(ctx, "teacher", "public", []string{"student"}); err != nil || !slices.Equal(r.delegates["public"], []string{"student"}) {
+		t.Fatalf("director SetDelegates err=%v delegates=%v", err, r.delegates)
+	}
+	if err := service.SetDelegates(ctx, "admin", "public", nil); err != nil || r.delegates["public"] == nil || len(r.delegates["public"]) != 0 {
+		t.Fatalf("admin clear err=%v delegates=%v", err, r.delegates["public"])
+	}
+	r.delegates["public"] = []string{"student"}
+	for _, actor := range []string{"student", "other"} {
+		if err := service.SetDelegates(ctx, actor, "public", []string{"other"}); !errors.Is(err, domain.ErrForbidden) {
+			t.Errorf("%s: err=%v, want ErrForbidden", actor, err)
+		}
+	}
+	for name, ids := range map[string][]string{"three": {"a", "b", "c"}, "repeated": {"student", "student"}} {
+		if err := service.SetDelegates(ctx, "teacher", "public", ids); !errors.Is(err, domain.ErrInvalidDelegates) {
+			t.Errorf("%s: err=%v, want ErrInvalidDelegates", name, err)
+		}
+	}
+}
+
+func TestCanOperateAllowsDirectorDelegateAndAdminOnly(t *testing.T) {
+	u, r := fixtures()
+	r.delegates = map[string][]string{"public": {"student"}}
+	service := application.NewService(r, u)
+	ctx := context.Background()
+	for _, actor := range []string{"teacher", "student", "admin"} {
+		if err := service.CanOperate(ctx, actor, "public"); err != nil {
+			t.Errorf("%s: err=%v, want nil", actor, err)
+		}
+	}
+	for _, actor := range []string{"other", "visitor"} {
+		if err := service.CanOperate(ctx, actor, "public"); !errors.Is(err, domain.ErrForbidden) {
+			t.Errorf("%s: err=%v, want ErrForbidden", actor, err)
+		}
+	}
+	if err := service.CanOperate(ctx, "student", "hidden"); !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("delegate of another seedbed: err=%v, want ErrForbidden", err)
+	}
+	if err := service.CanOperate(ctx, "admin", "missing"); !errors.Is(err, domain.ErrSeedbedNotFound) {
+		t.Errorf("missing seedbed: err=%v, want ErrSeedbedNotFound", err)
 	}
 }

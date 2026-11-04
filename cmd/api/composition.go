@@ -58,7 +58,7 @@ func Run() error {
 	announcements := postgresadapter.NewAnnouncementRepository(db)
 	calendar := postgresadapter.NewInternalCalendarRepository(db)
 	service := application.NewService(firebaseadapter.NewVerifier(firebaseAuth), users)
-	handler := httpadapter.NewHandlerWithCalendar(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users), contentapp.NewService(content, users), announcementapp.NewService(announcements, users), calendarapp.NewService(calendar))
+	handler := httpadapter.NewHandlerWithCalendar(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users, seedbeds), contentapp.NewService(content, users), announcementapp.NewService(announcements, users), calendarapp.NewService(calendar))
 	go purgeExpiredCredentials(ctx, service, time.Hour)
 	log.Printf("Auth escuchando en :%s", cfg.Port)
 	return http.ListenAndServe(":"+cfg.Port, handler.Routes())

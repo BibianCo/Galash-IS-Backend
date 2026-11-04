@@ -34,14 +34,19 @@ func scanCalendar(row pgx.Row) (domain.InternalCalendarEvent, error) {
 }
 func (r *InternalCalendarRepository) allowed(actorID, role, alias string) (string, []any) {
 	if role == "admin" || role == "Admin" {
-		return "TRUE", []any{actorID}
+		// Keep the actor parameter in the SQL so PostgreSQL can infer its type.
+		// The value is already authenticated by the application service.
+		return "$1::text <> ''", []any{actorID}
 	}
 	return `EXISTS (SELECT 1 FROM semillero_miembros sm WHERE sm.semillero_id=` + alias + `.semillero_id AND sm.usuario_id=$1 AND sm.retirado_en IS NULL) OR EXISTS (SELECT 1 FROM semilleros s WHERE s.id=` + alias + `.semillero_id AND s.lider_id=$1)`, []any{actorID}
 }
 func (r *InternalCalendarRepository) List(ctx context.Context, actorID, role, seedbedID string, from, to *time.Time) ([]domain.InternalCalendarEvent, error) {
 	access, args := r.allowed(actorID, role, "c")
 	args = append(args, seedbedID, from, to)
-	rows, err := r.db.Query(ctx, `SELECT `+calendarColumns+` FROM cronograma_interno c WHERE (`+access+`) AND ($`+calendarItoa(len(args)-2)+`='' OR c.semillero_id=$`+calendarItoa(len(args)-2)+`) AND ($`+calendarItoa(len(args)-1)+`::timestamptz IS NULL OR c.inicia_en >= $`+calendarItoa(len(args)-1)+`) AND ($`+calendarItoa(len(args))+`::timestamptz IS NULL OR c.inicia_en <= $`+calendarItoa(len(args))+`) ORDER BY c.inicia_en`, args...)
+	seedbedArg := calendarItoa(len(args) - 2)
+	fromArg := calendarItoa(len(args) - 1)
+	toArg := calendarItoa(len(args))
+	rows, err := r.db.Query(ctx, `SELECT `+calendarColumns+` FROM cronograma_interno c WHERE (`+access+`) AND (NULLIF($`+seedbedArg+`, '')::uuid IS NULL OR c.semillero_id=NULLIF($`+seedbedArg+`, '')::uuid) AND ($`+fromArg+`::timestamptz IS NULL OR c.inicia_en >= $`+fromArg+`) AND ($`+toArg+`::timestamptz IS NULL OR c.inicia_en <= $`+toArg+`) ORDER BY c.inicia_en`, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -42,6 +42,14 @@ func (seedbeds) Find(_ context.Context, id string) (domain.Seedbed, error) {
 	return domain.Seedbed{ID: "sb", ResponsibleTeacherID: "teacher"}, nil
 }
 
+// ManagedSeedbeds: "teacher" directs "sb" and "delegate" is its delegate.
+func (seedbeds) ManagedSeedbeds(_ context.Context, uid string) ([]string, error) {
+	if uid == "teacher" || uid == "delegate" {
+		return []string{"sb"}, nil
+	}
+	return []string{}, nil
+}
+
 // repository embeds the port so unused methods panic if reached.
 type repository struct {
 	ports.ResearchRepository
@@ -120,10 +128,11 @@ func fixtures() (*application.Service, *repository) {
 
 func fixturesWithUsers() (*application.Service, *repository, users) {
 	u := users{
-		"admin":   {ID: "admin", Role: "admin"},
-		"teacher": {ID: "teacher", Role: "profesor"},
-		"other":   {ID: "other", Role: "docente"},
-		"student": {ID: "student", Role: "estudiante"},
+		"admin":    {ID: "admin", Role: "admin"},
+		"teacher":  {ID: "teacher", Role: "profesor"},
+		"other":    {ID: "other", Role: "docente"},
+		"student":  {ID: "student", Role: "estudiante"},
+		"delegate": {ID: "delegate", Role: "estudiante"},
 	}
 	r := &repository{
 		project:  domain.Project{ID: "proj", SeedbedID: "sb", Title: "P", Status: "Radicado", Progress: 10},
@@ -337,3 +346,18 @@ func TestActivityStatusDerivedFromDateWhenOmitted(t *testing.T) {
 }
 
 func ptr(t time.Time) *time.Time { return &t }
+
+func TestDelegateManagesActivitiesButNotProjects(t *testing.T) {
+	s, _ := fixtures()
+	ctx := context.Background()
+	a := domain.Activity{SeedbedID: "sb", Title: "Taller", Status: "próxima"}
+	if _, err := s.CreateActivity(ctx, a, "delegate"); err != nil {
+		t.Fatalf("delegate create activity: %v", err)
+	}
+	if _, err := s.UpdateActivity(ctx, "act", a, "delegate"); err != nil {
+		t.Fatalf("delegate update activity: %v", err)
+	}
+	if _, err := s.CreateProject(ctx, domain.Project{SeedbedID: "sb", Title: "P", Status: "Radicado"}, "delegate"); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("delegate create project: want forbidden, got %v", err)
+	}
+}

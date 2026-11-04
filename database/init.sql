@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS semillero_miembros (
     PRIMARY KEY (semillero_id, usuario_id)
 );
 CREATE INDEX IF NOT EXISTS semillero_miembros_usuario_idx ON semillero_miembros(usuario_id);
+ALTER TABLE semillero_miembros ADD COLUMN IF NOT EXISTS delegado BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE usuarios
     ADD CONSTRAINT usuarios_semillero_fk

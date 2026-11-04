@@ -473,8 +473,28 @@
 {"v":1,"id":"N001","t":"note","by":"agent","at":"2026-11-04T00:00:00Z","text":"Corrección de IDs duplicados: se renumeró la segunda aparición conservando su contenido. T021(seedbeds)->T112, T022(seedbeds)->T113, R022(2026-10-17T00:00)->R079, R023(2026-10-17T00:00)->R080, R035(golang:1.22-alpine)->R081, X038(T021 seedbeds)->X230, X039(T022 seedbeds)->X231, X096(T050)->X232, X097(T050/R036)->X233, X098(T050/R037)->X234, X099(T050/R038)->X235, X100(T051/R039)->X236, X101(T052/R039)->X237."}
 {"v":1,"id":"R082","t":"run","at":"2026-11-04T00:00:00Z","build":"3944255+wip","by":"agent","mode":"automated","cmd":"gofmt -w tests/registration/service_test.go; go test ./... -count=1; git diff --check"}
 {"v":1,"id":"X238","t":"result","run":"R082","test":"T026","s":"pass","ev":["go test ./... -count=1"]}
-{"v":1,"id":"T114","t":"test","area":"module-9-internal-calendar","p":"must","name":"Rechaza tipo y rango de fechas inválidos"}
-{"v":1,"id":"T115","t":"test","area":"module-9-internal-calendar","p":"must","name":"Restringe creación a Docente o Admin"}
-{"v":1,"id":"R083","t":"run","at":"2026-11-04T00:00:00Z","build":"wip-module-9","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
-{"v":1,"id":"X239","t":"result","run":"R083","test":"T114","s":"pass","ev":["go test ./..."]}
-{"v":1,"id":"X240","t":"result","run":"R083","test":"T115","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T114","t":"test","area":"seedbeds","p":"must","name":"Solo director o Admin designa hasta 2 delegados distintos (PUT /seedbeds/{id}/delegates); delegado no reasigna"}
+{"v":1,"id":"T115","t":"test","area":"seedbeds","p":"must","name":"CanOperate y GET /users/me managed_seedbed_ids reconocen director y delegado activo, no a otros"}
+{"v":1,"id":"T116","t":"test","area":"registration","p":"must","name":"Solicitudes: seedbedId obligatorio; detalle/estado por Admin o gestor del semillero; listado acotado a semilleros gestionados"}
+{"v":1,"id":"T117","t":"test","area":"research","p":"must","name":"Delegado gestiona actividades del semillero pero no proyectos"}
+{"v":1,"id":"T118","t":"test","area":"events","p":"must","name":"Eventos con seedbedId: crean y administran director, delegado o Admin; seedbedId fijo tras crear"}
+{"v":1,"id":"R083","t":"run","at":"2026-11-04T00:00:00Z","build":"bd98b69+wip","by":"agent","mode":"automated","cmd":"go vet ./...; go test ./... -count=1; git diff --check (repositorios PostgreSQL omitidos: TEST_DATABASE_URL no definido)"}
+{"v":1,"id":"X239","t":"result","run":"R083","test":"T114","s":"pass","ev":["tests/seedbed: TestOnlyDirectorOrAdminSetsAtMostTwoDistinctDelegates, TestPutDelegatesEndpoint"]}
+{"v":1,"id":"X240","t":"result","run":"R083","test":"T115","s":"pass","ev":["tests/seedbed: TestCanOperateAllowsDirectorDelegateAndAdminOnly, TestCurrentUserListsManagedSeedbeds"]}
+{"v":1,"id":"X241","t":"result","run":"R083","test":"T116","s":"pass","ev":["tests/registration: TestRegistrationRequestsAreHandledBySeedbedManagers, TestRegistrationListIsScopedToManagedSeedbeds, TestCreateRequiresSeedbed"]}
+{"v":1,"id":"X242","t":"result","run":"R083","test":"T117","s":"pass","ev":["tests/research: TestDelegateManagesActivitiesButNotProjects"]}
+{"v":1,"id":"X243","t":"result","run":"R083","test":"T118","s":"pass","ev":["tests/event: TestSeedbedEventsAreManagedByDirectorAndDelegates"]}
+{"v": 1, "id": "T119", "t": "test", "area": "registration", "p": "must", "name": "Aprobar una solicitud inscribe al solicitante como integrante activo del semillero (PostgreSQL)"}
+{"v": 1, "id": "T120", "t": "test", "area": "seedbeds", "p": "must", "name": "Repositorio: delegados solo integrantes activos, SetDelegates atómico, retiro quita delegación (PostgreSQL)"}
+{"v": 1, "id": "D024", "t": "defect", "test": "T119", "run": "R084", "sev": "high", "s": "closed", "name": "Solicitud aprobada no inscribía al usuario en semillero_miembros; corregido en UpdateRegistrationStatus con transacción"}
+{"v": 1, "id": "R084", "t": "run", "at": "2026-11-04T00:00:00Z", "build": "bd98b69+wip", "by": "agent", "mode": "automated", "cmd": "go test ./tests/... -count=1 con TEST_DATABASE_URL en contenedor desechable postgres:16-alpine + database/init.sql"}
+{"v": 1, "id": "X244", "t": "result", "run": "R084", "test": "T119", "s": "pass", "ev": ["tests/registration: TestRepositoryReadsPersonalDataFromAccount"]}
+{"v": 1, "id": "X245", "t": "result", "run": "R084", "test": "T120", "s": "pass", "ev": ["tests/seedbed: TestRepositoryDelegatesAreActiveMembersOnly"]}
+{"v":1,"id":"T121","t":"test","area":"module-9-internal-calendar","p":"must","name":"Rechaza tipo y rango de fechas inválidos"}
+{"v":1,"id":"T122","t":"test","area":"module-9-internal-calendar","p":"must","name":"Restringe creación a Docente o Admin"}
+{"v":1,"id":"R085","t":"run","at":"2026-11-04T00:00:00Z","build":"merge-main-module-9","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X246","t":"result","run":"R085","test":"T121","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"X247","t":"result","run":"R085","test":"T122","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"T123","t":"test","area":"module-9-internal-calendar","p":"must","name":"GET de cronograma sin seedbedId no convierte cadena vacía a UUID y responde 200"}
+{"v":1,"id":"R086","t":"run","at":"2026-11-04T00:00:00Z","build":"module-9-empty-seedbed-filter-fix","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X248","t":"result","run":"R086","test":"T123","s":"pass","ev":["go test ./..."]}

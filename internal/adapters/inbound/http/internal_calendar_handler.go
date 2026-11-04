@@ -3,6 +3,7 @@ package httpadapter
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -37,6 +38,9 @@ func (h *Handler) calendarReady(w http.ResponseWriter) bool {
 	return true
 }
 func calendarError(w http.ResponseWriter, err error) {
+	if err != nil {
+		log.Printf("cronograma interno: %v", err)
+	}
 	switch {
 	case errors.Is(err, domain.ErrForbidden):
 		writeError(w, 403, err.Error())

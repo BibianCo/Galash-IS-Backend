@@ -35,15 +35,22 @@ func TestRepositoryReadsPersonalDataFromAccount(t *testing.T) {
 			t.Fatalf("seed user: %v", err)
 		}
 	}
+	var seedbed string
+	if err := db.QueryRow(ctx, `INSERT INTO semilleros (nombre) VALUES ($1) RETURNING id`, run+"-semillero").Scan(&seedbed); err != nil {
+		t.Fatalf("seed seedbed: %v", err)
+	}
 	defer func() {
+		_, _ = db.Exec(ctx, `DELETE FROM semillero_miembros WHERE semillero_id=$1`, seedbed)
+		_, _ = db.Exec(ctx, `DELETE FROM notificaciones WHERE usuario_id IN ($1,$2,$3)`, complete, incomplete, other)
 		_, _ = db.Exec(ctx, `DELETE FROM seguimiento_solicitud WHERE solicitud_id IN (SELECT id FROM solicitudes_registro WHERE usuario_id IN ($1,$2,$3))`, complete, incomplete, other)
 		_, _ = db.Exec(ctx, `DELETE FROM solicitudes_registro WHERE usuario_id IN ($1,$2,$3)`, complete, incomplete, other)
 		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE id IN ($1,$2,$3)`, complete, incomplete, other)
+		_, _ = db.Exec(ctx, `DELETE FROM semilleros WHERE id=$1`, seedbed)
 	}()
 
 	repo := postgresadapter.NewRegistrationRepository(db)
 	request := validRequest()
-	request.UserID = incomplete
+	request.UserID, request.SeedbedID = incomplete, seedbed
 	if _, err := repo.CreateRegistration(ctx, request, run+"-h1"); !errors.Is(err, domain.ErrIncompleteProfile) {
 		t.Fatalf("incomplete profile error=%v", err)
 	}
@@ -77,13 +84,23 @@ func TestRepositoryReadsPersonalDataFromAccount(t *testing.T) {
 	if err != nil || approved.Phone != "300" {
 		t.Fatalf("approved=%+v err=%v", approved, err)
 	}
+	var active bool
+	if err := db.QueryRow(ctx, `SELECT retirado_en IS NULL FROM semillero_miembros WHERE semillero_id=$1 AND usuario_id=$2`, seedbed, complete).Scan(&active); err != nil || !active {
+		t.Fatalf("approved applicant is not an active member: active=%v err=%v", active, err)
+	}
+	if _, err := repo.UpdateRegistrationStatus(ctx, created.ID, domain.RegistrationApproved, "otra vez", ""); !errors.Is(err, domain.ErrInvalidRegistrationTransition) {
+		t.Fatalf("second approval error=%v, want ErrInvalidRegistrationTransition", err)
+	}
 	var role string
 	if err := db.QueryRow(ctx, `SELECT rol FROM usuarios WHERE id=$1`, complete).Scan(&role); err != nil || role != "estudiante" {
 		t.Fatalf("role=%q err=%v", role, err)
 	}
-	list, err := repo.ListRegistrations(ctx, domain.RegistrationApproved, "", "", "", "")
+	list, err := repo.ListRegistrations(ctx, domain.RegistrationApproved, "", "", "", "", nil)
 	if err != nil || len(list) == 0 {
 		t.Fatalf("list=%d err=%v", len(list), err)
+	}
+	if scoped, err := repo.ListRegistrations(ctx, domain.RegistrationApproved, "", "", "", "", []string{}); err != nil || len(scoped) != 0 {
+		t.Fatalf("empty manager scope list=%d err=%v", len(scoped), err)
 	}
 	if detail, err := repo.GetRegistrationDetail(ctx, created.ID); err != nil || detail.Name != "Ana Pérez" || len(detail.History) != 3 {
 		t.Fatalf("detail=%+v err=%v", detail, err)

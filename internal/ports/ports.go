@@ -52,6 +52,8 @@ type SeedbedRepository interface {
 	ListMembers(ctx context.Context, id string, includeHistory bool) ([]domain.SeedbedMember, error)
 	AddMember(ctx context.Context, seedbedID, userID string) error
 	RemoveMember(ctx context.Context, seedbedID, userID string) error
+	ManagedSeedbeds(ctx context.Context, userID string) ([]string, error)
+	SetDelegates(ctx context.Context, seedbedID string, userIDs []string) error
 }
 
 type EventRepository interface {

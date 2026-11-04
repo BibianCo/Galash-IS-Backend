@@ -2,6 +2,7 @@ package research
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -47,10 +48,32 @@ func (s *Service) manage(ctx context.Context, actor, seedbed string) error {
 	return nil
 }
 
+// operate allows Admin or a seedbed manager (director or active delegate); used for activities.
+func (s *Service) operate(ctx context.Context, actor, seedbed string) error {
+	u, e := s.users.FindByID(ctx, actor)
+	if e != nil {
+		return domain.ErrForbidden
+	}
+	if role(u, "admin") {
+		return nil
+	}
+	if _, e = s.seedbeds.Find(ctx, seedbed); e != nil {
+		return domain.ErrResearchNotFound
+	}
+	managed, e := s.seedbeds.ManagedSeedbeds(ctx, actor)
+	if e != nil {
+		return e
+	}
+	if !slices.Contains(managed, seedbed) {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
 func validStatus(v string) bool { return v == "Radicado" || v == "Activo" || v == "Finalizado" }
 
 func (s *Service) CreateActivity(ctx context.Context, a domain.Activity, actor string) (domain.Activity, error) {
-	if e := s.manage(ctx, actor, a.SeedbedID); e != nil {
+	if e := s.operate(ctx, actor, a.SeedbedID); e != nil {
 		return a, e
 	}
 	if a.Status == "" {
@@ -87,7 +110,7 @@ func (s *Service) UpdateActivity(ctx context.Context, id string, a domain.Activi
 	if e != nil {
 		return a, e
 	}
-	if e = s.manage(ctx, actor, old.SeedbedID); e != nil {
+	if e = s.operate(ctx, actor, old.SeedbedID); e != nil {
 		return a, e
 	}
 	a.SeedbedID = old.SeedbedID

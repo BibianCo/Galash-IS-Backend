@@ -21,9 +21,11 @@ más `codigo_estudiantil` opcional; sin password ni rol, email igual al token.
 `409` si `dni` o `codigo_estudiantil` ya son de otra cuenta. El rol nuevo es
 `visitante` y el re-registro conserva el rol existente. `GET /users/me`
 devuelve además `document_type`, `document_number`, `student_code`,
-`birth_date` y `phone` para prellenar formularios.
+`birth_date` y `phone` para prellenar formularios, y `managed_seedbed_ids`
+(semilleros que el usuario dirige o en los que es delegado; `[]` si ninguno).
 
-`POST /registration-requests` (Únete) exige sesión (`401` sin ella). No envía
+`POST /registration-requests` (Únete) exige sesión (`401` sin ella) y
+`seedbedId` obligatorio (`400` si falta o no existe). No envía
 `nombre`, `cc`, `telefono` ni `fechaNacimiento`: salen de la cuenta. `cod` es
 opcional (vacío se ignora; con valor actualiza la cuenta, `409` si es de otra).
 `400` si falta un campo académico o la cuenta no tiene documento, teléfono o
@@ -53,12 +55,13 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | PATCH | `/seedbeds/{id}/visibility` | estado | M2 | [ ] |
 | GET | `/seedbeds/{id}/members` | integrantes | M2 | [ ] |
 | POST | `/seedbeds/{id}/members` | vincula | M2 | [ ] |
-| DELETE | `/seedbeds/{id}/members/{userId}` | retiro | M2 | [ ] |
+| DELETE | `/seedbeds/{id}/members/{userId}` | retiro (quita delegación) | M2 | [ ] |
+| PUT | `/seedbeds/{id}/delegates` | reemplaza delegados (0-2), director o Admin | M2 | [ ] |
 | POST | `/registration-requests` | radica solicitud de la cuenta en sesión | M3 | [ ] |
 | GET | `/registration-requests/{id}/status` | consulta propia con token/sesión | M3 | [ ] |
-| GET | `/admin/registration-requests` | lista administrativa | M3 | [ ] |
-| GET | `/admin/registration-requests/{id}` | detalle e historial administrativo | M3 | [ ] |
-| PATCH | `/admin/registration-requests/{id}/status` | actualiza estado y auditoría | M3 | [ ] |
+| GET | `/admin/registration-requests` | lista; Admin todas, director/delegado las de sus semilleros | M3 | [ ] |
+| GET | `/admin/registration-requests/{id}` | detalle e historial; Admin o gestor del semillero | M3 | [ ] |
+| PATCH | `/admin/registration-requests/{id}/status` | actualiza estado; Admin o gestor del semillero | M3 | [ ] |
 | GET | `/seedbeds/{seedbedId}/activities` | lista actividades | M4 | [ ] |
 | POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [ ] |
 | GET | `/activities/{id}` | detalle de actividad | M4 | [ ] |
@@ -115,6 +118,16 @@ malformados o semillero inexistente responden `404`. En `POST
 /seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se
 calcula (`próxima`, `en curso`, `finalizada`).
 
+Director y delegados (relaciones, no roles): el director es el
+`responsibleTeacherId`; puede designar hasta 2 delegados entre integrantes
+activos con `PUT /seedbeds/{id}/delegates` `{"userIds":[...]}` (`204`; `400`
+lista inválida, `403` si no es director/Admin). `GET /seedbeds/{id}/members`
+marca `delegate: true`. Director y delegados gestionan solicitudes (M3),
+actividades (M4), eventos de su semillero (M6) y cronograma (M9, sin
+implementar). Aprobar una solicitud inscribe al solicitante como integrante
+activo del semillero. Una solicitud la decide el primero que la procese; si otro ya
+cambió el estado responde `400`. Sin permiso: `403`.
+
 M2: los semilleros incluyen `topics` (máx. 4 `{title, phrase}`); en `PATCH
 /seedbeds/{id}` omitirlo conserva los temas. `GET /admin/members` responde
 `{"users": [...]}`, exige `q` e incluye cuentas inactivas.
@@ -123,8 +136,10 @@ M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`
 `imageUrl` y `registrationUrl`. Las fechas son RFC3339; los estados son
 `borrador`, `publicado`, `oculto` y `cancelado`. La agenda pública solo muestra
 `publicado`; `status=proximo` y `status=vencido` permiten separar eventos según
-la fecha de inicio. La escritura requiere sesión de `Docente` o `Admin`; el
-docente solo administra sus propios eventos.
+la fecha de inicio. `POST /events` acepta `seedbedId` opcional (fijo tras
+crearlo; `400` si no existe). Sin `seedbedId` crea `Docente` o `Admin`; con
+él, solo `Admin` o director/delegado de ese semillero. Administran el evento:
+`Admin`, el docente organizador o director/delegado del semillero del evento.
 
 M9 usa `seedbedId`, `type` (`reunion`, `tutoria` o `hito`), `title`, `description`,
 `startAt`, `endAt` y `participantIds`. Las fechas son RFC3339. Los estudiantes
