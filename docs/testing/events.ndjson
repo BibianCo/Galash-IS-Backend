@@ -428,3 +428,45 @@
 {"v":1,"id":"X201","t":"result","run":"R075","test":"T101","s":"pass","ev":["go test ./tests/announcements ./internal/...","git diff --check"]}
 {"v":1,"id":"R076","t":"run","at":"2026-11-02T00:00:00Z","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
 {"v":1,"id":"X202","t":"result","run":"R076","test":"T101","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"E006","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local; ephemeral PostgreSQL 16 (postgres:16-alpine, container galash-test-m8) on localhost:55433 initialized from database/init.sql, removed after run"}
+{"v":1,"id":"T102","t":"test","area":"module-8-announcements","p":"must","name":"PT-COM-01/PT-TR-01: announcements reject requests without session and non Docente/Admin roles"}
+{"v":1,"id":"T103","t":"test","area":"module-8-announcements","p":"must","name":"PT-COM-01: create validates title, description, PDF/Word/Excel attachments, http(s) URLs, max 10 and takes author from session"}
+{"v":1,"id":"T104","t":"test","area":"module-8-announcements","p":"must","name":"PT-COM-01: draft partial edit, publish, no republish/edit after publish, foreign drafts hidden from other Docente"}
+{"v":1,"id":"T105","t":"test","area":"module-8-announcements","p":"must","name":"PT-COM-01: Admin opens, edits and publishes another author's draft listed to them"}
+{"v":1,"id":"T106","t":"test","area":"module-8-announcements","p":"must","name":"PT-COM-02: idempotent read confirmation sets readConfirmed and author/Admin-only Leido/Pendiente panel"}
+{"v":1,"id":"T107","t":"test","area":"module-8-announcements","p":"must","name":"TDB-T01/TDB-T08: PostgreSQL persists announcement, author name, draft visibility, update and publication dates"}
+{"v":1,"id":"T108","t":"test","area":"module-8-announcements","p":"must","name":"TDB-T08: PostgreSQL Find returns to Admin the drafts List shows to Admin"}
+{"v":1,"id":"T109","t":"test","area":"module-8-announcements","p":"must","name":"TDB-T03/TDB-T12: read confirmation ignored on drafts, keeps first timestamp, status lists active docentes only"}
+{"v":1,"id":"T110","t":"test","area":"module-8-announcements","p":"should","name":"TDB-T02: FK rejects unknown author and cascade removes read confirmations"}
+{"v":1,"id":"T111","t":"test","area":"module-8-announcements","p":"must","name":"PT-TR-01: inactive Docente forbidden in list, create and confirm"}
+{"v":1,"id":"R077","t":"run","at":"2026-11-03T00:00:00Z","build":"750815c+tests","env":"E006","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1"}
+{"v":1,"id":"X203","t":"result","run":"R077","test":"T098","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X204","t":"result","run":"R077","test":"T099","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X205","t":"result","run":"R077","test":"T100","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X206","t":"result","run":"R077","test":"T102","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X207","t":"result","run":"R077","test":"T103","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X208","t":"result","run":"R077","test":"T104","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X209","t":"result","run":"R077","test":"T105","s":"fail","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X210","t":"result","run":"R077","test":"T106","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X211","t":"result","run":"R077","test":"T107","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X212","t":"result","run":"R077","test":"T108","s":"fail","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X213","t":"result","run":"R077","test":"T109","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X214","t":"result","run":"R077","test":"T110","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X215","t":"result","run":"R077","test":"T111","s":"pass","ev":["go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"D023","t":"defect","test":"T108","run":"R077","sev":"high","s":"open","name":"Admin lista borradores ajenos pero GET/PATCH/publish/read-status responden 404: Find filtra estado='publicado' OR autor_id sin excepcion Admin"}
+{"v":1,"id":"R078","t":"run","at":"2026-11-04T00:00:00Z","build":"29757d1+tests","env":"E006","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; git diff --check"}
+{"v":1,"id":"X216","t":"result","run":"R078","test":"T098","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X217","t":"result","run":"R078","test":"T099","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X218","t":"result","run":"R078","test":"T100","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X219","t":"result","run":"R078","test":"T101","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X220","t":"result","run":"R078","test":"T102","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X221","t":"result","run":"R078","test":"T103","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X222","t":"result","run":"R078","test":"T104","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X223","t":"result","run":"R078","test":"T105","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X224","t":"result","run":"R078","test":"T106","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X225","t":"result","run":"R078","test":"T107","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X226","t":"result","run":"R078","test":"T108","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X227","t":"result","run":"R078","test":"T109","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X228","t":"result","run":"R078","test":"T110","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"X229","t":"result","run":"R078","test":"T111","s":"pass","ev":["go test ./... -count=1","go test ./tests/announcements -count=1 -v"]}
+{"v":1,"id":"D023","t":"defect","test":"T108","run":"R078","sev":"high","s":"closed","name":"Admin lista borradores ajenos pero GET/PATCH/publish/read-status responden 404: corregido en 29757d1 (Find recibe includeAllDrafts)"}

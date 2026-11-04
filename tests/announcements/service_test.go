@@ -95,3 +95,18 @@ func TestDocenteFindDoesNotRequestOtherAuthorsDrafts(t *testing.T) {
 		t.Fatalf("teacher requested another author's draft: error=%v findAllDrafts=%v", err, r.findAllDrafts)
 	}
 }
+
+// PT-TR-01: an inactive Docente with a still-resolvable identity is rejected by every operation.
+func TestInactiveTeacherIsForbidden(t *testing.T) {
+	s := announcement.NewService(&repo{}, users{domain.User{ID: "u1", Role: "Docente", Status: "inactivo"}})
+	ctx := context.Background()
+	if _, err := s.List(ctx, "u1"); err != domain.ErrForbidden {
+		t.Errorf("list err=%v", err)
+	}
+	if _, err := s.Create(ctx, domain.Announcement{Title: "x", Description: "x"}, "u1"); err != domain.ErrForbidden {
+		t.Errorf("create err=%v", err)
+	}
+	if err := s.Confirm(ctx, "a1", "u1"); err != domain.ErrForbidden {
+		t.Errorf("confirm err=%v", err)
+	}
+}
