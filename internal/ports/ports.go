@@ -63,6 +63,16 @@ type EventRepository interface {
 	HasConflict(ctx context.Context, event domain.Event, excludeID string) (bool, error)
 }
 
+type InternalCalendarRepository interface {
+	List(ctx context.Context, actorID, role, seedbedID string, from, to *time.Time) ([]domain.InternalCalendarEvent, error)
+	Find(ctx context.Context, actorID, role, id string) (domain.InternalCalendarEvent, error)
+	Create(ctx context.Context, event domain.InternalCalendarEvent) (domain.InternalCalendarEvent, error)
+	Update(ctx context.Context, event domain.InternalCalendarEvent) (domain.InternalCalendarEvent, error)
+	Cancel(ctx context.Context, id, actorID string) (domain.InternalCalendarEvent, error)
+	CanManage(ctx context.Context, event domain.InternalCalendarEvent, actorID, role string) (bool, error)
+	HasConflict(ctx context.Context, event domain.InternalCalendarEvent, excludeID string) (bool, error)
+}
+
 type ContentPageRepository interface {
 	List(ctx context.Context, includeDrafts bool) ([]domain.ContentPage, error)
 	FindBySlug(ctx context.Context, slug string) (domain.ContentPage, error)

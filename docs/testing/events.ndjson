@@ -473,3 +473,8 @@
 {"v":1,"id":"N001","t":"note","by":"agent","at":"2026-11-04T00:00:00Z","text":"Corrección de IDs duplicados: se renumeró la segunda aparición conservando su contenido. T021(seedbeds)->T112, T022(seedbeds)->T113, R022(2026-10-17T00:00)->R079, R023(2026-10-17T00:00)->R080, R035(golang:1.22-alpine)->R081, X038(T021 seedbeds)->X230, X039(T022 seedbeds)->X231, X096(T050)->X232, X097(T050/R036)->X233, X098(T050/R037)->X234, X099(T050/R038)->X235, X100(T051/R039)->X236, X101(T052/R039)->X237."}
 {"v":1,"id":"R082","t":"run","at":"2026-11-04T00:00:00Z","build":"3944255+wip","by":"agent","mode":"automated","cmd":"gofmt -w tests/registration/service_test.go; go test ./... -count=1; git diff --check"}
 {"v":1,"id":"X238","t":"result","run":"R082","test":"T026","s":"pass","ev":["go test ./... -count=1"]}
+{"v":1,"id":"T114","t":"test","area":"module-9-internal-calendar","p":"must","name":"Rechaza tipo y rango de fechas inválidos"}
+{"v":1,"id":"T115","t":"test","area":"module-9-internal-calendar","p":"must","name":"Restringe creación a Docente o Admin"}
+{"v":1,"id":"R083","t":"run","at":"2026-11-04T00:00:00Z","build":"wip-module-9","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X239","t":"result","run":"R083","test":"T114","s":"pass","ev":["go test ./..."]}
+{"v":1,"id":"X240","t":"result","run":"R083","test":"T115","s":"pass","ev":["go test ./..."]}

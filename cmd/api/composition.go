@@ -15,6 +15,7 @@ import (
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
+	calendarapp "github.com/galash-uptc/backend/internal/application/internalcalendar"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	researchapp "github.com/galash-uptc/backend/internal/application/research"
@@ -55,8 +56,9 @@ func Run() error {
 	events := postgresadapter.NewEventRepository(db)
 	content := postgresadapter.NewContentPageRepository(db)
 	announcements := postgresadapter.NewAnnouncementRepository(db)
+	calendar := postgresadapter.NewInternalCalendarRepository(db)
 	service := application.NewService(firebaseadapter.NewVerifier(firebaseAuth), users)
-	handler := httpadapter.NewHandlerWithAnnouncements(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users), contentapp.NewService(content, users), announcementapp.NewService(announcements, users))
+	handler := httpadapter.NewHandlerWithCalendar(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users), contentapp.NewService(content, users), announcementapp.NewService(announcements, users), calendarapp.NewService(calendar))
 	go purgeExpiredCredentials(ctx, service, time.Hour)
 	log.Printf("Auth escuchando en :%s", cfg.Port)
 	return http.ListenAndServe(":"+cfg.Port, handler.Routes())

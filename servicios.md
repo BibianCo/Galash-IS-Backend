@@ -98,6 +98,11 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/announcements/{id}/publish` | publica comunicado | M8 | [ ] |
 | POST | `/announcements/{id}/read-confirmations` | confirma lectura idempotente | M8 | [ ] |
 | GET | `/announcements/{id}/read-status` | trazabilidad por docente para autor/admin | M8 | [ ] |
+| GET | `/internal-calendar/events` | agenda interna por rango, vista y semillero | M9 | [ ] |
+| POST | `/internal-calendar/events` | crea reunión, tutoría o hito | M9 | [ ] |
+| GET | `/internal-calendar/events/{id}` | detalle y participantes autorizado | M9 | [ ] |
+| PATCH | `/internal-calendar/events/{id}` | actualiza evento o participantes | M9 | [ ] |
+| DELETE | `/internal-calendar/events/{id}` | cancela lógicamente conservando trazabilidad | M9 | [ ] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y
@@ -120,6 +125,12 @@ M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`
 `publicado`; `status=proximo` y `status=vencido` permiten separar eventos según
 la fecha de inicio. La escritura requiere sesión de `Docente` o `Admin`; el
 docente solo administra sus propios eventos.
+
+M9 usa `seedbedId`, `type` (`reunion`, `tutoria` o `hito`), `title`, `description`,
+`startAt`, `endAt` y `participantIds`. Las fechas son RFC3339. Los estudiantes
+solo consultan eventos del semillero al que pertenecen; Docente y Admin crean,
+actualizan y cancelan según autorización. La eliminación es lógica y conserva
+historial.
 
 Fuera de contrato: `- /health` infraestructura · `- /users/roles` alias de
 `PUT /users/{userId}/roles`. `GET /admin/members` responde `400` sin `q`.

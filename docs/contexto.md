@@ -48,6 +48,10 @@ GALASH-UPTC web system for academic management, research, and communication.
   borradores propios; Admin puede ver todos los borradores. Docente administra
   sus propios comunicados y Admin puede administrar todos; solo usuarios activos
   con esos roles acceden.
+- El módulo 9 implementa el cronograma interno con cinco rutas para consultar,
+  crear, detallar, actualizar y cancelar lógicamente reuniones, tutorías e hitos
+  por semillero y participantes; conserva historial y restringe la visibilidad
+  de estudiantes a sus semilleros.
 
 ## Record
 
