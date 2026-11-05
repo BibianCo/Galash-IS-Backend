@@ -12,9 +12,11 @@ import (
 	firebaseadapter "github.com/galash-uptc/backend/internal/adapters/outbound/firebase"
 	postgresadapter "github.com/galash-uptc/backend/internal/adapters/outbound/postgres"
 	announcementapp "github.com/galash-uptc/backend/internal/application/announcement"
+	auditapp "github.com/galash-uptc/backend/internal/application/audit"
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
+	fileapp "github.com/galash-uptc/backend/internal/application/file"
 	calendarapp "github.com/galash-uptc/backend/internal/application/internalcalendar"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
 	officiallinkapp "github.com/galash-uptc/backend/internal/application/officiallink"
@@ -59,8 +61,10 @@ func Run() error {
 	announcements := postgresadapter.NewAnnouncementRepository(db)
 	calendar := postgresadapter.NewInternalCalendarRepository(db)
 	officialLinks := postgresadapter.NewOfficialLinkRepository(db)
+	auditLogs := postgresadapter.NewAuditRepository(db)
+	files := postgresadapter.NewFileRepository(db)
 	service := application.NewService(firebaseadapter.NewVerifier(firebaseAuth), users)
-	handler := httpadapter.NewHandlerWithOfficialLinks(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users, seedbeds), contentapp.NewService(content, users), announcementapp.NewService(announcements, users), calendarapp.NewService(calendar), officiallinkapp.NewService(officialLinks, users))
+	handler := httpadapter.NewHandlerWithOfficialLinksAndAudit(service, users, seedbedapp.NewService(seedbeds, users), registrationapp.NewService(registrations), researchapp.NewService(research, seedbeds, users), memberapp.NewService(users), eventapp.NewService(events, users, seedbeds), contentapp.NewService(content, users), announcementapp.NewService(announcements, users), calendarapp.NewService(calendar), officiallinkapp.NewService(officialLinks, users), auditapp.NewService(auditLogs), fileapp.NewService(files))
 	go purgeExpiredCredentials(ctx, service, time.Hour)
 	log.Printf("Auth escuchando en :%s", cfg.Port)
 	return http.ListenAndServe(":"+cfg.Port, handler.Routes())

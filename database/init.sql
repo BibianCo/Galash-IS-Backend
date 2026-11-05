@@ -18,6 +18,19 @@ CREATE TABLE usuarios (
     creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS archivos_adjuntos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entidad_tipo TEXT NOT NULL,
+    entidad_id UUID NOT NULL,
+    nombre TEXT NOT NULL,
+    tipo_contenido TEXT NOT NULL,
+    tamano BIGINT NOT NULL CHECK (tamano > 0 AND tamano <= 10485760),
+    contenido BYTEA NOT NULL,
+    subido_por UUID NOT NULL REFERENCES usuarios(id),
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS archivos_adjuntos_entidad_idx ON archivos_adjuntos(entidad_tipo, entidad_id);
+
 CREATE TABLE sesiones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id UUID NOT NULL REFERENCES usuarios(id),
@@ -307,3 +320,19 @@ BEGIN INSERT INTO enlaces_oficiales_historial(enlace_id,nombre,descripcion,url,c
 VALUES(NEW.id,NEW.nombre,NEW.descripcion,NEW.url,NEW.categoria,NEW.visible,NEW.orden,NEW.estado,NEW.actualizado_por); RETURN NEW; END $$;
 DROP TRIGGER IF EXISTS enlaces_oficiales_historial_trigger ON enlaces_oficiales;
 CREATE TRIGGER enlaces_oficiales_historial_trigger AFTER INSERT OR UPDATE ON enlaces_oficiales FOR EACH ROW EXECUTE FUNCTION registrar_historial_enlace();
+
+-- M12: bitácora de auditoría append-only.
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), actor_id UUID REFERENCES usuarios(id),
+    action TEXT NOT NULL, entity TEXT NOT NULL, entity_id UUID, result TEXT NOT NULL,
+    origin TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS audit_logs_actor_idx ON audit_logs(actor_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_action_idx ON audit_logs(action, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_entity_idx ON audit_logs(entity, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_date_idx ON audit_logs(created_at DESC);
+CREATE OR REPLACE FUNCTION prevent_audit_log_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'audit_logs es inmutable'; END $$;
+DROP TRIGGER IF EXISTS audit_logs_immutable_trigger ON audit_logs;
+CREATE TRIGGER audit_logs_immutable_trigger BEFORE UPDATE OR DELETE ON audit_logs
+    FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();

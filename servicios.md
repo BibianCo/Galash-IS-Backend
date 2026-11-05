@@ -110,6 +110,9 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/links` | crea enlace oficial validando URL externa | M10 | [ ] |
 | PATCH | `/links/{id}` | actualiza enlace oficial y registra historial | M10 | [ ] |
 | PATCH | `/links/{id}/status` | activa, desactiva u oculta enlace sin borrar historial | M10 | [ ] |
+| GET | `/audit-logs` | consulta bitácora filtrable por actor, acción, entidad y periodo; Admin | M12 | [ ] |
+| POST | `/files` | carga multipart segura asociada a una entidad | M13 | [ ] |
+| GET | `/files/{id}` | descarga autorizada de un archivo adjunto | M13 | [ ] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y

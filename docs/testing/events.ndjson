@@ -540,3 +540,11 @@
 {"v":1,"id":"T133","t":"test","area":"module-10-official-links","p":"must","name":"POST y cambio de estado no fallan por columnas calificadas en RETURNING PostgreSQL"}
 {"v":1,"id":"R090","at":"2026-11-04T22:08:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth; curl GET /links"}
 {"v":1,"id":"X266","t":"result","run":"R090","test":"T133","s":"pass","ev":["go test ./...","auth rebuilt","GET /links HTTP 200"]}
+{"v":1,"id":"T135","t":"test","area":"module-12-audit","p":"must","name":"Admin can query audit logs using actor, action, entity and RFC3339 period filters"}
+{"v":1,"id":"T136","t":"test","area":"module-12-audit","p":"must","name":"Audit query rejects an invalid period with a clear HTTP 400 error"}
+{"v":1,"id":"R092","at":"2026-11-04T22:30:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/audit ./internal/... ./cmd/..."}
+{"v":1,"id":"X268","t":"result","run":"R092","test":"T135","s":"pass","ev":["tests/audit/http_test.go"]}
+{"v":1,"id":"X269","t":"result","run":"R092","test":"T136","s":"pass","ev":["tests/audit/http_test.go"]}
+{"v":1,"id":"T137","t":"test","area":"module-13-files","p":"must","name":"Valida tamaño, extensión y tipo permitido de archivos adjuntos"}
+{"v":1,"id":"R093","at":"2026-11-04T23:00:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/files ./internal/adapters/inbound/http ./cmd/api"}
+{"v":1,"id":"X270","t":"result","run":"R093","test":"T137","s":"pass","ev":["tests/files/service_test.go"]}
