@@ -1,0 +1,27 @@
+{
+  "scope": "Synthetic public-text repair in local development PostgreSQL",
+  "checks": {
+    "dry_run_rollback": "pass",
+    "non_target_fields_and_real_records_preserved": "pass",
+    "repair_idempotent": "pass",
+    "loader_idempotent": "pass",
+    "powershell_parser": "pass",
+    "posix_shell_syntax": "pass",
+    "api_and_angular_accents": "pass"
+  },
+  "damaged_synthetic_rows_remaining": {
+    "usuarios": 0,
+    "perfil_investigador": 0,
+    "semilleros": 0,
+    "proyectos": 0,
+    "actividades": 0,
+    "eventos": 0
+  },
+  "guarded_update_statements": 66,
+  "unit_tests": "not_run per user instruction",
+  "notes": [
+    "No schema or API changes",
+    "No personal data stored in evidence; screenshot contains canonical fictional fixture names",
+    "Frontend/backend API contracts were already different; M2 delegates changes are present only in backend copy; synchronization remains outside this text-data fix"
+  ]
+}

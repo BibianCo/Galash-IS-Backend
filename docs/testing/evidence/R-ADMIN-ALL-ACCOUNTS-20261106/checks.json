@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "checks": [
+    "go test ./tests/auth -count=1",
+    "read-only PostgreSQL repository count equals all stored users",
+    "live HTTP GET /admin/members returns200 and all stored users",
+    "synthetic test account/session cleanup completed",
+    "auth container rebuilt and restarted"
+  ],
+  "note": "No tokens, credentials or personal account data captured."
+}
