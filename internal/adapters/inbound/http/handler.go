@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1874,7 +1875,7 @@ func (w *statusRecorder) Write(body []byte) (int, error) {
 }
 
 func criticalAuditPath(path string) (bool, string) {
-	for _, prefix := range []string{"/users/", "/seedbeds", "/registration-requests", "/admin/registration-requests", "/activities", "/projects", "/research-proposals", "/events", "/content/", "/announcements", "/internal-calendar/", "/links"} {
+	for _, prefix := range []string{"/users/", "/seedbeds", "/registration-requests", "/admin/registration-requests", "/activities", "/projects", "/research-proposals", "/events", "/admin/content/", "/announcements", "/internal-calendar/", "/links"} {
 		if strings.HasPrefix(path, prefix) {
 			return true, prefix
 		}
@@ -1970,6 +1971,13 @@ func fileError(w http.ResponseWriter, err error) {
 	}
 }
 
+var officeContainerTypes = map[string]string{
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": "zip",
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":       "zip",
+	"application/msword":       "ole",
+	"application/vnd.ms-excel": "ole",
+}
+
 func (h *Handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 	if !h.fileReady(w) {
 		return
@@ -2004,8 +2012,10 @@ func (h *Handler) uploadFile(w http.ResponseWriter, r *http.Request) {
 	// ZIP-based Office documents and legacy Office binaries are not reliably
 	// distinguishable from their container by DetectContentType; retain the
 	// declared type for those formats and validate the extension in the service.
+	// Only Office types may override the sniffed container; anything else keeps
+	// the sniffed type so a ZIP or binary cannot pass as PDF or image (D031).
 	declaredType := strings.ToLower(strings.TrimSpace(fileHeader.Header.Get("Content-Type")))
-	if contentType == "application/zip" || contentType == "application/octet-stream" {
+	if contentType == "application/zip" && officeContainerTypes[declaredType] == "zip" || contentType == "application/octet-stream" && officeContainerTypes[declaredType] == "ole" && bytes.HasPrefix(content, []byte("\xD0\xCF\x11\xE0")) {
 		contentType = declaredType
 	}
 	file, err := h.files.Create(r.Context(), domain.FileAttachment{Name: fileHeader.Filename, ContentType: contentType, Size: int64(len(content)), EntityType: entityType, EntityID: entityID, UploadedBy: actor.ID}, content)

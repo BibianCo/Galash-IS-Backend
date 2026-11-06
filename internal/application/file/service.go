@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"mime"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/galash-uptc/backend/internal/domain"
@@ -14,14 +14,16 @@ import (
 
 const MaxSize int64 = 10 << 20
 
-var allowedTypes = map[string]bool{
-	"application/pdf":    true,
-	"application/msword": true,
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
-	"application/vnd.ms-excel": true,
-	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
-	"image/jpeg": true,
-	"image/png":  true,
+// Explicit extensions: the alpine runtime image has no /etc/mime.types, so
+// mime.ExtensionsByType cannot be trusted for Office formats (D028).
+var allowedTypes = map[string][]string{
+	"application/pdf":    {".pdf"},
+	"application/msword": {".doc"},
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": {".docx"},
+	"application/vnd.ms-excel": {".xls"},
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {".xlsx"},
+	"image/jpeg": {".jpg", ".jpeg"},
+	"image/png":  {".png"},
 }
 
 type Service struct{ repo ports.FileRepository }
@@ -42,21 +44,7 @@ func validFile(file domain.FileAttachment, content []byte) bool {
 		return false
 	}
 	typeName := strings.ToLower(strings.TrimSpace(file.ContentType))
-	if !allowedTypes[typeName] || file.Size != int64(len(content)) {
-		return false
-	}
-	return extensionMatches(file.Name, typeName)
-}
-
-func extensionMatches(name, contentType string) bool {
-	ext := strings.ToLower(filepath.Ext(name))
-	candidates, _ := mime.ExtensionsByType(contentType)
-	for _, candidate := range candidates {
-		if ext == candidate {
-			return true
-		}
-	}
-	return false
+	return file.Size == int64(len(content)) && slices.Contains(allowedTypes[typeName], strings.ToLower(filepath.Ext(file.Name)))
 }
 
 func (s *Service) Create(ctx context.Context, file domain.FileAttachment, content []byte) (domain.FileAttachment, error) {

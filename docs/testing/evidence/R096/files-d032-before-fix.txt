@@ -1,0 +1,6 @@
+=== RUN   TestRepositoryEntityAccessRules
+    repository_test.go:184: missing activity: err=<nil>, want ErrForbidden
+--- FAIL: TestRepositoryEntityAccessRules (0.08s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/files	0.086s
+FAIL
