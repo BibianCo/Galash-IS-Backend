@@ -87,8 +87,19 @@ func TestAdminRepositoryListsAllStoredAccounts(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
+	// Other Go packages also create and clean up fixtures in this database.
+	// Hold a shared table lock while comparing the two reads so their account
+	// sets cannot change between the count and the repository query.
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(context.Background())
+	if _, err = tx.Exec(ctx, "LOCK TABLE usuarios IN SHARE MODE"); err != nil {
+		t.Fatal(err)
+	}
 	var count int
-	if err = db.QueryRow(ctx, "SELECT count(*) FROM usuarios").Scan(&count); err != nil {
+	if err = tx.QueryRow(ctx, "SELECT count(*) FROM usuarios").Scan(&count); err != nil {
 		t.Fatal(err)
 	}
 	users, err := postgresadapter.NewUserRepository(db).Search(ctx, "", 0, true)
