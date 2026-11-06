@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,11 +12,14 @@ import (
 	"time"
 
 	announcementapp "github.com/galash-uptc/backend/internal/application/announcement"
+	auditapp "github.com/galash-uptc/backend/internal/application/audit"
 	application "github.com/galash-uptc/backend/internal/application/auth"
 	contentapp "github.com/galash-uptc/backend/internal/application/content"
 	eventapp "github.com/galash-uptc/backend/internal/application/event"
+	fileapp "github.com/galash-uptc/backend/internal/application/file"
 	calendarapp "github.com/galash-uptc/backend/internal/application/internalcalendar"
 	memberapp "github.com/galash-uptc/backend/internal/application/member"
+	officiallinkapp "github.com/galash-uptc/backend/internal/application/officiallink"
 	registrationapp "github.com/galash-uptc/backend/internal/application/registration"
 	researchapp "github.com/galash-uptc/backend/internal/application/research"
 	seedbedapp "github.com/galash-uptc/backend/internal/application/seedbed"
@@ -53,8 +57,11 @@ type Handler struct {
 	members       *memberapp.Service
 	events        *eventapp.Service
 	content       *contentapp.Service
+	officialLinks *officiallinkapp.Service
 	announcements *announcementapp.Service
 	calendar      *calendarapp.Service
+	audit         *auditapp.Service
+	files         *fileapp.Service
 	db            ports.HealthChecker
 }
 
@@ -95,6 +102,19 @@ func NewHandlerWithAnnouncements(service *application.Service, db ports.HealthCh
 func NewHandlerWithCalendar(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service, calendar *calendarapp.Service) *Handler {
 	h := NewHandlerWithAnnouncements(service, db, seedbed, registration, research, members, events, content, announcements)
 	h.calendar = calendar
+	return h
+}
+func NewHandlerWithOfficialLinks(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service, calendar *calendarapp.Service, links *officiallinkapp.Service) *Handler {
+	h := NewHandlerWithCalendar(service, db, seedbed, registration, research, members, events, content, announcements, calendar)
+	h.officialLinks = links
+	return h
+}
+func NewHandlerWithOfficialLinksAndAudit(service *application.Service, db ports.HealthChecker, seedbed *seedbedapp.Service, registration *registrationapp.Service, research *researchapp.Service, members *memberapp.Service, events *eventapp.Service, content *contentapp.Service, announcements *announcementapp.Service, calendar *calendarapp.Service, links *officiallinkapp.Service, audit *auditapp.Service, files ...*fileapp.Service) *Handler {
+	h := NewHandlerWithOfficialLinks(service, db, seedbed, registration, research, members, events, content, announcements, calendar, links)
+	h.audit = audit
+	if len(files) > 0 {
+		h.files = files[0]
+	}
 	return h
 }
 
@@ -185,7 +205,14 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /internal-calendar/events/{id}", h.getInternalCalendar)
 	mux.HandleFunc("PATCH /internal-calendar/events/{id}", h.updateInternalCalendar)
 	mux.HandleFunc("DELETE /internal-calendar/events/{id}", h.deleteInternalCalendar)
-	return localCORS(mux)
+	mux.HandleFunc("GET /links", h.listOfficialLinks)
+	mux.HandleFunc("POST /links", h.createOfficialLink)
+	mux.HandleFunc("PATCH /links/{id}", h.updateOfficialLink)
+	mux.HandleFunc("PATCH /links/{id}/status", h.updateOfficialLinkStatus)
+	mux.HandleFunc("GET /audit-logs", h.listAuditLogs)
+	mux.HandleFunc("POST /files", h.uploadFile)
+	mux.HandleFunc("GET /files/{id}", h.getFile)
+	return localCORS(h.auditMutation(mux))
 }
 
 func localCORS(next http.Handler) http.Handler {
@@ -1753,6 +1780,116 @@ func (h *Handler) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+func (h *Handler) listAuditLogs(w http.ResponseWriter, r *http.Request) {
+	if h.audit == nil {
+		writeError(w, http.StatusInternalServerError, "módulo de auditoría no configurado")
+		return
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	if !actorRole(actor, "admin") {
+		writeError(w, http.StatusForbidden, "se requiere permiso de auditoría")
+		return
+	}
+
+	query := r.URL.Query()
+	filter := ports.AuditFilter{
+		ActorID: strings.TrimSpace(query.Get("actor")),
+		Action:  strings.TrimSpace(query.Get("action")),
+		Entity:  strings.TrimSpace(query.Get("entity")),
+	}
+	for _, item := range []struct {
+		name string
+		dest **time.Time
+	}{
+		{name: "from", dest: &filter.From},
+		{name: "to", dest: &filter.To},
+	} {
+		value := strings.TrimSpace(query.Get(item.name))
+		if value == "" {
+			continue
+		}
+		parsed, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, item.name+" debe ser una fecha RFC3339")
+			return
+		}
+		*item.dest = &parsed
+	}
+	logs, err := h.audit.List(r.Context(), filter)
+	if errors.Is(err, domain.ErrInvalidAuditPeriod) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "no fue posible consultar la bitácora de auditoría")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"auditLogs": logs})
+}
+
+// auditMutation records critical writes without exposing a write endpoint.
+func (h *Handler) auditMutation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.audit == nil || r.Method == http.MethodGet || r.Method == http.MethodOptions || strings.HasPrefix(r.URL.Path, "/auth/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(recorder, r)
+		if ok, _ := criticalAuditPath(r.URL.Path); !ok {
+			return
+		}
+		token, err := sessionToken(r)
+		if err != nil {
+			return
+		}
+		actor, err := h.service.CurrentUser(r.Context(), token)
+		if err != nil {
+			return
+		}
+		_ = h.audit.Record(r.Context(), domain.AuditLog{
+			ActorID: actor.ID, Action: r.Method + " " + r.URL.Path, Entity: r.URL.Path,
+			Date: time.Now().UTC(), Result: auditResult(recorder.status), Origin: r.RemoteAddr,
+		})
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusRecorder) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusRecorder) Write(body []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return w.ResponseWriter.Write(body)
+}
+
+func criticalAuditPath(path string) (bool, string) {
+	for _, prefix := range []string{"/users/", "/seedbeds", "/registration-requests", "/admin/registration-requests", "/activities", "/projects", "/research-proposals", "/events", "/admin/content/", "/announcements", "/internal-calendar/", "/links"} {
+		if strings.HasPrefix(path, prefix) {
+			return true, prefix
+		}
+	}
+	return false, ""
+}
+
+func auditResult(status int) string {
+	if status >= 200 && status < 400 {
+		return "success"
+	}
+	return "failure"
+}
+
 func bearerToken(header string) (string, error) {
 	parts := strings.Fields(header)
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
@@ -1811,6 +1948,102 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+func (h *Handler) fileReady(w http.ResponseWriter) bool {
+	if h.files == nil {
+		writeError(w, http.StatusInternalServerError, "módulo de archivos adjuntos no configurado")
+		return false
+	}
+	return true
+}
+
+func fileError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, domain.ErrFileNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, domain.ErrInvalidFile):
+		writeError(w, http.StatusBadRequest, err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "no fue posible procesar el archivo")
+	}
+}
+
+var officeContainerTypes = map[string]string{
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": "zip",
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":       "zip",
+	"application/msword":       "ole",
+	"application/vnd.ms-excel": "ole",
+}
+
+func (h *Handler) uploadFile(w http.ResponseWriter, r *http.Request) {
+	if !h.fileReady(w) {
+		return
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	if !strings.EqualFold(actor.Status, "activo") || (!strings.EqualFold(actor.Role, "estudiante") && !strings.EqualFold(actor.Role, "docente") && !strings.EqualFold(actor.Role, "admin")) {
+		writeError(w, http.StatusForbidden, "el rol o estado de la cuenta no permite cargar archivos")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, fileapp.MaxSize+1024*1024)
+	if err := r.ParseMultipartForm(fileapp.MaxSize + 1024*1024); err != nil {
+		writeError(w, http.StatusBadRequest, "la solicitud multipart es inválida o supera el tamaño máximo de 10 MB")
+		return
+	}
+	entityType := r.FormValue("entityType")
+	entityID := r.FormValue("entityId")
+	fileHandle, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "el campo file es obligatorio")
+		return
+	}
+	defer fileHandle.Close()
+	content, err := io.ReadAll(io.LimitReader(fileHandle, fileapp.MaxSize+1))
+	if err != nil || int64(len(content)) > fileapp.MaxSize {
+		writeError(w, http.StatusBadRequest, "el archivo supera el tamaño máximo permitido de 10 MB")
+		return
+	}
+	contentType := http.DetectContentType(content)
+	// ZIP-based Office documents and legacy Office binaries are not reliably
+	// distinguishable from their container by DetectContentType; retain the
+	// declared type for those formats and validate the extension in the service.
+	// Only Office types may override the sniffed container; anything else keeps
+	// the sniffed type so a ZIP or binary cannot pass as PDF or image (D031).
+	declaredType := strings.ToLower(strings.TrimSpace(fileHeader.Header.Get("Content-Type")))
+	if contentType == "application/zip" && officeContainerTypes[declaredType] == "zip" || contentType == "application/octet-stream" && officeContainerTypes[declaredType] == "ole" && bytes.HasPrefix(content, []byte("\xD0\xCF\x11\xE0")) {
+		contentType = declaredType
+	}
+	file, err := h.files.Create(r.Context(), domain.FileAttachment{Name: fileHeader.Filename, ContentType: contentType, Size: int64(len(content)), EntityType: entityType, EntityID: entityID, UploadedBy: actor.ID}, content)
+	if err != nil {
+		fileError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, file)
+}
+
+func (h *Handler) getFile(w http.ResponseWriter, r *http.Request) {
+	if !h.fileReady(w) {
+		return
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	file, content, err := h.files.Find(r.Context(), r.PathValue("id"), actor.ID, actor.Role)
+	if err != nil {
+		fileError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", file.ContentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", file.Name))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(content)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
 }
 
 type pageRequest struct {
@@ -2079,4 +2312,149 @@ func (h *Handler) announcementReadStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"readStatus": items})
+}
+
+type officialLinkRequest struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	URL         *string `json:"url"`
+	Category    *string `json:"category"`
+	Visible     *bool   `json:"visible"`
+	Order       *int    `json:"order"`
+}
+type officialLinkCreateRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Category    string `json:"category"`
+	Visible     *bool  `json:"visible"`
+	Order       int    `json:"order"`
+}
+
+func (h *Handler) officialLinksReady(w http.ResponseWriter) bool {
+	if h.officialLinks == nil {
+		writeError(w, 500, "módulo de enlaces oficiales no configurado")
+		return false
+	}
+	return true
+}
+func officialLinkError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, 403, err.Error())
+	case errors.Is(err, domain.ErrOfficialLinkNotFound):
+		writeError(w, 404, err.Error())
+	case errors.Is(err, domain.ErrInvalidOfficialLink), errors.Is(err, domain.ErrInvalidOfficialLinkCategory), errors.Is(err, domain.ErrInvalidOfficialLinkStatus):
+		writeError(w, 400, err.Error())
+	default:
+		writeError(w, 500, "no fue posible procesar el enlace oficial")
+	}
+}
+func (h *Handler) listOfficialLinks(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	includeAll := false
+	if hasSessionCredential(r) {
+		a, ok := h.actor(w, r)
+		if !ok {
+			return
+		}
+		includeAll = strings.EqualFold(a.Role, "admin") && strings.EqualFold(a.Status, "activo")
+	}
+	items, err := h.officialLinks.List(r.Context(), r.URL.Query().Get("category"), includeAll)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"links": items})
+}
+func (h *Handler) createOfficialLink(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q officialLinkCreateRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	visible := true
+	if q.Visible != nil {
+		visible = *q.Visible
+	}
+	item, err := h.officialLinks.Create(r.Context(), domain.OfficialLink{Name: q.Name, Description: q.Description, URL: q.URL, Category: q.Category, Visible: visible, Order: q.Order}, a.ID)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 201, item)
+}
+func (h *Handler) updateOfficialLink(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	item, err := h.officialLinks.Find(r.Context(), r.PathValue("id"), a.ID)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	var q officialLinkRequest
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	if q.Name != nil {
+		item.Name = *q.Name
+	}
+	if q.Description != nil {
+		item.Description = *q.Description
+	}
+	if q.URL != nil {
+		item.URL = *q.URL
+	}
+	if q.Category != nil {
+		item.Category = *q.Category
+	}
+	if q.Visible != nil {
+		item.Visible = *q.Visible
+	}
+	if q.Order != nil {
+		item.Order = *q.Order
+	}
+	updated, err := h.officialLinks.Update(r.Context(), r.PathValue("id"), a.ID, item)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 200, updated)
+}
+func (h *Handler) updateOfficialLinkStatus(w http.ResponseWriter, r *http.Request) {
+	if !h.officialLinksReady(w) {
+		return
+	}
+	a, ok := h.actor(w, r)
+	if !ok {
+		return
+	}
+	var q struct {
+		Status string `json:"status"`
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil {
+		writeError(w, 400, "cuerpo JSON inválido")
+		return
+	}
+	item, err := h.officialLinks.SetStatus(r.Context(), r.PathValue("id"), a.ID, q.Status)
+	if err != nil {
+		officialLinkError(w, err)
+		return
+	}
+	writeJSON(w, 200, item)
 }

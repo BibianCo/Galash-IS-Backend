@@ -1,0 +1,48 @@
+=== RUN   TestLinksListScopeAndCategoryFilter
+--- PASS: TestLinksListScopeAndCategoryFilter (0.00s)
+=== RUN   TestLinksWritesRequireAdmin
+--- PASS: TestLinksWritesRequireAdmin (0.00s)
+=== RUN   TestLinksCreateValidation
+--- PASS: TestLinksCreateValidation (0.00s)
+=== RUN   TestLinksPatchAndStatus
+--- PASS: TestLinksPatchAndStatus (0.00s)
+=== RUN   TestRepositoryVisibilityOrderAndHistory
+--- PASS: TestRepositoryVisibilityOrderAndHistory (0.04s)
+=== RUN   TestRepositoryNotFoundAndConstraints
+--- PASS: TestRepositoryNotFoundAndConstraints (0.02s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/links	0.074s
+=== RUN   TestAuditLogsRequiresAdminAndParsesFilters
+--- PASS: TestAuditLogsRequiresAdminAndParsesFilters (0.00s)
+=== RUN   TestAuditLogsRejectsInvalidPeriod
+--- PASS: TestAuditLogsRejectsInvalidPeriod (0.00s)
+=== RUN   TestAuditLogsAccessControl
+--- PASS: TestAuditLogsAccessControl (0.00s)
+=== RUN   TestAuditLogsRejectsMalformedDates
+--- PASS: TestAuditLogsRejectsMalformedDates (0.00s)
+=== RUN   TestAuditMiddlewareRecordsCriticalWrites
+--- PASS: TestAuditMiddlewareRecordsCriticalWrites (0.00s)
+=== RUN   TestAuditLogsHaveNoWriteEndpoints
+--- PASS: TestAuditLogsHaveNoWriteEndpoints (0.00s)
+=== RUN   TestRepositoryFiltersAndImmutability
+--- PASS: TestRepositoryFiltersAndImmutability (0.02s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/audit	0.031s
+=== RUN   TestUploadAccessControl
+--- PASS: TestUploadAccessControl (0.00s)
+=== RUN   TestUploadValidation
+--- PASS: TestUploadValidation (0.03s)
+=== RUN   TestDownloadAuthorization
+--- PASS: TestDownloadAuthorization (0.00s)
+=== RUN   TestRepositoryAccessRules
+--- PASS: TestRepositoryAccessRules (0.04s)
+=== RUN   TestCreateRejectsOversizedFile
+--- PASS: TestCreateRejectsOversizedFile (0.00s)
+=== RUN   TestCreateRejectsMismatchedTypeAndExtension
+--- PASS: TestCreateRejectsMismatchedTypeAndExtension (0.00s)
+=== RUN   TestCreateAcceptsAllowedFormats
+--- PASS: TestCreateAcceptsAllowedFormats (0.00s)
+=== RUN   TestCreateRejectsInvalidMetadata
+--- PASS: TestCreateRejectsInvalidMetadata (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/files	0.078s

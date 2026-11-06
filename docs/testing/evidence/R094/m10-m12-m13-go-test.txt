@@ -1,0 +1,53 @@
+=== RUN   TestLinksListScopeAndCategoryFilter
+--- PASS: TestLinksListScopeAndCategoryFilter (0.00s)
+=== RUN   TestLinksWritesRequireAdmin
+--- PASS: TestLinksWritesRequireAdmin (0.00s)
+=== RUN   TestLinksCreateValidation
+--- PASS: TestLinksCreateValidation (0.00s)
+=== RUN   TestLinksPatchAndStatus
+--- PASS: TestLinksPatchAndStatus (0.00s)
+=== RUN   TestRepositoryVisibilityOrderAndHistory
+--- PASS: TestRepositoryVisibilityOrderAndHistory (0.06s)
+=== RUN   TestRepositoryNotFoundAndConstraints
+--- PASS: TestRepositoryNotFoundAndConstraints (0.05s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/links	0.126s
+=== RUN   TestAuditLogsRequiresAdminAndParsesFilters
+--- PASS: TestAuditLogsRequiresAdminAndParsesFilters (0.00s)
+=== RUN   TestAuditLogsRejectsInvalidPeriod
+--- PASS: TestAuditLogsRejectsInvalidPeriod (0.00s)
+=== RUN   TestAuditLogsAccessControl
+--- PASS: TestAuditLogsAccessControl (0.00s)
+=== RUN   TestAuditLogsRejectsMalformedDates
+--- PASS: TestAuditLogsRejectsMalformedDates (0.00s)
+=== RUN   TestAuditMiddlewareRecordsCriticalWrites
+    http_test.go:187: /admin/content/pages audited 0 times
+--- FAIL: TestAuditMiddlewareRecordsCriticalWrites (0.00s)
+=== RUN   TestAuditLogsHaveNoWriteEndpoints
+--- PASS: TestAuditLogsHaveNoWriteEndpoints (0.00s)
+=== RUN   TestRepositoryFiltersAndImmutability
+--- PASS: TestRepositoryFiltersAndImmutability (0.03s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/audit	0.045s
+=== RUN   TestUploadAccessControl
+--- PASS: TestUploadAccessControl (0.00s)
+=== RUN   TestUploadValidation
+    http_test.go:207: zip declared pdf status=201 body={"id":"1","entityType":"event","entityId":"00000000-0000-0000-0000-000000000001","name":"a.pdf","contentType":"application/pdf","size":36,"uploadedBy":"student","createdAt":"0001-01-01T00:00:00Z"}
+--- FAIL: TestUploadValidation (0.00s)
+=== RUN   TestDownloadAuthorization
+--- PASS: TestDownloadAuthorization (0.00s)
+=== RUN   TestRepositoryAccessRules
+    repository_test.go:93: find no-es-uuid: err=ERROR: invalid input syntax for type uuid: "no-es-uuid" (SQLSTATE 22P02), want ErrFileNotFound
+--- FAIL: TestRepositoryAccessRules (0.08s)
+=== RUN   TestCreateRejectsOversizedFile
+--- PASS: TestCreateRejectsOversizedFile (0.00s)
+=== RUN   TestCreateRejectsMismatchedTypeAndExtension
+--- PASS: TestCreateRejectsMismatchedTypeAndExtension (0.00s)
+=== RUN   TestCreateAcceptsAllowedFormats
+--- PASS: TestCreateAcceptsAllowedFormats (0.00s)
+=== RUN   TestCreateRejectsInvalidMetadata
+    service_test.go:73: excel macro ext: error=<nil>
+--- FAIL: TestCreateRejectsInvalidMetadata (0.00s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/files	0.095s
+FAIL

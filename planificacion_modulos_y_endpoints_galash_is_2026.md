@@ -197,7 +197,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `GET` | `/links` | Lista enlaces visibles; filtra por categoría y orden. | Must / Visitante | HU-LIN-01 |
+| `GET` | `/links` | Visitante y usuarios no administradores: lista enlaces activos y visibles; Admin activo: lista enlaces en cualquier estado. Filtra por categoría y orden. | Must / Visitante o Admin | HU-LIN-01, HU-LIN-02 |
 | `POST` | `/links` | Crea enlace y valida esquema/formato de URL. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}` | Actualiza nombre, descripción, destino, categoría, visibilidad u orden; registra autor y fecha. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}/status` | Activa, desactiva u oculta un enlace sin borrar historial. | Must / Admin | HU-LIN-01, HU-LIN-02 |

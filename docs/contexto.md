@@ -54,7 +54,11 @@ GALASH-UPTC web system for academic management, research, and communication.
   por semillero y participantes; conserva historial y restringe la visibilidad
   de estudiantes a sus semilleros. Solo el director, un delegado activo del
   semillero o Admin crean, actualizan y cancelan; los solapes de horario de un
-  participante se rechazan al crear y al actualizar.
+   participante se rechazan al crear y al actualizar.
+- El módulo 10 implementa los cuatro endpoints de enlaces oficiales: consulta pública filtrable por categoría y orden, creación y edición exclusiva de Admin con validación HTTP/HTTPS, cambios de estado sin borrado y registro PostgreSQL de cada alta o modificación.
+- En `GET /links`, visitantes y usuarios no administradores solo reciben enlaces activos y visibles; un `Admin` activo autenticado puede consultar enlaces en cualquier estado.
+- El módulo 12 implementa `GET /audit-logs`, restringido a `Admin`, con filtros por actor, acción, entidad y fechas RFC3339; la tabla `audit_logs` es append-only mediante trigger y las escrituras críticas, incluidas las de `/admin/content/*`, se registran internamente.
+- El módulo 13 implementa carga multipart y descarga autorizada de archivos asociados a comunicados, evidencias, propuestas y eventos; conserva el contenido en PostgreSQL, limita a 10 MB y evita URLs públicas predecibles. Valida extensiones con una tabla propia (independiente del host) y solo acepta el tipo declarado para contenedores Office; un ID mal formado responde 404. Carga y descarga aplican la regla de lectura de la entidad asociada: Admin; comunicados y eventos publicados o propios; actividades, evidencias y proyectos existentes; propuestas solo para su autor, docentes y Admin. Cargar a una entidad inexistente o inaccesible responde 403.
 
 ## Record
 

@@ -530,4 +530,104 @@
 {"v":1,"id":"X264","t":"result","run":"R088","test":"T121","s":"pass","ev":["R088/internalcalendar-go-test.txt"]}
 {"v":1,"id":"D025","t":"defect","test":"T130","run":"R088","sev":"high","s":"closed","name":"Corregido: Create/Update/Cancel exigen CanManage (director o delegado activo del semillero, o Admin) en vez del rol Docente"}
 {"v":1,"id":"D026","t":"defect","test":"T130","run":"R088","sev":"medium","s":"closed","name":"Corregido: CanManage incluye delegados activos (semillero_miembros.delegado, no retirados, cuenta activa) de cualquier rol"}
+{"v":1,"id":"T132","t":"test","area":"module-10-official-links","p":"must","name":"Compilación y pruebas existentes del módulo de enlaces oficiales"}
+{"v":1,"id":"R089","at":"2026-11-04T22:00:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./..."}
+{"v":1,"id":"X265","t":"result","run":"R089","test":"T132","s":"pass","ev":["go test ./..."]}
 {"v":1,"id":"D027","t":"defect","test":"T129","run":"R088","sev":"medium","s":"closed","name":"Corregido: HasConflict usa IS DISTINCT FROM para la exclusión vacía; POST detecta solapes"}
+{"v":1,"id":"T134","t":"test","area":"module-10-official-links","p":"must","name":"GET /links restringe estados para público y usuarios no Admin, y permite todos los estados a Admin activo"}
+{"v":1,"id":"R091","at":"2026-11-04T22:20:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth"}
+{"v":1,"id":"X267","t":"result","run":"R091","test":"T134","s":"pass","ev":["go test ./...","auth rebuilt"]}
+{"v":1,"id":"T133","t":"test","area":"module-10-official-links","p":"must","name":"POST y cambio de estado no fallan por columnas calificadas en RETURNING PostgreSQL"}
+{"v":1,"id":"R090","at":"2026-11-04T22:08:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./...; docker compose up -d --build auth; curl GET /links"}
+{"v":1,"id":"X266","t":"result","run":"R090","test":"T133","s":"pass","ev":["go test ./...","auth rebuilt","GET /links HTTP 200"]}
+{"v":1,"id":"T135","t":"test","area":"module-12-audit","p":"must","name":"Admin can query audit logs using actor, action, entity and RFC3339 period filters"}
+{"v":1,"id":"T136","t":"test","area":"module-12-audit","p":"must","name":"Audit query rejects an invalid period with a clear HTTP 400 error"}
+{"v":1,"id":"R092","at":"2026-11-04T22:30:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/audit ./internal/... ./cmd/..."}
+{"v":1,"id":"X268","t":"result","run":"R092","test":"T135","s":"pass","ev":["tests/audit/http_test.go"]}
+{"v":1,"id":"X269","t":"result","run":"R092","test":"T136","s":"pass","ev":["tests/audit/http_test.go"]}
+{"v":1,"id":"T137","t":"test","area":"module-13-files","p":"must","name":"Valida tamaño, extensión y tipo permitido de archivos adjuntos"}
+{"v":1,"id":"R093","at":"2026-11-04T23:00:00Z","t":"run","by":"agent","mode":"automated","cmd":"docker run --rm -v project:/src -w /src golang:1.22 go test ./tests/files ./internal/adapters/inbound/http ./cmd/api"}
+{"v":1,"id":"X270","t":"result","run":"R093","test":"T137","s":"pass","ev":["tests/files/service_test.go"]}
+{"v":1,"id":"T138","t":"test","area":"module-10-official-links","p":"must","name":"GET /links: visitante, estudiante y docente solo ven activos visibles; Admin ve todos; filtro de categoría y categoría inválida 400 (TestLinksListScopeAndCategoryFilter)"}
+{"v":1,"id":"T139","t":"test","area":"module-10-official-links","p":"must","name":"POST/PATCH /links y PATCH /links/{id}/status: 401 sin sesión y 403 para estudiante y docente sin alterar datos (TestLinksWritesRequireAdmin)"}
+{"v":1,"id":"T140","t":"test","area":"module-10-official-links","p":"must","name":"POST /links valida JSON, nombre, descripción, URL HTTP/HTTPS absoluta, categoría y orden; normaliza categoría y registra autor (TestLinksCreateValidation)"}
+{"v":1,"id":"T141","t":"test","area":"module-10-official-links","p":"must","name":"PATCH parcial conserva campos, 400/404 en edición y estado, transiciones activo/inactivo/oculto sin borrado (TestLinksPatchAndStatus)"}
+{"v":1,"id":"T142","t":"test","area":"module-10-official-links","p":"must","name":"Repositorio: visibilidad pública, orden, filtro por categoría e historial por alta, edición y estado (TestRepositoryVisibilityOrderAndHistory)"}
+{"v":1,"id":"T143","t":"test","area":"module-10-official-links","p":"must","name":"Repositorio: ID inexistente o mal formado 404 y CHECK/FK de orden, estado y autor (TestRepositoryNotFoundAndConstraints)"}
+{"v":1,"id":"T144","t":"test","area":"module-12-audit","p":"must","name":"GET /audit-logs: 401 sin sesión, 403 estudiante/docente/visitante, 401 Admin inactivo (TestAuditLogsAccessControl)"}
+{"v":1,"id":"T145","t":"test","area":"module-12-audit","p":"must","name":"GET /audit-logs rechaza fechas no RFC3339 con 400 y acepta periodo abierto (TestAuditLogsRejectsMalformedDates)"}
+{"v":1,"id":"T146","t":"test","area":"module-12-audit","p":"must","name":"Middleware registra escrituras críticas (enlaces, semilleros, eventos, comunicados, solicitudes, roles, contenidos) con actor, acción, entidad, resultado y origen; no registra lecturas ni anónimos (TestAuditMiddlewareRecordsCriticalWrites)"}
+{"v":1,"id":"T147","t":"test","area":"module-12-audit","p":"must","name":"La API no expone edición ni eliminación de auditoría (TestAuditLogsHaveNoWriteEndpoints)"}
+{"v":1,"id":"T148","t":"test","area":"module-12-audit","p":"must","name":"Repositorio: filtros por actor, acción, entidad y periodo; UPDATE/DELETE bloqueados por trigger; FK de actor (TestRepositoryFiltersAndImmutability)"}
+{"v":1,"id":"T149","t":"test","area":"module-13-files","p":"must","name":"Servicio acepta PDF, Word, Excel, JPEG y PNG con su extensión sin depender de tablas MIME del host (TestCreateAcceptsAllowedFormats)"}
+{"v":1,"id":"T150","t":"test","area":"module-13-files","p":"must","name":"Servicio rechaza tipo, extensión, entidad, ID, nombre con ruta, tamaño inconsistente y contenido vacío (TestCreateRejectsInvalidMetadata)"}
+{"v":1,"id":"T151","t":"test","area":"module-13-files","p":"must","name":"POST /files: 401 sin sesión, 403 visitante, 201 estudiante/docente/Admin con autor de sesión (TestUploadAccessControl)"}
+{"v":1,"id":"T152","t":"test","area":"module-13-files","p":"must","name":"POST /files rechaza contenido disfrazado, ZIP declarado PDF, entidad inválida, vacío, >10 MB y no multipart (TestUploadValidation)"}
+{"v":1,"id":"T153","t":"test","area":"module-13-files","p":"must","name":"GET /files/{id}: 401 sin sesión, 404 ajeno o inexistente, 200 con adjunto para autor y Admin (TestDownloadAuthorization)"}
+{"v":1,"id":"T154","t":"test","area":"module-13-files","p":"must","name":"Repositorio: lectura por autor, Admin y comunicado publicado; borrador ajeno, inactivo e ID mal formado 404; CHECK de tamaño (TestRepositoryAccessRules)"}
+{"v":1,"id":"E008","t":"env","os":"Linux","device":"development-shell","runtime":"Go 1.27 local y golang:1.22-alpine (misma familia que la imagen de ejecución alpine:3.20, sin /etc/mime.types); PostgreSQL 16 efímero (postgres:16-alpine, contenedor galash-test-db) en localhost:55439 inicializado desde database/init.sql, eliminado al terminar"}
+{"v":1,"id":"R094","t":"run","at":"2026-11-06T15:00:00Z","build":"ed3927d+tests","env":"E008","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/links/ ./tests/audit/ ./tests/files/ -count=1 -v; igual en golang:1.22-alpine para ./tests/files/"}
+{"v":1,"id":"X271","t":"result","run":"R094","test":"T138","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X272","t":"result","run":"R094","test":"T139","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X273","t":"result","run":"R094","test":"T140","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X274","t":"result","run":"R094","test":"T141","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X275","t":"result","run":"R094","test":"T142","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X276","t":"result","run":"R094","test":"T143","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X277","t":"result","run":"R094","test":"T144","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X278","t":"result","run":"R094","test":"T145","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X279","t":"result","run":"R094","test":"T146","s":"fail","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X280","t":"result","run":"R094","test":"T147","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X281","t":"result","run":"R094","test":"T148","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X282","t":"result","run":"R094","test":"T149","s":"fail","ev":["R094/files-go-test-alpine.txt"]}
+{"v":1,"id":"X283","t":"result","run":"R094","test":"T150","s":"fail","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X284","t":"result","run":"R094","test":"T151","s":"pass","ev":["R094/files-go-test-alpine.txt","R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X285","t":"result","run":"R094","test":"T152","s":"fail","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X286","t":"result","run":"R094","test":"T153","s":"pass","ev":["R094/files-go-test-alpine.txt","R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X287","t":"result","run":"R094","test":"T154","s":"fail","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X288","t":"result","run":"R094","test":"T135","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X289","t":"result","run":"R094","test":"T136","s":"pass","ev":["R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"X290","t":"result","run":"R094","test":"T137","s":"pass","ev":["R094/files-go-test-alpine.txt","R094/m10-m12-m13-go-test.txt"]}
+{"v":1,"id":"D028","t":"defect","test":"T149","run":"R094","sev":"high","s":"open","name":"Validación de extensión usa mime.ExtensionsByType: en alpine:3.20 (sin /etc/mime.types) rechaza Word y Excel; en hosts con tablas completas acepta extensiones no previstas (.xlm, .xla)"}
+{"v":1,"id":"D029","t":"defect","test":"T154","run":"R094","sev":"medium","s":"open","name":"GET /files/{id} con ID no UUID responde 500 (SQLSTATE 22P02) en vez de 404"}
+{"v":1,"id":"D030","t":"defect","test":"T146","run":"R094","sev":"medium","s":"open","name":"Escrituras de contenidos institucionales (/admin/content/*) no se registran en auditoría: el prefijo auditado era /content/"}
+{"v":1,"id":"D031","t":"defect","test":"T152","run":"R094","sev":"high","s":"open","name":"POST /files acepta cualquier ZIP o binario declarado como PDF/imagen porque el tipo declarado reemplaza al detectado"}
+{"v":1,"id":"R095","t":"run","at":"2026-11-06T15:40:00Z","build":"ed3927d+fix-D028-D031","env":"E008","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./... -count=1; go test ./tests/links/ ./tests/audit/ ./tests/files/ -count=1 -v local y en golang:1.22-alpine; go vet; git diff --check"}
+{"v":1,"id":"X291","t":"result","run":"R095","test":"T138","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X292","t":"result","run":"R095","test":"T139","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X293","t":"result","run":"R095","test":"T140","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X294","t":"result","run":"R095","test":"T141","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X295","t":"result","run":"R095","test":"T142","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X296","t":"result","run":"R095","test":"T143","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X297","t":"result","run":"R095","test":"T144","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X298","t":"result","run":"R095","test":"T145","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X299","t":"result","run":"R095","test":"T146","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X300","t":"result","run":"R095","test":"T147","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X301","t":"result","run":"R095","test":"T148","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X302","t":"result","run":"R095","test":"T149","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X303","t":"result","run":"R095","test":"T150","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X304","t":"result","run":"R095","test":"T151","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X305","t":"result","run":"R095","test":"T152","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X306","t":"result","run":"R095","test":"T153","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X307","t":"result","run":"R095","test":"T154","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X308","t":"result","run":"R095","test":"T135","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X309","t":"result","run":"R095","test":"T136","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"X310","t":"result","run":"R095","test":"T137","s":"pass","ev":["R095/m10-m12-m13-go-test.txt","R095/m10-m12-m13-go-test-alpine.txt"]}
+{"v":1,"id":"D028","t":"defect","test":"T149","run":"R095","sev":"high","s":"closed","name":"Corregido: extensiones explícitas por tipo permitido, sin depender de tablas MIME del host"}
+{"v":1,"id":"D029","t":"defect","test":"T154","run":"R095","sev":"medium","s":"closed","name":"Corregido: FileRepository traduce SQLSTATE 22P02 a ErrFileNotFound (404)"}
+{"v":1,"id":"D030","t":"defect","test":"T146","run":"R095","sev":"medium","s":"closed","name":"Corregido: prefijo auditado /admin/content/ en lugar de /content/"}
+{"v":1,"id":"D031","t":"defect","test":"T152","run":"R095","sev":"high","s":"closed","name":"Corregido: el tipo declarado solo sustituye al detectado para Office (ZIP→docx/xlsx, OLE→doc/xls con firma D0CF11E0)"}
+{"v":1,"id":"D032","t":"defect","test":"T154","run":"R095","sev":"high","s":"open","name":"GET /files/{id} permite a cualquier estudiante o docente activo leer adjuntos de actividad, proyecto, propuesta o evidencia sin validar acceso a la entidad asociada; POST /files no verifica existencia ni acceso a la entidad. Requiere reglas de acceso por entidad"}
+{"v":1,"id":"T155","t":"test","area":"module-13-files","p":"must","name":"Repositorio: carga y descarga según la regla de lectura de la entidad (Admin; comunicado/evento publicado o propio; actividad, evidencia y proyecto existentes; propuesta para autor o docente); entidad inexistente o inaccesible rechazada (TestRepositoryEntityAccessRules)"}
+{"v":1,"id":"T156","t":"test","area":"module-13-files","p":"must","name":"POST /files responde 403 y no almacena cuando la entidad no es accesible (TestUploadRejectsInaccessibleEntity)"}
+{"v":1,"id":"R096","t":"run","at":"2026-11-06T17:00:00Z","build":"ed3927d+fix-D028-D032","env":"E008","by":"agent","mode":"automated","cmd":"TEST_DATABASE_URL=<ephemeral> go test ./tests/files/ -run EntityAccess con file_repository.go de HEAD (control previo); go test ./... -count=1; go test ./tests/files/ -v local y en golang:1.22-alpine; go vet; git diff --check"}
+{"v":1,"id":"X311","t":"result","run":"R096","test":"T155","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt","R096/files-d032-before-fix.txt"]}
+{"v":1,"id":"X312","t":"result","run":"R096","test":"T156","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X313","t":"result","run":"R096","test":"T149","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X314","t":"result","run":"R096","test":"T150","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X315","t":"result","run":"R096","test":"T151","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X316","t":"result","run":"R096","test":"T152","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X317","t":"result","run":"R096","test":"T153","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X318","t":"result","run":"R096","test":"T154","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"X319","t":"result","run":"R096","test":"T137","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
+{"v":1,"id":"note-R096","t":"note","run":"R096","test":"T155","name":"Control: con file_repository.go previo, T155 falla (carga a actividad inexistente aceptada); evidencia R096/files-d032-before-fix.txt"}
+{"v":1,"id":"D032","t":"defect","test":"T155","run":"R096","sev":"high","s":"closed","name":"Corregido: FileRepository aplica un predicado de acceso por entidad en carga (403 si la entidad no existe o no es accesible) y descarga (autor del archivo o lector de la entidad); propuestas solo para su autor, docentes y Admin"}
