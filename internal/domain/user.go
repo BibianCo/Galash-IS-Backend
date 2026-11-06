@@ -13,6 +13,7 @@ type User struct {
 	StudentCode    string `json:"student_code"`
 	BirthDate      string `json:"birth_date"`
 	Phone          string `json:"phone"`
+	PhotoURL       string `json:"photo_url"`
 	Role           string `json:"role"`
 	Status         string `json:"status"`
 }
@@ -38,7 +39,8 @@ type AdminProfile struct {
 }
 
 type Identity struct {
-	UID   string
-	Name  string
-	Email string
+	UID           string
+	Name          string
+	Email         string
+	EmailVerified bool
 }

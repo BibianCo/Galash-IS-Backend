@@ -1,0 +1,32 @@
+?   	github.com/galash-uptc/backend	[no test files]
+?   	github.com/galash-uptc/backend/cmd/api	[no test files]
+?   	github.com/galash-uptc/backend/internal/adapters/inbound/http	[no test files]
+?   	github.com/galash-uptc/backend/internal/adapters/outbound/firebase	[no test files]
+?   	github.com/galash-uptc/backend/internal/adapters/outbound/postgres	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/announcement	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/audit	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/auth	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/content	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/event	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/file	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/internalcalendar	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/member	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/officiallink	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/registration	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/research	[no test files]
+?   	github.com/galash-uptc/backend/internal/application/seedbed	[no test files]
+?   	github.com/galash-uptc/backend/internal/config	[no test files]
+?   	github.com/galash-uptc/backend/internal/domain	[no test files]
+?   	github.com/galash-uptc/backend/internal/ports	[no test files]
+ok  	github.com/galash-uptc/backend/tests/announcements	0.008s
+ok  	github.com/galash-uptc/backend/tests/audit	0.008s
+ok  	github.com/galash-uptc/backend/tests/auth	0.156s
+ok  	github.com/galash-uptc/backend/tests/content	0.007s
+ok  	github.com/galash-uptc/backend/tests/event	0.007s
+ok  	github.com/galash-uptc/backend/tests/files	0.030s
+ok  	github.com/galash-uptc/backend/tests/internalcalendar	0.006s
+ok  	github.com/galash-uptc/backend/tests/links	0.006s
+ok  	github.com/galash-uptc/backend/tests/member	0.003s
+ok  	github.com/galash-uptc/backend/tests/registration	0.004s
+ok  	github.com/galash-uptc/backend/tests/research	0.004s
+ok  	github.com/galash-uptc/backend/tests/seedbed	0.006s

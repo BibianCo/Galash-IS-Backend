@@ -72,14 +72,66 @@ func (r *UserRepository) FindByFirebaseUID(ctx context.Context, uid string) (dom
 
 func (r *UserRepository) find(ctx context.Context, where string, arg string) (domain.User, error) {
 	var user domain.User
-	err := r.db.QueryRow(ctx, `SELECT id, firebase_uid, nombre, COALESCE(apellido, ''), email, COALESCE(tipo_dni, ''), COALESCE(dni, ''), COALESCE(codigo_estudiantil, ''), COALESCE(fecha_nacimiento::text, ''), COALESCE(telefono, ''), rol, estado FROM usuarios `+where, arg).
-		Scan(&user.ID, &user.FirebaseUID, &user.Name, &user.LastName, &user.Email, &user.DocumentType, &user.DocumentNumber, &user.StudentCode, &user.BirthDate, &user.Phone, &user.Role, &user.Status)
+	err := r.db.QueryRow(ctx, `SELECT id, firebase_uid, nombre, COALESCE(apellido, ''), email, COALESCE(tipo_dni, ''), COALESCE(dni, ''), COALESCE(codigo_estudiantil, ''), COALESCE(fecha_nacimiento::text, ''), COALESCE(telefono, ''), COALESCE(foto_url, ''), rol, estado FROM usuarios `+where, arg).
+		Scan(&user.ID, &user.FirebaseUID, &user.Name, &user.LastName, &user.Email, &user.DocumentType, &user.DocumentNumber, &user.StudentCode, &user.BirthDate, &user.Phone, &user.PhotoURL, &user.Role, &user.Status)
 	return user, err
+}
+
+// importedUIDPattern marks accounts loaded by database/seed/sgi_uptc_integrantes.sql that nobody has claimed.
+const importedUIDPattern = "sgi-uptc:%"
+
+func (r *UserRepository) ListImported(ctx context.Context) ([]domain.User, error) {
+	rows, err := r.db.Query(ctx, `SELECT id, nombre, COALESCE(apellido, ''), rol FROM usuarios WHERE firebase_uid LIKE $1 AND estado = 'activo' ORDER BY nombre`, importedUIDPattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var users []domain.User
+	for rows.Next() {
+		var u domain.User
+		if err := rows.Scan(&u.ID, &u.Name, &u.LastName, &u.Role); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// ClaimImported turns an unclaimed imported account into the caller's account; role and researcher profile stay.
+func (r *UserRepository) ClaimImported(ctx context.Context, id string, user domain.User) (string, error) {
+	var claimed string
+	err := r.db.QueryRow(ctx, `
+		UPDATE usuarios SET firebase_uid = $2, nombre = $3, apellido = NULLIF($4, ''), tipo_dni = NULLIF($5, ''), dni = NULLIF($6, ''),
+			email = $7, codigo_estudiantil = NULLIF($8, ''), fecha_nacimiento = NULLIF($9, '')::date, telefono = NULLIF($10, '')
+		WHERE id = $1 AND firebase_uid LIKE $11 AND estado = 'activo'
+		RETURNING id`,
+		id, user.FirebaseUID, user.Name, user.LastName, user.DocumentType, user.DocumentNumber, user.Email,
+		user.StudentCode, user.BirthDate, user.Phone, importedUIDPattern,
+	).Scan(&claimed)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return "", domain.ErrDuplicateIdentity
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", domain.ErrClaimNotAllowed
+	}
+	return claimed, err
 }
 
 func (r *UserRepository) SetPassword(ctx context.Context, id, passwordHash string) error {
 	_, err := r.db.Exec(ctx, `UPDATE usuarios SET password_hash = $1 WHERE id = $2`, passwordHash, id)
 	return err
+}
+
+func (r *UserRepository) SetPhotoURL(ctx context.Context, id, photoURL string) error {
+	result, err := r.db.Exec(ctx, `UPDATE usuarios SET foto_url = $1 WHERE id = $2`, photoURL, id)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }
 
 func (r *UserRepository) Search(ctx context.Context, query string, limit int, includeInactive bool) ([]domain.User, error) {

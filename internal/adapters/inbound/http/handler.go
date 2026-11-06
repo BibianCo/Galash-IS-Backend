@@ -36,6 +36,7 @@ type registerRequest struct {
 	Codigo   string `json:"codigo_estudiantil"`
 	Fecha    string `json:"fecha_nacimiento"`
 	Telefono string `json:"telefono"`
+	ClaimID  string `json:"claim_id"`
 }
 
 type sessionRequest struct {
@@ -134,9 +135,11 @@ func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.health)
 	mux.HandleFunc("POST /auth/register", h.register)
+	mux.HandleFunc("GET /auth/register/matches", h.registerMatches)
 	mux.HandleFunc("POST /auth/sessions", h.createSession)
 	mux.HandleFunc("DELETE /auth/sessions/current", h.deleteSession)
 	mux.HandleFunc("GET /users/me", h.currentUser)
+	mux.HandleFunc("PUT /users/me/photo", h.setProfilePhoto)
 	mux.HandleFunc("GET /members", h.publicMembers)
 	mux.HandleFunc("POST /members", h.createMember)
 	mux.HandleFunc("GET /members/{id}", h.getMember)
@@ -1736,6 +1739,32 @@ func (h *Handler) currentUser(w http.ResponseWriter, r *http.Request) {
 	}{user, managed})
 }
 
+func (h *Handler) setProfilePhoto(w http.ResponseWriter, r *http.Request) {
+	token, err := sessionToken(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "sesión requerida")
+		return
+	}
+	var request struct {
+		PhotoURL string `json:"photo_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "cuerpo JSON inválido")
+		return
+	}
+	photoURL, err := h.service.SetProfilePhoto(r.Context(), token, request.PhotoURL)
+	switch {
+	case errors.Is(err, domain.ErrInvalidSession):
+		invalidSession(w, r, "sesión inválida o expirada")
+	case errors.Is(err, domain.ErrInvalidPhotoURL):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case err != nil:
+		writeError(w, http.StatusInternalServerError, "no fue posible guardar la foto de perfil")
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{"photo_url": photoURL})
+	}
+}
+
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	token, err := bearerToken(r.Header.Get("Authorization"))
 	if err != nil {
@@ -1752,12 +1781,13 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		DocumentType: request.TipoDNI, DocumentNumber: request.DNI,
 		Email: request.Email, StudentCode: request.Codigo,
 		BirthDate: request.Fecha, Phone: request.Telefono,
+		ClaimID: request.ClaimID,
 	})
 	if errors.Is(err, domain.ErrIncompleteIdentity) || errors.Is(err, domain.ErrInvalidSignup) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if errors.Is(err, domain.ErrDuplicateIdentity) {
+	if errors.Is(err, domain.ErrDuplicateIdentity) || errors.Is(err, domain.ErrClaimNotAllowed) {
 		writeError(w, http.StatusConflict, err.Error())
 		return
 	}
@@ -1769,7 +1799,42 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "no fue posible guardar el usuario")
 		return
 	}
+	// The audit middleware skips /auth/, so the claim of an imported account is recorded here.
+	if request.ClaimID != "" && h.audit != nil {
+		_ = h.audit.Record(r.Context(), domain.AuditLog{
+			ActorID: result.ID, Action: "claim imported user", Entity: "usuarios", EntityID: result.ID,
+			Date: time.Now().UTC(), Result: auditResult(http.StatusCreated), Origin: r.RemoteAddr,
+		})
+	}
 	writeJSON(w, http.StatusCreated, result)
+}
+
+type registerMatch struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Role string `json:"role"`
+}
+
+func (h *Handler) registerMatches(w http.ResponseWriter, r *http.Request) {
+	token, err := bearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	users, err := h.service.MatchImported(r.Context(), token)
+	if errors.Is(err, domain.ErrInvalidIdentity) {
+		writeError(w, http.StatusUnauthorized, "token de Firebase inválido")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "no fue posible consultar las coincidencias")
+		return
+	}
+	matches := make([]registerMatch, 0, len(users))
+	for _, u := range users {
+		matches = append(matches, registerMatch{ID: u.ID, Name: strings.TrimSpace(u.Name + " " + u.LastName), Role: u.Role})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
 }
 
 func (h *Handler) health(w http.ResponseWriter, r *http.Request) {

@@ -10,6 +10,7 @@ CREATE TABLE usuarios (
     codigo_estudiantil TEXT UNIQUE,
     fecha_nacimiento DATE,
     telefono TEXT,
+    foto_url TEXT,
     email TEXT NOT NULL,
     password_hash TEXT,
     rol TEXT NOT NULL DEFAULT 'visitante',
