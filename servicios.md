@@ -44,7 +44,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | PATCH | `/members/{id}` | edita perfil | M5 | [ ] |
 | PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [ ] |
 | GET | `/members/{id}/publications` | publicaciones visibles | M5 | [ ] |
-| GET | `/admin/members` | busq. admin (requiere `q`) | M11 | [ ] |
+| GET | `/admin/members` | listado admin completo; filtro `q` opcional | M11 | [ ] |
 | PUT | `/users/roles` | alias rol | - | [ ] |
 | PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [ ] |
 | GET | `/seedbeds` | lista | M2 | [ ] |
@@ -125,7 +125,7 @@ cambió el estado responde `400`. Sin permiso: `403`.
 
 M2: los semilleros incluyen `topics` (máx. 4 `{title, phrase}`); en `PATCH
 /seedbeds/{id}` omitirlo conserva los temas. `GET /admin/members` responde
-`{"users": [...]}`, exige `q` e incluye cuentas inactivas.
+`{"users": [...]}`, lista todas las cuentas sin `q` e incluye inactivas; `q` filtra opcionalmente por nombre o correo.
 
 M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`,
 `imageUrl` y `registrationUrl`. Las fechas son RFC3339; los estados son
@@ -137,7 +137,7 @@ crearlo; `400` si no existe). Sin `seedbedId` crea `Docente` o `Admin`; con
 `Admin`, el docente organizador o director/delegado del semillero del evento.
 
 Fuera de contrato: `- /health` infraestructura · `- /users/roles` alias de
-`PUT /users/{userId}/roles`. `GET /admin/members` responde `400` sin `q`.
+`PUT /users/{userId}/roles`. `GET /admin/members` sin `q` devuelve la lista completa, sin el límite de resultados de una búsqueda filtrada. Requiere sesión Admin (`401` sin sesión, `403` para otros roles).
 
 ## PostgreSQL (Docker, host `5433`)
 
@@ -156,3 +156,5 @@ propuestas/resenas: 19 | M5 completado | M6
 eventos: 7 | M7 contenidos: 6 | M8 comunicados: 7 | M9 cronograma: 5 | M10
 enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,
 users/me/dashboard) | M12: audit-logs | M13 files: 2
+
+M3: `tituloMaximoNivelEstudio` es opcional en `POST /registration-requests`: puede omitirse o enviarse vacío.
