@@ -22,7 +22,17 @@ más `codigo_estudiantil` opcional; sin password ni rol, email igual al token.
 `visitante` y el re-registro conserva el rol existente. `GET /users/me`
 devuelve además `document_type`, `document_number`, `student_code`,
 `birth_date` y `phone` para prellenar formularios, y `managed_seedbed_ids`
-(semilleros que el usuario dirige o en los que es delegado; `[]` si ninguno).
+(semilleros que el usuario dirige o en los que es delegado; `[]` si ninguno)
+y `photo_url` (enlace de la imagen de perfil; `""` si no hay).
+`PUT /users/me/photo` con `{"photo_url":"https://..."}` guarda ese enlace
+en el usuario de la sesión: `200` `{"photo_url":...}`, `400` JSON o URL
+inválida (solo `http`/`https` absoluta, máx. 2048), `401` sin sesión.
+`GET /auth/register/matches` (Bearer Firebase) devuelve
+`{"matches":[{"id","name","role"}]}` con integrantes importados del SGI sin
+reclamar que coinciden con el correo verificado `primernombre.apellido[NN]@uptc.edu.co`;
+lista vacía en otro caso, `401` token inválido. Usar tras `403 REGISTRATION_REQUIRED`
+para preguntar "¿Eres X?". Si confirma, `POST /auth/register` con `claim_id`
+vincula esa cuenta (conserva rol y perfil); `409` si no coincide o ya fue reclamada.
 
 `POST /registration-requests` (Únete) exige sesión (`401` sin ella) y
 `seedbedId` obligatorio (`400` si falta o no existe). No envía
@@ -34,10 +44,12 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | Metodo | Ruta | Descripcion | Contrato | Uso |
 |---|---|---|---|---|
 | GET | `/health` | salud y bd | - | [ ] |
-| POST | `/auth/register` | alta por token | M1 | [ ] |
+| POST | `/auth/register` | alta por token (`claim_id` opcional) | M1 | [ ] |
+| GET | `/auth/register/matches` | integrantes SGI que coinciden con el correo | M1 | [ ] |
 | POST | `/auth/sessions` | crea sesion | M1 | [ ] |
 | DELETE | `/auth/sessions/current` | cierra sesion | M1 | [ ] |
 | GET | `/users/me` | perfil y roles | M1 | [ ] |
+| PUT | `/users/me/photo` | guarda URL de foto de perfil | M1 | [ ] |
 | GET | `/members` | dir. publico | M5 | [ ] |
 | POST | `/members` | crea perfil | M5 | [ ] |
 | GET | `/members/{id}` | detalle público/privado autorizado | M5 | [ ] |
@@ -101,6 +113,18 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/announcements/{id}/publish` | publica comunicado | M8 | [ ] |
 | POST | `/announcements/{id}/read-confirmations` | confirma lectura idempotente | M8 | [ ] |
 | GET | `/announcements/{id}/read-status` | trazabilidad por docente para autor/admin | M8 | [ ] |
+| GET | `/internal-calendar/events` | agenda interna por rango, vista y semillero | M9 | [ ] |
+| POST | `/internal-calendar/events` | crea reunión, tutoría o hito | M9 | [ ] |
+| GET | `/internal-calendar/events/{id}` | detalle y participantes autorizado | M9 | [ ] |
+| PATCH | `/internal-calendar/events/{id}` | actualiza evento o participantes | M9 | [ ] |
+| DELETE | `/internal-calendar/events/{id}` | cancela lógicamente conservando trazabilidad | M9 | [ ] |
+| GET | `/links` | enlaces oficiales visibles para público; Admin activo consulta todos los estados, con filtro por categoría y orden | M10 | [ ] |
+| POST | `/links` | crea enlace oficial validando URL externa | M10 | [ ] |
+| PATCH | `/links/{id}` | actualiza enlace oficial y registra historial | M10 | [ ] |
+| PATCH | `/links/{id}/status` | activa, desactiva u oculta enlace sin borrar historial | M10 | [ ] |
+| GET | `/audit-logs` | consulta bitácora filtrable por actor, acción, entidad y periodo; Admin | M12 | [ ] |
+| POST | `/files` | carga multipart segura asociada a una entidad | M13 | [ ] |
+| GET | `/files/{id}` | descarga autorizada de un archivo adjunto | M13 | [ ] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y
@@ -135,6 +159,13 @@ la fecha de inicio. `POST /events` acepta `seedbedId` opcional (fijo tras
 crearlo; `400` si no existe). Sin `seedbedId` crea `Docente` o `Admin`; con
 él, solo `Admin` o director/delegado de ese semillero. Administran el evento:
 `Admin`, el docente organizador o director/delegado del semillero del evento.
+
+M9 usa `seedbedId`, `type` (`reunion`, `tutoria` o `hito`), `title`, `description`,
+`startAt`, `endAt` y `participantIds`. Las fechas son RFC3339. Los estudiantes
+solo consultan eventos del semillero al que pertenecen; el director o un
+delegado del semillero (o Admin) crean, actualizan y cancelan (`403` en otro
+caso). Un solape de horario de un participante responde `409`. La eliminación
+es lógica y conserva historial.
 
 Fuera de contrato: `- /health` infraestructura · `- /users/roles` alias de
 `PUT /users/{userId}/roles`. `GET /admin/members` sin `q` devuelve la lista completa, sin el límite de resultados de una búsqueda filtrada. Requiere sesión Admin (`401` sin sesión, `403` para otros roles).

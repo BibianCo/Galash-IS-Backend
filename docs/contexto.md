@@ -33,6 +33,8 @@ GALASH-UPTC web system for academic management, research, and communication.
 - El módulo de semilleros implementa CRUD, publicación/ocultamiento/inactivación y membresías históricas mediante `/seedbeds`, con autorización para `Docente` responsable o `Admin` y validación de docentes activos.
 - `/seedbeds/{id}/space` devuelve la vista compuesta del semillero con responsable, actividades y proyectos; la información privada requiere autorización del docente responsable o `Admin`.
 - `POST /auth/register` exige `fecha_nacimiento` y `telefono` y acepta `codigo_estudiantil` opcional; se guardan en `usuarios` (migración `008_user_basic_profile.sql`) y `GET /users/me` los devuelve.
+- `PUT /users/me/photo` guarda en `usuarios.foto_url` (migración `015_user_profile_photo.sql`) el enlace http(s) de la imagen de perfil del usuario de la sesión; `GET /users/me` lo expone como `photo_url`. Solo se guarda la URL; el archivo vive fuera del backend.
+- Integrantes del SGI UPTC importados con `database/seed/sgi_uptc_integrantes.sql` quedan como cuentas `firebase_uid LIKE 'sgi-uptc:%'` sin login. En el primer ingreso, `GET /auth/register/matches` las ofrece si el correo verificado `primernombre.apellido[NN]@uptc.edu.co` coincide con el nombre, y `POST /auth/register` con `claim_id` las vincula conservando rol y perfil.
 - `POST /registration-requests` exige sesión; nombre, documento, código, teléfono y fecha de nacimiento se leen de `usuarios` por `usuario_id` y no se copian en `solicitudes_registro` (esas columnas solo conservan solicitudes anónimas antiguas).
 - El módulo 3 implementa las cinco rutas de solicitudes de registro: radicación con token opaco, consulta propia, listado y detalle administrativo, y actualización auditada de estados; la aprobación asigna el rol `estudiante` a la cuenta asociada por sesión o documento y la inscribe como integrante activo del semillero solicitado, en una sola transacción.
 - Director (`lider_id`/`responsibleTeacherId`) y hasta 2 delegados por semillero (`semillero_miembros.delegado`) son relaciones, no roles. Director, delegados y `Admin` gestionan solicitudes (que exigen `seedbedId`; la primera decisión gana), actividades y eventos con `seedbedId`; solo director o `Admin` asignan delegados con `PUT /seedbeds/{id}/delegates`. `GET /users/me` expone `managed_seedbed_ids`. Proyectos y edición del semillero siguen siendo solo del director o `Admin`.
@@ -49,6 +51,16 @@ GALASH-UPTC web system for academic management, research, and communication.
   borradores propios; Admin puede ver todos los borradores. Docente administra
   sus propios comunicados y Admin puede administrar todos; solo usuarios activos
   con esos roles acceden.
+- El módulo 9 implementa el cronograma interno con cinco rutas para consultar,
+  crear, detallar, actualizar y cancelar lógicamente reuniones, tutorías e hitos
+  por semillero y participantes; conserva historial y restringe la visibilidad
+  de estudiantes a sus semilleros. Solo el director, un delegado activo del
+  semillero o Admin crean, actualizan y cancelan; los solapes de horario de un
+   participante se rechazan al crear y al actualizar.
+- El módulo 10 implementa los cuatro endpoints de enlaces oficiales: consulta pública filtrable por categoría y orden, creación y edición exclusiva de Admin con validación HTTP/HTTPS, cambios de estado sin borrado y registro PostgreSQL de cada alta o modificación.
+- En `GET /links`, visitantes y usuarios no administradores solo reciben enlaces activos y visibles; un `Admin` activo autenticado puede consultar enlaces en cualquier estado.
+- El módulo 12 implementa `GET /audit-logs`, restringido a `Admin`, con filtros por actor, acción, entidad y fechas RFC3339; la tabla `audit_logs` es append-only mediante trigger y las escrituras críticas, incluidas las de `/admin/content/*`, se registran internamente.
+- El módulo 13 implementa carga multipart y descarga autorizada de archivos asociados a comunicados, evidencias, propuestas y eventos; conserva el contenido en PostgreSQL, limita a 10 MB y evita URLs públicas predecibles. Valida extensiones con una tabla propia (independiente del host) y solo acepta el tipo declarado para contenedores Office; un ID mal formado responde 404. Carga y descarga aplican la regla de lectura de la entidad asociada: Admin; comunicados y eventos publicados o propios; actividades, evidencias y proyectos existentes; propuestas solo para su autor, docentes y Admin. Cargar a una entidad inexistente o inaccesible responde 403.
 
 ## Record
 
@@ -65,3 +77,5 @@ GALASH-UPTC web system for academic management, research, and communication.
 - M11 admin account directory now accepts omitted/blank q and lists all stored accounts, including inactive ones, without the filtered-search cap. Admin session remains mandatory; public search behavior unchanged. Auth tests and read-only real PostgreSQL count comparison pass. Servicios handoff updated; pre-existing unrelated contract drift remains pending.
 
 - Local galash-auth container rebuilt/restarted for optional admin q. Live HTTP GET /admin/members returns200 and every stored account, verified using a disposable synthetic account/session that was cleaned up. Frontend servicios.md handoff applied.
+
+- PR preparation integrates origin/main through b4a0ad2 and retains the branch fixes. Full Go suite passes. Both full shared-contract copies are now synchronized, superseding earlier drift-pending notes.

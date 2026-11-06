@@ -31,15 +31,21 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `POST` | `/auth/register` | Crea o sincroniza la cuenta local desde una identidad Firebase válida; no crea una solicitud del Módulo 3. | Must / Identidad Firebase válida | — |
+| `GET` | `/auth/register/matches` | Antes del alta, lista los integrantes importados del SGI que coinciden con el correo institucional verificado de la identidad Firebase, para preguntar "¿Eres esta persona?". | Must / Identidad Firebase válida | — |
 | `POST` | `/auth/sessions` | Valida credenciales de una cuenta activa y crea la sesión. Ante credenciales inválidas devuelve un mensaje genérico. | Must / Visitante | HU-AUTH-01 |
 | `DELETE` | `/auth/sessions/current` | Invalida la sesión actual. | Must / Estudiante, Docente o Admin | HU-AUTH-02 |
 | `GET` | `/users/me` | Devuelve el perfil mínimo (incluidos los datos básicos del alta) y los roles y permisos efectivos del usuario autenticado. | Must / Estudiante, Docente o Admin | HU-AUTH-01, HU-TR-02 |
+| `PUT` | `/users/me/photo` | Guarda el enlace (URL) de la imagen de perfil del usuario autenticado; reemplaza el anterior. | Must / Estudiante, Docente o Admin | — |
 | `POST` | `/auth/password-recovery-requests` | Solicita recuperación por correo; la respuesta no revela si el correo está registrado. | Should / Visitante | HU-AUTH-03 |
 | `POST` | `/auth/password-resets` | Cambia la contraseña con un token vigente, de un solo uso. | Should / Visitante con token | HU-AUTH-03 |
 
 **Alta de cuenta independiente de solicitudes:** `POST /auth/register` requiere `Authorization: Bearer <FIREBASE_ID_TOKEN>` y un cuerpo JSON con `nombre`, `apellido`, `tipo_dni`, `dni`, `email`, `fecha_nacimiento` (`AAAA-MM-DD`) y `telefono` (todos obligatorios) y `codigo_estudiantil` opcional (vacío se ignora); el correo debe coincidir con el del token, ignorando mayúsculas y minúsculas y espacios exteriores. No acepta contraseña ni rol. Una cuenta nueva recibe el rol `visitante`; repetir el alta sincroniza los datos de perfil y conserva el rol existente. Responde `201` con `{"id":"<user-id>","firebase_uid":"<firebase-uid>"}`. Errores: `400` para JSON inválido, perfil incompleto/correo distinto o fecha inválida, `401` para Bearer ausente o token inválido/revocado, `409` si el `dni` o el `codigo_estudiantil` ya pertenecen a otra cuenta y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
 
-**Perfil en `GET /users/me`:** además de `id`, `name`, `last_name`, `email`, `role` y `status`, devuelve `document_type`, `document_number`, `student_code`, `birth_date` (`AAAA-MM-DD`) y `phone`; un dato no registrado llega como cadena vacía. También devuelve `managed_seedbed_ids`: lista (posiblemente vacía) de ids de semilleros de los que el usuario es director o delegado activo; no incluye el acceso global de `Admin`.
+**Vinculación con integrantes importados del SGI:** `GET /auth/register/matches` requiere `Authorization: Bearer <FIREBASE_ID_TOKEN>` y responde `200` con `{"matches":[{"id":"<user-id>","name":"<nombre completo>","role":"docente|estudiante"}]}`. La lista solo tiene elementos si el token trae el correo verificado (`email_verified`) con dominio `uptc.edu.co` y forma `primernombre.apellido` seguida opcionalmente de dos dígitos; un integrante importado sin reclamar coincide cuando su nombre contiene ese primer nombre y ese apellido, ignorando mayúsculas y tildes. En cualquier otro caso la lista llega vacía. Errores: `401` para Bearer ausente o token inválido/revocado y `500` si falla la consulta. `POST /auth/register` acepta además `claim_id` opcional con el `id` de una coincidencia: el backend recalcula la coincidencia, convierte esa cuenta importada en la cuenta de la identidad Firebase con los datos del alta y conserva su rol importado y su perfil de investigador; responde `201` como el alta normal y `409` si el `claim_id` no coincide con la identidad, ya fue reclamado o la identidad ya tiene cuenta.
+
+**Perfil en `GET /users/me`:** además de `id`, `name`, `last_name`, `email`, `role` y `status`, devuelve `document_type`, `document_number`, `student_code`, `birth_date` (`AAAA-MM-DD`) y `phone`; un dato no registrado llega como cadena vacía. También devuelve `managed_seedbed_ids`: lista (posiblemente vacía) de ids de semilleros de los que el usuario es director o delegado activo; no incluye el acceso global de `Admin`. Incluye `photo_url`: enlace de la imagen de perfil (cadena vacía si no hay).
+
+**Foto de perfil en `PUT /users/me/photo`:** requiere sesión activa y cuerpo JSON `{"photo_url":"<url>"}`; la URL debe ser absoluta `http` o `https` con host y de máximo 2048 caracteres. El enlace queda asociado al usuario de la sesión (nunca a un id enviado por el cliente) y reemplaza el anterior. Responde `200` con `{"photo_url":"<url>"}`. Errores: `400` para JSON inválido o URL inválida, `401` sin sesión o con sesión inválida/expirada y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
 
 **Reglas clave:** las contraseñas se almacenan con hash seguro; las sesiones expiran y se revocan al cerrar sesión. Solo `Admin` puede asignar o retirar los cuatro roles permitidos.
 
@@ -197,7 +203,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
-| `GET` | `/links` | Lista enlaces visibles; filtra por categoría y orden. | Must / Visitante | HU-LIN-01 |
+| `GET` | `/links` | Visitante y usuarios no administradores: lista enlaces activos y visibles; Admin activo: lista enlaces en cualquier estado. Filtra por categoría y orden. | Must / Visitante o Admin | HU-LIN-01, HU-LIN-02 |
 | `POST` | `/links` | Crea enlace y valida esquema/formato de URL. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}` | Actualiza nombre, descripción, destino, categoría, visibilidad u orden; registra autor y fecha. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}/status` | Activa, desactiva u oculta un enlace sin borrar historial. | Must / Admin | HU-LIN-01, HU-LIN-02 |

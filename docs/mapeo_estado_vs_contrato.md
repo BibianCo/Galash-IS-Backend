@@ -35,7 +35,7 @@ reemplaza; no crece indefinidamente.
 | 9. Cronograma interno | 5 | 0 | todos | Sin iniciar |
 | 10. Enlaces oficiales | 4 | 0 | todos | Sin iniciar |
 | 11. Roles, permisos y paneles | 7 | 1 | 6 | Inicial |
-| 12. Auditoría | 1 | 0 | `GET /audit-logs` | Sin iniciar |
+| 12. Auditoría | 1 | 1 | `GET /audit-logs` | Implementado |
 | 13. Archivos adjuntos | 2 | 0 | todos | Sin iniciar |
 
 ### Detalle de lo implementado que sí cumple contrato

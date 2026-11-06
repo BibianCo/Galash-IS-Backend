@@ -10,6 +10,7 @@ CREATE TABLE usuarios (
     codigo_estudiantil TEXT UNIQUE,
     fecha_nacimiento DATE,
     telefono TEXT,
+    foto_url TEXT,
     email TEXT NOT NULL,
     password_hash TEXT,
     rol TEXT NOT NULL DEFAULT 'visitante',
@@ -17,6 +18,19 @@ CREATE TABLE usuarios (
     semillero_id UUID,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS archivos_adjuntos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entidad_tipo TEXT NOT NULL,
+    entidad_id UUID NOT NULL,
+    nombre TEXT NOT NULL,
+    tipo_contenido TEXT NOT NULL,
+    tamano BIGINT NOT NULL CHECK (tamano > 0 AND tamano <= 10485760),
+    contenido BYTEA NOT NULL,
+    subido_por UUID NOT NULL REFERENCES usuarios(id),
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS archivos_adjuntos_entidad_idx ON archivos_adjuntos(entidad_tipo, entidad_id);
 
 CREATE TABLE sesiones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -222,6 +236,24 @@ CREATE TABLE IF NOT EXISTS comunicados (id UUID PRIMARY KEY DEFAULT gen_random_u
 CREATE TABLE IF NOT EXISTS comunicados_lecturas (comunicado_id UUID NOT NULL REFERENCES comunicados(id) ON DELETE CASCADE, usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE, confirmado_en TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (comunicado_id, usuario_id));
 CREATE INDEX IF NOT EXISTS comunicados_estado_idx ON comunicados(estado, creado_en DESC);
 
+-- M9: cronograma interno por semillero y participantes.
+CREATE TABLE IF NOT EXISTS cronograma_interno (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), semillero_id UUID NOT NULL REFERENCES semilleros(id),
+    tipo TEXT NOT NULL CHECK (tipo IN ('reunion','tutoria','hito')), titulo TEXT NOT NULL, descripcion TEXT,
+    inicia_en TIMESTAMPTZ NOT NULL, termina_en TIMESTAMPTZ NOT NULL,
+    organizador_id UUID NOT NULL REFERENCES usuarios(id), estado TEXT NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo','cancelado')),
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS cronograma_interno_participantes (
+    evento_id UUID NOT NULL REFERENCES cronograma_interno(id) ON DELETE CASCADE,
+    usuario_id UUID NOT NULL REFERENCES usuarios(id), PRIMARY KEY (evento_id, usuario_id)
+);
+CREATE TABLE IF NOT EXISTS cronograma_interno_historial (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), evento_id UUID NOT NULL REFERENCES cronograma_interno(id) ON DELETE CASCADE,
+    accion TEXT NOT NULL, actor_id UUID REFERENCES usuarios(id), creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS cronograma_interno_agenda_idx ON cronograma_interno(semillero_id, inicia_en, estado);
+
 CREATE TABLE eventos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     titulo TEXT NOT NULL,
@@ -272,3 +304,36 @@ CREATE INDEX solicitudes_usuario_idx ON solicitudes_registro(usuario_id);
 CREATE INDEX solicitudes_estado_idx ON solicitudes_registro(estado);
 CREATE INDEX solicitudes_fecha_idx ON solicitudes_registro(fecha_radicacion DESC);
 CREATE INDEX noticias_fecha_idx ON noticias(fecha_publicacion DESC);
+
+CREATE TABLE IF NOT EXISTS enlaces_oficiales (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), nombre TEXT NOT NULL, descripcion TEXT NOT NULL,
+    url TEXT NOT NULL, categoria TEXT NOT NULL, visible BOOLEAN NOT NULL DEFAULT TRUE,
+    orden INTEGER NOT NULL DEFAULT 0 CHECK (orden >= 0), estado TEXT NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo','inactivo','oculto')),
+    actualizado_por UUID NOT NULL REFERENCES usuarios(id), creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS enlaces_oficiales_historial (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), enlace_id UUID NOT NULL REFERENCES enlaces_oficiales(id),
+    nombre TEXT NOT NULL, descripcion TEXT NOT NULL, url TEXT NOT NULL, categoria TEXT NOT NULL,
+    visible BOOLEAN NOT NULL, orden INTEGER NOT NULL, estado TEXT NOT NULL, cambiado_por UUID NOT NULL REFERENCES usuarios(id), cambiado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE OR REPLACE FUNCTION registrar_historial_enlace() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN INSERT INTO enlaces_oficiales_historial(enlace_id,nombre,descripcion,url,categoria,visible,orden,estado,cambiado_por)
+VALUES(NEW.id,NEW.nombre,NEW.descripcion,NEW.url,NEW.categoria,NEW.visible,NEW.orden,NEW.estado,NEW.actualizado_por); RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS enlaces_oficiales_historial_trigger ON enlaces_oficiales;
+CREATE TRIGGER enlaces_oficiales_historial_trigger AFTER INSERT OR UPDATE ON enlaces_oficiales FOR EACH ROW EXECUTE FUNCTION registrar_historial_enlace();
+
+-- M12: bitácora de auditoría append-only.
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), actor_id UUID REFERENCES usuarios(id),
+    action TEXT NOT NULL, entity TEXT NOT NULL, entity_id UUID, result TEXT NOT NULL,
+    origin TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS audit_logs_actor_idx ON audit_logs(actor_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_action_idx ON audit_logs(action, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_entity_idx ON audit_logs(entity, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_date_idx ON audit_logs(created_at DESC);
+CREATE OR REPLACE FUNCTION prevent_audit_log_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'audit_logs es inmutable'; END $$;
+DROP TRIGGER IF EXISTS audit_logs_immutable_trigger ON audit_logs;
+CREATE TRIGGER audit_logs_immutable_trigger BEFORE UPDATE OR DELETE ON audit_logs
+    FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();

@@ -1,0 +1,22 @@
+=== RUN   TestUploadAccessControl
+--- PASS: TestUploadAccessControl (0.00s)
+=== RUN   TestUploadValidation
+    http_test.go:207: zip declared pdf status=201 body={"id":"1","entityType":"event","entityId":"00000000-0000-0000-0000-000000000001","name":"a.pdf","contentType":"application/pdf","size":36,"uploadedBy":"student","createdAt":"0001-01-01T00:00:00Z"}
+--- FAIL: TestUploadValidation (0.00s)
+=== RUN   TestDownloadAuthorization
+--- PASS: TestDownloadAuthorization (0.00s)
+=== RUN   TestRepositoryAccessRules
+    repository_test.go:93: find no-es-uuid: err=ERROR: invalid input syntax for type uuid: "no-es-uuid" (SQLSTATE 22P02), want ErrFileNotFound
+--- FAIL: TestRepositoryAccessRules (0.05s)
+=== RUN   TestCreateRejectsOversizedFile
+--- PASS: TestCreateRejectsOversizedFile (0.00s)
+=== RUN   TestCreateRejectsMismatchedTypeAndExtension
+--- PASS: TestCreateRejectsMismatchedTypeAndExtension (0.00s)
+=== RUN   TestCreateAcceptsAllowedFormats
+    service_test.go:50: a.doc (application/msword): el archivo, su entidad, tamaño o tipo no son válidos
+--- FAIL: TestCreateAcceptsAllowedFormats (0.00s)
+=== RUN   TestCreateRejectsInvalidMetadata
+--- PASS: TestCreateRejectsInvalidMetadata (0.00s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/files	0.053s
+FAIL

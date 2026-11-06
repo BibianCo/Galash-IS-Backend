@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -23,6 +25,8 @@ type RegisterCommand struct {
 	StudentCode    string
 	BirthDate      string
 	Phone          string
+	// ClaimID is the id of an imported SGI account returned by MatchImported; empty means a normal sign-up.
+	ClaimID string
 }
 
 type RegisterResult struct {
@@ -36,6 +40,8 @@ type Service struct {
 	userReader ports.UserReader
 	sessions   ports.SessionRepository
 	recovery   ports.RecoveryTokenRepository
+	photos     ports.ProfilePhotoWriter
+	imported   ports.ImportedUserRepository
 }
 
 // Roles are persisted in their canonical lowercase form.
@@ -52,6 +58,12 @@ func NewService(identities ports.IdentityVerifier, users ports.UserRepository) *
 	}
 	if repository, ok := users.(ports.RecoveryTokenRepository); ok {
 		s.recovery = repository
+	}
+	if repository, ok := users.(ports.ProfilePhotoWriter); ok {
+		s.photos = repository
+	}
+	if repository, ok := users.(ports.ImportedUserRepository); ok {
+		s.imported = repository
 	}
 	return s
 }
@@ -77,7 +89,7 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		return RegisterResult{}, domain.ErrInvalidSignup
 	}
 
-	id, err := s.users.Upsert(ctx, domain.User{
+	user := domain.User{
 		FirebaseUID:    identity.UID,
 		Name:           command.Name,
 		LastName:       command.LastName,
@@ -88,11 +100,95 @@ func (s *Service) Register(ctx context.Context, token string, command RegisterCo
 		BirthDate:      strings.TrimSpace(command.BirthDate),
 		Phone:          strings.TrimSpace(command.Phone),
 		Status:         "activo",
-	})
+	}
+	var id string
+	if claimID := strings.TrimSpace(command.ClaimID); claimID != "" {
+		id, err = s.claim(ctx, identity, claimID, user)
+	} else {
+		id, err = s.users.Upsert(ctx, user)
+	}
 	if err != nil {
 		return RegisterResult{}, err
 	}
 	return RegisterResult{ID: id, FirebaseUID: identity.UID}, nil
+}
+
+// MatchImported lists the unclaimed SGI accounts that match the verified institutional email of the token.
+func (s *Service) MatchImported(ctx context.Context, token string) ([]domain.User, error) {
+	identity, err := s.identities.Verify(ctx, strings.TrimSpace(token))
+	if err != nil {
+		return nil, errors.Join(domain.ErrInvalidIdentity, err)
+	}
+	return s.matchImported(ctx, identity)
+}
+
+func (s *Service) matchImported(ctx context.Context, identity domain.Identity) ([]domain.User, error) {
+	if s.imported == nil {
+		return []domain.User{}, nil
+	}
+	first, last, ok := InstitutionalNameParts(identity)
+	if !ok {
+		return []domain.User{}, nil
+	}
+	users, err := s.imported.ListImported(ctx)
+	if err != nil {
+		return nil, err
+	}
+	matches := []domain.User{}
+	for _, u := range users {
+		tokens := strings.Fields(normalizeName(u.Name + " " + u.LastName))
+		if containsToken(tokens, first) && containsToken(tokens, last) {
+			matches = append(matches, u)
+		}
+	}
+	return matches, nil
+}
+
+// claim recomputes the match server-side: the client never decides which imported account it gets.
+func (s *Service) claim(ctx context.Context, identity domain.Identity, claimID string, user domain.User) (string, error) {
+	matches, err := s.matchImported(ctx, identity)
+	if err != nil {
+		return "", err
+	}
+	for _, m := range matches {
+		if m.ID == claimID {
+			return s.imported.ClaimImported(ctx, claimID, user)
+		}
+	}
+	return "", domain.ErrClaimNotAllowed
+}
+
+var institutionalLocalPart = regexp.MustCompile(`^([a-z]+)\.([a-z]+)(?:[0-9]{2})?$`)
+
+// InstitutionalNameParts extracts first name and last name from a verified primernombre.apellidoNN@uptc.edu.co email.
+func InstitutionalNameParts(identity domain.Identity) (first, last string, ok bool) {
+	if !identity.EmailVerified {
+		return "", "", false
+	}
+	local, domainPart, found := strings.Cut(strings.ToLower(strings.TrimSpace(identity.Email)), "@")
+	if !found || domainPart != "uptc.edu.co" {
+		return "", "", false
+	}
+	parts := institutionalLocalPart.FindStringSubmatch(local)
+	if parts == nil {
+		return "", "", false
+	}
+	return parts[1], parts[2], true
+}
+
+var nameAccents = strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u", "ñ", "n")
+
+func normalizeName(name string) string {
+	return nameAccents.Replace(strings.ToLower(name))
+}
+
+func containsToken(tokens []string, want string) bool {
+	for _, t := range tokens {
+		if t == want {
+			return true
+		}
+	}
+	return false
 }
 
 type LoginResult struct {
@@ -143,6 +239,26 @@ func (s *Service) CurrentUser(ctx context.Context, token string) (domain.User, e
 		return domain.User{}, domain.ErrInvalidSession
 	}
 	return user, nil
+}
+
+// SetProfilePhoto stores the image link on the session's own user; the client never picks the user.
+func (s *Service) SetProfilePhoto(ctx context.Context, token, photoURL string) (string, error) {
+	user, err := s.CurrentUser(ctx, token)
+	if err != nil {
+		return "", err
+	}
+	photoURL = strings.TrimSpace(photoURL)
+	u, err := url.ParseRequestURI(photoURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || len(photoURL) > 2048 {
+		return "", domain.ErrInvalidPhotoURL
+	}
+	if s.photos == nil {
+		return "", errors.New("repositorio de fotos no configurado")
+	}
+	if err := s.photos.SetPhotoURL(ctx, user.ID, photoURL); err != nil {
+		return "", err
+	}
+	return photoURL, nil
 }
 
 func (s *Service) SearchUsers(ctx context.Context, query string, limit int) ([]domain.User, error) {

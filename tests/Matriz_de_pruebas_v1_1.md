@@ -458,3 +458,52 @@ IDs asignados reutilizan casos existentes de esta matriz; PT-COM-* sigue la conv
 |`TestRepositoryAdminFindsListedDraft`|`tests/announcements/repository_test.go`|TDB-T08|Admin consulta borrador listado (D023, corregido en 29757d1).|
 |`TestRepositoryReadConfirmation`|`tests/announcements/repository_test.go`|TDB-T03, TDB-T12|Sin lectura en borrador, conserva primera fecha, estado por docente activo.|
 |`TestRepositoryReferentialIntegrity`|`tests/announcements/repository_test.go`|TDB-T02|FK de autor y cascada de lecturas.|
+
+## Trazabilidad de pruebas automatizadas: cronograma interno (M9)
+IDs asignados reutilizan casos existentes de esta matriz; PT-CRO-01 sigue la convención PT-<sufijo>→HU-<sufijo> (HU-CRO-01).
+|Prueba automatizada|Archivo|ID(s) de matriz|Correspondencia|
+|---|---|---|---|
+|`TestCalendarAccessControl`|`tests/internalcalendar/http_test.go`|PT-CRO-01, PT-TR-01|401 sin sesión en las 5 rutas; estudiante consulta su semillero y recibe 403 al crear, editar o cancelar; ajeno no ve el evento.|
+|`TestCalendarCreateValidation`|`tests/internalcalendar/http_test.go`|PT-CRO-01|JSON, tipo, rango, título, semillero y participantes inválidos (400); filtros `from`/`to`/`view` y rango semanal/mensual.|
+|`TestCalendarPatchConflictAndCancel`|`tests/internalcalendar/http_test.go`|PT-CRO-01, TDB-T08|PATCH parcial, 409 por solape, cancelación lógica, doble cancelación y edición de cancelado (400).|
+|`TestRepositoryPersistsParticipantsHistoryAndCancel`|`tests/internalcalendar/repository_test.go`|TDB-T01, TDB-T08|Participantes con datos, historial creado/actualizado/cancelado y evento cancelado consultable.|
+|`TestRepositoryVisibilityAndFilters`|`tests/internalcalendar/repository_test.go`|PT-CRO-01, TDB-T12|Estudiante solo ve su semillero; retirado pierde acceso; filtros por semillero y rango.|
+|`TestRepositoryIntegrityAndConflicts`|`tests/internalcalendar/repository_test.go`|TDB-T02, TDB-T03|Participante ajeno/retirado/inexistente, semillero inexistente, CHECK de tipo/estado, rollback y conflictos de horario (D027, corregido en R088).|
+|`TestServiceRestrictsWritesToSeedbedManagers`|`tests/internalcalendar/repository_test.go`|PT-TR-01, PT-CRO-01|Solo director, delegado o Admin escriben según contrato M9 (D025 y D026, corregidos en R088).|
+|`TestCreateRequiresSeedbedManager`|`tests/internalcalendar/service_test.go`|PT-TR-01|Docente no gestor rechazado; delegado estudiante crea (reemplaza `TestCreateRequiresTeacherOrAdmin`).|
+
+## Trazabilidad de pruebas automatizadas: enlaces oficiales (M10)
+IDs asignados reutilizan casos existentes de esta matriz; PT-LIN-* sigue la convención PT-<sufijo>→HU-<sufijo>.
+|Prueba automatizada|Archivo|ID(s) de matriz|Correspondencia|
+|---|---|---|---|
+|`TestLinksListScopeAndCategoryFilter`|`tests/links/http_test.go`|PT-LIN-01, TDB-T09|Público y no Admin solo ven activos visibles; Admin ve todos; filtro de categoría; categoría inválida 400.|
+|`TestLinksWritesRequireAdmin`|`tests/links/http_test.go`|PT-LIN-02, PT-TR-01|401 sin sesión y 403 estudiante/docente en crear, editar y cambiar estado.|
+|`TestLinksCreateValidation`|`tests/links/http_test.go`|PT-LIN-02|URL HTTP/HTTPS absoluta, obligatorios, categoría, orden; normaliza categoría y registra autor.|
+|`TestLinksPatchAndStatus`|`tests/links/http_test.go`|PT-LIN-01, PT-LIN-02|Edición parcial, orden y visibilidad, 400/404, activar/desactivar/ocultar sin borrar.|
+|`TestRepositoryVisibilityOrderAndHistory`|`tests/links/repository_test.go`|TDB-T01, TDB-T08, TDB-T09|Visibilidad, orden, categoría e historial por alta, edición y estado.|
+|`TestRepositoryNotFoundAndConstraints`|`tests/links/repository_test.go`|TDB-T02, TDB-T03|ID inexistente/mal formado 404; CHECK de orden y estado; FK de autor.|
+
+## Trazabilidad de pruebas automatizadas: auditoría (M12)
+|Prueba automatizada|Archivo|ID(s) de matriz|Correspondencia|
+|---|---|---|---|
+|`TestAuditLogsRequiresAdminAndParsesFilters`|`tests/audit/http_test.go`|PT-TR-03|Filtros por actor, acción, entidad y periodo.|
+|`TestAuditLogsRejectsInvalidPeriod`|`tests/audit/http_test.go`|PT-TR-03|`from` posterior a `to` responde 400.|
+|`TestAuditLogsAccessControl`|`tests/audit/http_test.go`|PT-TR-03, PT-TR-01|401 sin sesión o Admin inactivo; 403 estudiante, docente y visitante.|
+|`TestAuditLogsRejectsMalformedDates`|`tests/audit/http_test.go`|PT-TR-03|Fechas no RFC3339 responden 400.|
+|`TestAuditMiddlewareRecordsCriticalWrites`|`tests/audit/http_test.go`|PT-TR-03, TDB-T10|Registra actor, acción, entidad, resultado y origen; incluye contenidos (D030, corregido en R095).|
+|`TestAuditLogsHaveNoWriteEndpoints`|`tests/audit/http_test.go`|PT-TR-03|Sin endpoints de edición o eliminación.|
+|`TestRepositoryFiltersAndImmutability`|`tests/audit/repository_test.go`|TDB-T10, TDB-T12|Filtros en PostgreSQL; UPDATE/DELETE bloqueados por trigger.|
+
+## Trazabilidad de pruebas automatizadas: archivos adjuntos (M13)
+|Prueba automatizada|Archivo|ID(s) de matriz|Correspondencia|
+|---|---|---|---|
+|`TestCreateRejectsOversizedFile`|`tests/files/service_test.go`|PT-COM-01|Rechaza más de 10 MB.|
+|`TestCreateRejectsMismatchedTypeAndExtension`|`tests/files/service_test.go`|PT-COM-01|Rechaza extensión que no corresponde al tipo.|
+|`TestCreateAcceptsAllowedFormats`|`tests/files/service_test.go`|PT-COM-01, PT-SEM-06|PDF, Word, Excel, JPEG y PNG también en alpine (D028, corregido en R095).|
+|`TestCreateRejectsInvalidMetadata`|`tests/files/service_test.go`|PT-COM-01, PT-NF-04|Tipo, extensión, entidad, ID, ruta en nombre y tamaño inconsistente.|
+|`TestUploadAccessControl`|`tests/files/http_test.go`|PT-COM-01, PT-TR-01|401 sin sesión, 403 visitante, 201 estudiante/docente/Admin.|
+|`TestUploadValidation`|`tests/files/http_test.go`|PT-COM-01, PT-SEM-06, PT-NF-04|Contenido disfrazado, ZIP como PDF (D031, corregido en R095), vacío, >10 MB, no multipart.|
+|`TestDownloadAuthorization`|`tests/files/http_test.go`|PT-COM-01, PT-NF-04|401 sin sesión, 404 ajeno/inexistente, descarga como adjunto.|
+|`TestRepositoryAccessRules`|`tests/files/repository_test.go`|TDB-T01, TDB-T09|Autor, Admin y comunicado publicado; borrador ajeno, inactivo e ID mal formado 404 (D029, corregido en R095).|
+|`TestRepositoryEntityAccessRules`|`tests/files/repository_test.go`|PT-SEM-06, PT-COM-01, TDB-T09|Carga y descarga según acceso a la entidad; propuesta ajena, borrador ajeno y entidad inexistente rechazados (D032, corregido en R096).|
+|`TestUploadRejectsInaccessibleEntity`|`tests/files/http_test.go`|PT-TR-01, PT-NF-04|Entidad inaccesible responde 403 sin almacenar.|

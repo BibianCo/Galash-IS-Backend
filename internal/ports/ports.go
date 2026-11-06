@@ -24,6 +24,17 @@ type UserReader interface {
 	UpdateRole(ctx context.Context, firebaseUID string, role string) error
 }
 
+// ProfilePhotoWriter is separate from UserReader so existing readers need not implement it.
+// ImportedUserRepository manages accounts imported from SGI UPTC that nobody has claimed yet.
+type ImportedUserRepository interface {
+	ListImported(ctx context.Context) ([]domain.User, error)
+	ClaimImported(ctx context.Context, id string, user domain.User) (string, error)
+}
+
+type ProfilePhotoWriter interface {
+	SetPhotoURL(ctx context.Context, userID, photoURL string) error
+}
+
 type SessionRepository interface {
 	Create(ctx context.Context, userID string, tokenHash string) error
 	FindUserID(ctx context.Context, tokenHash string) (string, error)
@@ -63,6 +74,16 @@ type EventRepository interface {
 	Update(ctx context.Context, id string, event domain.Event) (domain.Event, error)
 	SetStatus(ctx context.Context, id, status string) (domain.Event, error)
 	HasConflict(ctx context.Context, event domain.Event, excludeID string) (bool, error)
+}
+
+type InternalCalendarRepository interface {
+	List(ctx context.Context, actorID, role, seedbedID string, from, to *time.Time) ([]domain.InternalCalendarEvent, error)
+	Find(ctx context.Context, actorID, role, id string) (domain.InternalCalendarEvent, error)
+	Create(ctx context.Context, event domain.InternalCalendarEvent) (domain.InternalCalendarEvent, error)
+	Update(ctx context.Context, event domain.InternalCalendarEvent) (domain.InternalCalendarEvent, error)
+	Cancel(ctx context.Context, id, actorID string) (domain.InternalCalendarEvent, error)
+	CanManage(ctx context.Context, event domain.InternalCalendarEvent, actorID, role string) (bool, error)
+	HasConflict(ctx context.Context, event domain.InternalCalendarEvent, excludeID string) (bool, error)
 }
 
 type ContentPageRepository interface {

@@ -48,6 +48,12 @@ type repository struct {
 	searchInactive       bool
 	searchUsers          []domain.User
 	searchErr            error
+	photoUserID          string
+}
+
+func (r *repository) SetPhotoURL(_ context.Context, userID, photoURL string) error {
+	r.photoUserID, r.user.PhotoURL = userID, photoURL
+	return nil
 }
 
 func (r *repository) Upsert(_ context.Context, user domain.User) (string, error) {
