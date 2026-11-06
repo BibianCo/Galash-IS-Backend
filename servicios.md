@@ -78,7 +78,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [ ] |
 | GET | `/activities/{id}` | detalle de actividad | M4 | [ ] |
 | PATCH | `/activities/{id}` | modifica actividad | M4 | [ ] |
-| GET | `/projects` | lista proyectos | M4 | [ ] |
+| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members` | M4 | [ ] |
 | POST | `/projects` | registra proyecto | M4 | [ ] |
 | GET | `/projects/{id}` | detalle de proyecto | M4 | [ ] |
 | PATCH | `/projects/{id}` | modifica proyecto | M4 | [ ] |

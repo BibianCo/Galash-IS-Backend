@@ -178,3 +178,52 @@ func TestMalformedOrMissingReferencesAreNotFound(t *testing.T) {
 		t.Fatalf("empty activities must be [] not nil: %v err=%v", activities, err)
 	}
 }
+
+func TestProjectReturnsNamesOfResponsiblesAndHiddenMembers(t *testing.T) {
+	r, db, user, seedbed := seed(t)
+	ctx := context.Background()
+	var hidden string
+	uid := fmt.Sprintf("hidden-member-%d", time.Now().UnixNano())
+	if err := db.QueryRow(ctx, `INSERT INTO usuarios (firebase_uid,nombre,apellido,email,rol) VALUES ($1,'Ana','Oculta Ejemplo',$1||'@example.test','estudiante') RETURNING id`, uid).Scan(&hidden); err != nil {
+		t.Fatalf("seed hidden member: %v", err)
+	}
+	if _, err := db.Exec(ctx, `INSERT INTO perfil_investigador (usuario_id, visible_publicamente) VALUES ($1, false)`, hidden); err != nil {
+		t.Fatalf("hide member: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.Exec(ctx, `DELETE FROM perfil_investigador WHERE usuario_id=$1`, hidden)
+		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE id=$1`, hidden)
+	})
+
+	created, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "P", Status: "Radicado", CreatedBy: user,
+		ResponsibleIDs: []string{user}, MemberIDs: []string{hidden, "00000000-0000-4000-8000-000000000000"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := func(p domain.Project) {
+		t.Helper()
+		if len(p.Responsibles) != 1 || p.Responsibles[0] != (domain.ProjectPerson{ID: user, Name: "Prueba"}) {
+			t.Fatalf("responsibles=%+v", p.Responsibles)
+		}
+		// The unknown id is skipped; the hidden profile still shows its name.
+		if len(p.Members) != 1 || p.Members[0] != (domain.ProjectPerson{ID: hidden, Name: "Ana Oculta Ejemplo"}) {
+			t.Fatalf("members=%+v", p.Members)
+		}
+	}
+	want(created)
+	found, err := r.FindProject(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want(found)
+	list, err := r.ListProjects(ctx, seedbed, "", "")
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list=%+v err=%v", list, err)
+	}
+	want(list[0])
+
+	empty, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "Sin equipo", Status: "Radicado", CreatedBy: user})
+	if err != nil || empty.Responsibles == nil || len(empty.Responsibles) != 0 || empty.Members == nil {
+		t.Fatalf("project without people must return empty lists, got %+v err=%v", empty, err)
+	}
+}
