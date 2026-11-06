@@ -72,3 +72,15 @@ func TestCreateDropsClientPersonalDataAndKeepsStudentCode(t *testing.T) {
 		t.Fatalf("created=%+v", c)
 	}
 }
+
+func TestCreateAllowsEmptyHighestDegree(t *testing.T) {
+	for _, value := range []string{"", "   "} {
+		repo := &repository{}
+		request := validRequest()
+		request.HighestDegree = value
+		result, _, err := application.NewService(repo).Create(context.Background(), request, "user-id")
+		if err != nil || result.ID == "" {
+			t.Fatalf("optional highest degree rejected: %v", err)
+		}
+	}
+}

@@ -15,7 +15,9 @@ type Service struct {
 	repository ports.RegistrationRepository
 }
 
-func NewService(repository ports.RegistrationRepository) *Service { return &Service{repository: repository} }
+func NewService(repository ports.RegistrationRepository) *Service {
+	return &Service{repository: repository}
+}
 
 // Create only accepts requests from an account; personal data is read from that account.
 func (s *Service) Create(ctx context.Context, request domain.RegistrationRequest, userID string) (domain.RegistrationRequest, string, error) {
@@ -59,7 +61,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id, status, observation, res
 }
 
 func validate(r domain.RegistrationRequest) error {
-	fields := []string{r.SeedbedID, r.BirthPlace, r.Address, r.CvLAC, r.ORCID, r.HighestEducation, r.HighestDegree, r.UndergraduateDegree, r.Affiliation, r.ResearcherCategory, r.MinCienciasCall}
+	fields := []string{r.SeedbedID, r.BirthPlace, r.Address, r.CvLAC, r.ORCID, r.HighestEducation, r.UndergraduateDegree, r.Affiliation, r.ResearcherCategory, r.MinCienciasCall}
 	for _, field := range fields {
 		if strings.TrimSpace(field) == "" {
 			return domain.ErrIncompleteRegistration
