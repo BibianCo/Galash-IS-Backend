@@ -24,6 +24,17 @@ type UserReader interface {
 	UpdateRole(ctx context.Context, firebaseUID string, role string) error
 }
 
+// ProfilePhotoWriter is separate from UserReader so existing readers need not implement it.
+// ImportedUserRepository manages accounts imported from SGI UPTC that nobody has claimed yet.
+type ImportedUserRepository interface {
+	ListImported(ctx context.Context) ([]domain.User, error)
+	ClaimImported(ctx context.Context, id string, user domain.User) (string, error)
+}
+
+type ProfilePhotoWriter interface {
+	SetPhotoURL(ctx context.Context, userID, photoURL string) error
+}
+
 type SessionRepository interface {
 	Create(ctx context.Context, userID string, tokenHash string) error
 	FindUserID(ctx context.Context, tokenHash string) (string, error)

@@ -631,3 +631,22 @@
 {"v":1,"id":"X319","t":"result","run":"R096","test":"T137","s":"pass","ev":["R096/files-go-test.txt","R096/files-go-test-alpine.txt","R096/go-test-all.txt"]}
 {"v":1,"id":"note-R096","t":"note","run":"R096","test":"T155","name":"Control: con file_repository.go previo, T155 falla (carga a actividad inexistente aceptada); evidencia R096/files-d032-before-fix.txt"}
 {"v":1,"id":"D032","t":"defect","test":"T155","run":"R096","sev":"high","s":"closed","name":"Corregido: FileRepository aplica un predicado de acceso por entidad en carga (403 si la entidad no existe o no es accesible) y descarga (autor del archivo o lector de la entidad); propuestas solo para su autor, docentes y Admin"}
+{"v":1,"id":"T157","t":"test","area":"auth","p":"must","name":"PUT /users/me/photo guarda la URL http(s) en el usuario de la sesión y GET /users/me la devuelve en photo_url"}
+{"v":1,"id":"T158","t":"test","area":"auth","p":"must","name":"PUT /users/me/photo responde 400 ante JSON inválido o URL vacía, relativa, no http(s) o mayor a 2048 caracteres, sin guardar"}
+{"v":1,"id":"T159","t":"test","area":"auth","p":"must","name":"PUT /users/me/photo responde 401 sin sesión, sin guardar"}
+{"v":1,"id":"R097","t":"run","at":"2026-11-06T18:00:00Z","build":"27559d1+profile-photo","env":"E008","by":"agent","mode":"automated","cmd":"go test ./tests/auth -run ProfilePhoto -v -count=1; go test ./... -count=1; go vet ./...; git diff --check"}
+{"v":1,"id":"X320","t":"result","run":"R097","test":"T157","s":"pass","ev":["R097/auth-photo-go-test.txt"]}
+{"v":1,"id":"X321","t":"result","run":"R097","test":"T158","s":"pass","ev":["R097/auth-photo-go-test.txt"]}
+{"v":1,"id":"X322","t":"result","run":"R097","test":"T159","s":"pass","ev":["R097/auth-photo-go-test.txt"]}
+{"v":1,"id":"note-R097","t":"note","run":"R097","test":"T157","name":"UserRepository.SetPhotoURL contra PostgreSQL no ejecutado: sin TEST_DATABASE_URL; cubierto solo con repositorio falso"}
+{"v":1,"id":"T160","t":"test","area":"auth","p":"must","name":"GET /auth/register/matches solo devuelve integrantes SGI sin reclamar cuando el token trae correo verificado primernombre.apellido[NN]@uptc.edu.co; tildes, mayúsculas y orden del nombre no importan; otros correos o sin verificar devuelven lista vacía"}
+{"v":1,"id":"T161","t":"test","area":"auth","p":"must","name":"GET /auth/register/matches responde 200 con solo id, name y role, y 401 sin Bearer o con token inválido"}
+{"v":1,"id":"T162","t":"test","area":"auth","p":"must","name":"POST /auth/register con claim_id coincidente vincula la cuenta importada (no crea otra) y conserva rol y perfil"}
+{"v":1,"id":"T163","t":"test","area":"auth","p":"must","name":"POST /auth/register rechaza con ErrClaimNotAllowed (409) un claim_id que no coincide con la identidad o con correo no verificado, sin modificar datos"}
+{"v":1,"id":"T164","t":"test","area":"auth","p":"must","name":"UserRepository.ClaimImported en PostgreSQL cambia firebase_uid y correo, conserva el rol y rechaza un segundo reclamo"}
+{"v":1,"id":"R098","t":"run","at":"2026-11-06T20:00:00Z","build":"27559d1+sgi-claim","env":"E008","by":"agent","mode":"automated","cmd":"go test ./tests/auth -run 'MatchImported|Claim|RegisterMatches' -v -count=1; go test ./... -count=1; go vet ./...; git diff --check; TEST_DATABASE_URL=<postgres desechable> go test ./tests/auth -run Claim"}
+{"v":1,"id":"X323","t":"result","run":"R098","test":"T160","s":"pass","ev":["R098/auth-sgi-claim-go-test.txt"]}
+{"v":1,"id":"X324","t":"result","run":"R098","test":"T161","s":"pass","ev":["R098/auth-sgi-claim-go-test.txt"]}
+{"v":1,"id":"X325","t":"result","run":"R098","test":"T162","s":"pass","ev":["R098/auth-sgi-claim-go-test.txt"]}
+{"v":1,"id":"X326","t":"result","run":"R098","test":"T163","s":"pass","ev":["R098/auth-sgi-claim-go-test.txt"]}
+{"v":1,"id":"X327","t":"result","run":"R098","test":"T164","s":"pass","ev":["R098/auth-sgi-claim-go-test.txt"]}

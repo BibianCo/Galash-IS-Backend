@@ -1,0 +1,8 @@
+=== RUN   TestSetProfilePhotoStoresLinkForSessionUser
+--- PASS: TestSetProfilePhotoStoresLinkForSessionUser (0.00s)
+=== RUN   TestSetProfilePhotoRejectsInvalidInput
+--- PASS: TestSetProfilePhotoRejectsInvalidInput (0.00s)
+=== RUN   TestSetProfilePhotoRequiresSession
+--- PASS: TestSetProfilePhotoRequiresSession (0.00s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/auth	0.005s

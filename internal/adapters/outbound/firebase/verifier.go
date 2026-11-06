@@ -25,5 +25,6 @@ func (v *Verifier) Verify(ctx context.Context, token string) (domain.Identity, e
 	}
 	name, _ := firebaseToken.Claims["name"].(string)
 	email, _ := firebaseToken.Claims["email"].(string)
-	return domain.Identity{UID: firebaseToken.UID, Name: name, Email: email}, nil
+	verified, _ := firebaseToken.Claims["email_verified"].(bool)
+	return domain.Identity{UID: firebaseToken.UID, Name: name, Email: email, EmailVerified: verified}, nil
 }
