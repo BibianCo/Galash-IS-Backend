@@ -266,8 +266,12 @@ func (s *Service) SearchUsers(ctx context.Context, query string, limit int) ([]d
 }
 
 func (s *Service) searchUsers(ctx context.Context, query string, limit int, includeInactive bool) ([]domain.User, error) {
-	if s.userReader == nil || strings.TrimSpace(query) == "" {
+	if s.userReader == nil || (!includeInactive && strings.TrimSpace(query) == "") {
 		return nil, domain.ErrIncompleteIdentity
+	}
+	// An unfiltered admin request returns the complete account list (M11).
+	if includeInactive && strings.TrimSpace(query) == "" {
+		return s.userReader.Search(ctx, "", 0, true)
 	}
 	if limit < 5 {
 		limit = 5

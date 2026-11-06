@@ -43,7 +43,8 @@ jobs:
       - name: Run all Go tests
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/auth_test?sslmode=disable
-        run: go test ./...
+        # Integration packages share one database; avoid cross-package fixture cleanup races.
+        run: go test -p 1 ./...
 
       - name: Run Go vet
         run: go vet ./...

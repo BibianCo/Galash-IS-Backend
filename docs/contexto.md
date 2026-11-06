@@ -67,3 +67,15 @@ GALASH-UPTC web system for academic management, research, and communication.
 - Detailed history: `docs/bitacora.ndjson`.
 - This file describes current state, not history.
 - Contains no private requirements, credentials, or personal data.
+
+- PostgreSQL local: aplicada la migración existente 008_user_basic_profile.sql el 2026-11-04; las columnas básicas de usuarios ya corresponden al backend desplegado y la consulta de perfiles funciona.
+
+- Local synthetic public text was repaired from canonical synthetic.sql after a prior lossy import replaced UTF-8 bytes with question marks. Guarded repair_utf8.sql only updates exact known damaged values at fixed synthetic UUIDs, preserving real records and other edits. seed.ps1 (PowerShell 7) streams raw UTF-8 and supports -RepairUtf8/-DryRun; seed.sh enforces UTF8 and supports --repair-utf8. Applied and verified rollback, idempotency, preserved fields and accented names/descriptions through API and Angular. No schema/API change. Existing frontend/backend M2 contract divergence (delegates) is recorded pending synchronization.
+
+- Registration requests: tituloMaximoNivelEstudio is optional in frontend and backend validation; omitted/empty values accepted. M3 contract clause and servicios.md updated on both repos. Other required fields unchanged. Existing unrelated contract-copy drift remains pending.
+
+- M11 admin account directory now accepts omitted/blank q and lists all stored accounts, including inactive ones, without the filtered-search cap. Admin session remains mandatory; public search behavior unchanged. Auth tests and read-only real PostgreSQL count comparison pass. Servicios handoff updated; pre-existing unrelated contract drift remains pending.
+
+- Local galash-auth container rebuilt/restarted for optional admin q. Live HTTP GET /admin/members returns200 and every stored account, verified using a disposable synthetic account/session that was cleaned up. Frontend servicios.md handoff applied.
+
+- PR preparation integrates origin/main through b4a0ad2 and retains the branch fixes. Full Go suite passes. Both full shared-contract copies are now synchronized, superseding earlier drift-pending notes.

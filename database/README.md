@@ -60,3 +60,22 @@ database/seed/seed.sh --reset  # borrar solo los datos sintéticos (ids 5eed…)
 Los usuarios sintéticos no tienen cuenta Firebase y no pueden iniciar sesión.
 La clave de seguimiento de la solicitud sintética N es `synthetic-token-N`.
 Nunca ejecutar en una base con datos reales de producción.
+
+### Carga UTF-8 desde Windows
+
+Con PowerShell 7, ejecuta `./database/seed/seed.ps1`. El script transmite los
+bytes del SQL sin recodificarlos y fija `PGCLIENTENCODING=UTF8`. En Bash,
+`database/seed/seed.sh` conserva la redirección binaria y fija la misma codificación.
+No uses `Get-Content ... | docker ...` para importar el SQL: la codificación de
+salida de una consola puede sustituir tildes y eñes por signos de interrogación.
+
+### Reparar la carga sintética anterior
+
+En la base local de desarrollo, `./database/seed/seed.ps1 -RepairUtf8 -DryRun`
+prueba la reparación en una transacción que termina en rollback. Para aplicarla:
+`./database/seed/seed.ps1 -RepairUtf8` (Bash: `database/seed/seed.sh --repair-utf8`).
+`repair_utf8.sql` restaura campos públicos de usuarios, perfiles, semilleros,
+proyectos, actividades y eventos sintéticos a partir de `synthetic.sql`.
+Solo modifica UUID sintéticos concretos cuyo valor coincide exactamente con
+la pérdida de bytes esperada; conserva otras ediciones y los registros reales.
+No reinicia la base ni cambia asociaciones, permisos o historial. Se puede repetir.

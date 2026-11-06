@@ -1,0 +1,7 @@
+{
+  "status": "pass",
+  "command": "go test -p 1 ./... -count=1",
+  "database": "isolated fresh PostgreSQL database initialized from database/init.sql, removed after run",
+  "correction": "shared lock stabilizes account comparison; CI serializes packages sharing TEST_DATABASE_URL",
+  "production_code_changed": false
+}
