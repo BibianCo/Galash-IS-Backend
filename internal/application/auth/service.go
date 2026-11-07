@@ -137,7 +137,7 @@ func (s *Service) matchImported(ctx context.Context, identity domain.Identity) (
 	matches := []domain.User{}
 	for _, u := range users {
 		tokens := strings.Fields(normalizeName(u.Name + " " + u.LastName))
-		if containsToken(tokens, first) && containsToken(tokens, last) {
+		if containsJoinedTokens(tokens, first) && containsToken(tokens, last) {
 			matches = append(matches, u)
 		}
 	}
@@ -186,6 +186,22 @@ func containsToken(tokens []string, want string) bool {
 	for _, t := range tokens {
 		if t == want {
 			return true
+		}
+	}
+	return false
+}
+
+// containsJoinedTokens also accepts consecutive name tokens written together, as in "anamaria" for "Ana María".
+func containsJoinedTokens(tokens []string, want string) bool {
+	for i := range tokens {
+		joined := ""
+		for _, t := range tokens[i:] {
+			if joined += t; joined == want {
+				return true
+			}
+			if len(joined) >= len(want) {
+				break
+			}
 		}
 	}
 	return false

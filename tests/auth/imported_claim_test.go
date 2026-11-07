@@ -63,6 +63,10 @@ func TestMatchImportedUsesVerifiedInstitutionalEmail(t *testing.T) {
 		{"ana.rojas123@uptc.edu.co", true, ""},
 		{"ana.perez@uptc.edu.co", true, ""},
 		{"anarojas@uptc.edu.co", true, ""},
+		{"anamaria.rojas@uptc.edu.co", true, "u-ana"},
+		{"tomasandres.munoz07@uptc.edu.co", true, "u-tomas"},
+		{"anamar.rojas@uptc.edu.co", true, ""},
+		{"mariaana.rojas@uptc.edu.co", true, ""},
 	}
 	for _, c := range cases {
 		repo := &importedRepository{repository: &repository{}, imported: sgiImported()}
