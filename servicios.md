@@ -91,6 +91,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | PATCH | `/research-proposals/{id}` | modifica propuesta | M4 | [ ] |
 | POST | `/research-proposals/{id}/convert-to-project` | convierte propuesta aprobada | M4 | [ ] |
 | POST | `/seedbeds/{seedbedId}/reviews` | crea reseña | M4 | [ ] |
+| GET | `/seedbeds/{seedbedId}/reviews` | reseñas publicadas (público; `404` si el semillero no es público) | M4 | [ ] |
 | GET | `/admin/seedbed-reviews` | lista reseñas | M4 | [ ] |
 | PATCH | `/admin/seedbed-reviews/{id}/moderation` | modera reseña | M4 | [ ] |
 | GET | `/events` | agenda pública filtrable; Admin autenticado ve todos los estados | M6 | [ ] |
@@ -132,6 +133,7 @@ Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `Docente`/`Admin`. Los `PATCH` de M4 son parciales: los campos omitidos
 conservan su valor. `GET /research-proposals` devuelve todas a
 `Docente`/`Admin` y solo propias o como responsable a `Estudiante`.
+`GET /seedbeds/{seedbedId}/reviews` responde `{"reviews":[{id,seedbedId,authorName,text,createdAt}]}` sin `authorId` ni nota de moderación.
 `GET /admin/seedbed-reviews` lista `pendiente` salvo `?status=`. Ids
 malformados o semillero inexistente responden `404`. En `POST
 /seedbeds/{seedbedId}/activities`, `status` es opcional si hay `date`: se

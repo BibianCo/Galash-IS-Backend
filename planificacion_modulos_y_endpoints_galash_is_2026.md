@@ -132,6 +132,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `POST` | `/seedbeds/{seedbedId}/reviews` | Envía reseña con autor, fecha y semillero asociado; genera notificación interna a `Admin`. | Could / Estudiante, Docente o Admin | HU-SEM-08 |
+| `GET` | `/seedbeds/{seedbedId}/reviews` | Lista las reseñas publicadas del semillero con nombre del autor, texto y fecha; `404` si el semillero no existe o no es público. | Could / Público | HU-SEM-08 |
 | `GET` | `/admin/seedbed-reviews` | Lista reseñas pendientes de moderación. | Could / Admin | HU-SEM-08 |
 | `PATCH` | `/admin/seedbed-reviews/{id}/moderation` | Publica, oculta o rechaza una reseña y registra la decisión. | Could / Admin | HU-SEM-08 |
 

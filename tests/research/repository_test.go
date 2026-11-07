@@ -155,6 +155,15 @@ func TestReviewNotifiesActiveAdmins(t *testing.T) {
 	if err != nil || pending == nil {
 		t.Fatalf("empty list must be [] not nil: %v err=%v", pending, err)
 	}
+	if public, err := r.PublishedReviews(ctx, seedbed); err != nil || public == nil || len(public) != 0 {
+		t.Fatalf("pending review must not be public: %+v err=%v", public, err)
+	}
+	if _, err := r.ModerateReview(ctx, v.ID, "publicada", ""); err != nil {
+		t.Fatalf("moderate: %v", err)
+	}
+	if public, err := r.PublishedReviews(ctx, seedbed); err != nil || len(public) != 1 || public[0].Text != "Buen semillero" || public[0].AuthorName == "" {
+		t.Fatalf("published review=%+v err=%v", public, err)
+	}
 }
 
 func TestMalformedOrMissingReferencesAreNotFound(t *testing.T) {

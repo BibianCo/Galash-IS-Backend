@@ -30,5 +30,6 @@ type ResearchRepository interface {
 
 	CreateReview(ctx context.Context, review domain.SeedbedReview) (domain.SeedbedReview, error)
 	ListReviews(ctx context.Context, status string) ([]domain.SeedbedReview, error)
+	PublishedReviews(ctx context.Context, seedbedID string) ([]domain.PublicSeedbedReview, error)
 	ModerateReview(ctx context.Context, id, status, note string) (domain.SeedbedReview, error)
 }
