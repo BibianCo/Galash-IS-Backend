@@ -62,6 +62,22 @@ Los usuarios sintéticos no tienen cuenta Firebase y no pueden iniciar sesión.
 La clave de seguimiento de la solicitud sintética N es `synthetic-token-N`.
 Nunca ejecutar en una base con datos reales de producción.
 
+## Datos reales del grupo (fuera de git)
+
+Integrantes del SGI, proyectos del grupo y los 5 semilleros de los formularios de
+registro viven en `database/seed/` pero contienen datos de personas: están en
+`.gitignore` y se comparten por canal privado (`galash_datos_reales.tar.gz`, se
+extrae en `database/seed/`). Nunca subirlos al remoto.
+
+```bash
+database/seed/seed.sh --real        # integrantes -> proyectos -> semilleros (en ese orden)
+database/seed/seed.sh --real-reset  # borra en orden inverso
+```
+
+PowerShell: `./database/seed/seed.ps1 -Real` / `-RealReset`. Son idempotentes y
+conviven con los datos sintéticos. Las cuentas importadas (`sgi-uptc:%`) no
+inician sesión; se reclaman en el primer ingreso con un correo `@uptc.edu.co`.
+
 ### Carga UTF-8 desde Windows
 
 Con PowerShell 7, ejecuta `./database/seed/seed.ps1`. El script transmite los

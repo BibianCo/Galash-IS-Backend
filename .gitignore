@@ -11,3 +11,8 @@ Auth/*firebase-service-account*.json
 deploy/auth/*service-account*.json
 deploy/auth/*firebase-service-account*.json
 /*firebase-service-account*.json
+
+# Seeds con datos personales reales: se comparten fuera de git (database/README.md)
+database/seed/sgi_uptc_integrantes*.sql
+database/seed/proyectos_grupo*.sql
+database/seed/semilleros_galash*.sql
