@@ -178,4 +178,24 @@ FROM (VALUES
 ) AS e(n, titulo, descripcion, tipo, dia, lugar, estado)
 ON CONFLICT DO NOTHING;
 
+-- Reseñas (M4): 4 publicadas por semillero para el carrusel público y una en cada estado restante para moderación.
+INSERT INTO semillero_resenas (id, semillero_id, autor_id, texto, estado, creado_en, moderado_en) VALUES
+  ('5eed0009-0000-4000-8000-000000000001', '5eed0003-0000-4000-8000-000000000001', '5eed0001-0000-4000-8000-000000000004', 'Un espacio para aprender en equipo. Las sesiones prácticas me ayudaron a convertir una idea en un prototipo.', 'publicada', now() - interval '60 days', now() - interval '59 days'),
+  ('5eed0009-0000-4000-8000-000000000002', '5eed0003-0000-4000-8000-000000000001', '5eed0001-0000-4000-8000-000000000005', 'Probar los prototipos en el campus fue lo mejor del semestre. Sugiero más jornadas abiertas.', 'publicada', now() - interval '40 days', now() - interval '39 days'),
+  ('5eed0009-0000-4000-8000-000000000003', '5eed0003-0000-4000-8000-000000000001', '5eed0001-0000-4000-8000-000000000012', 'La orientación de la docente es constante y cercana. Se aprende haciendo.', 'publicada', now() - interval '20 days', now() - interval '19 days'),
+  ('5eed0009-0000-4000-8000-000000000004', '5eed0003-0000-4000-8000-000000000001', '5eed0001-0000-4000-8000-000000000001', 'Ver crecer las ideas de los estudiantes en cada encuentro motiva a seguir explorando.', 'publicada', now() - interval '10 days', now() - interval '9 days'),
+  ('5eed0009-0000-4000-8000-000000000005', '5eed0003-0000-4000-8000-000000000002', '5eed0001-0000-4000-8000-000000000006', 'Me gustó compartir preguntas y recibir orientación. Ojalá haya más encuentros entre semilleros.', 'publicada', now() - interval '50 days', now() - interval '49 days'),
+  ('5eed0009-0000-4000-8000-000000000006', '5eed0003-0000-4000-8000-000000000002', '5eed0001-0000-4000-8000-000000000007', 'Los talleres de modelos de lenguaje fueron claros y con ejemplos reales.', 'publicada', now() - interval '35 days', now() - interval '34 days'),
+  ('5eed0009-0000-4000-8000-000000000007', '5eed0003-0000-4000-8000-000000000002', '5eed0001-0000-4000-8000-000000000010', 'Trabajar con datos del grupo me dio confianza para mi primer artículo.', 'publicada', now() - interval '15 days', now() - interval '14 days'),
+  ('5eed0009-0000-4000-8000-000000000008', '5eed0003-0000-4000-8000-000000000002', '5eed0001-0000-4000-8000-000000000002', 'La colaboración entre estudiantes y docentes hace de cada sesión una oportunidad nueva.', 'publicada', now() - interval '5 days', now() - interval '4 days'),
+  ('5eed0009-0000-4000-8000-000000000009', '5eed0003-0000-4000-8000-000000000003', '5eed0001-0000-4000-8000-000000000008', 'Los retos de captura de la bandera enseñan más que cualquier clase teórica.', 'publicada', now() - interval '45 days', now() - interval '44 days'),
+  ('5eed0009-0000-4000-8000-000000000010', '5eed0003-0000-4000-8000-000000000003', '5eed0001-0000-4000-8000-000000000009', 'Buen ambiente y mucha práctica. Recomendaría el semillero a cualquier compañero.', 'publicada', now() - interval '30 days', now() - interval '29 days'),
+  ('5eed0009-0000-4000-8000-000000000011', '5eed0003-0000-4000-8000-000000000003', '5eed0001-0000-4000-8000-000000000011', 'Aprendí a auditar una aplicación paso a paso con el acompañamiento del equipo.', 'publicada', now() - interval '12 days', now() - interval '11 days'),
+  ('5eed0009-0000-4000-8000-000000000012', '5eed0003-0000-4000-8000-000000000003', '5eed0001-0000-4000-8000-000000000003', 'Cada sesión deja una herramienta nueva para proteger mejor nuestros sistemas.', 'publicada', now() - interval '3 days', now() - interval '2 days'),
+  ('5eed0009-0000-4000-8000-000000000013', '5eed0003-0000-4000-8000-000000000001', '5eed0001-0000-4000-8000-000000000005', 'Sería útil publicar las próximas sesiones con más anticipación.', 'pendiente', now() - interval '1 day', NULL),
+  ('5eed0009-0000-4000-8000-000000000014', '5eed0003-0000-4000-8000-000000000002', '5eed0001-0000-4000-8000-000000000006', 'Propongo una sesión sobre ética en inteligencia artificial.', 'pendiente', now() - interval '2 days', NULL),
+  ('5eed0009-0000-4000-8000-000000000015', '5eed0003-0000-4000-8000-000000000003', '5eed0001-0000-4000-8000-000000000009', 'Comentario fuera de tema retirado por moderación.', 'oculta', now() - interval '25 days', now() - interval '24 days'),
+  ('5eed0009-0000-4000-8000-000000000016', '5eed0003-0000-4000-8000-000000000002', '5eed0001-0000-4000-8000-000000000007', 'Texto de prueba rechazado por incumplir las normas de convivencia.', 'rechazada', now() - interval '18 days', now() - interval '17 days')
+ON CONFLICT DO NOTHING;
+
 COMMIT;

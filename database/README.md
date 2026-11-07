@@ -49,7 +49,8 @@ docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
 `database/seed/seed.sh` carga datos ficticios en el PostgreSQL del compose:
 14 usuarios (docentes, estudiantes, uno inactivo y un visitante), 3 semilleros
 publicados y 1 borrador, integrantes, proyectos, actividades, solicitudes de
-registro en todos los estados con su historial, y eventos de agenda. Es
+registro en todos los estados con su historial, eventos de agenda y reseñas
+(4 publicadas por semillero publicado, más pendientes, una oculta y una rechazada). Es
 idempotente: puede ejecutarse varias veces.
 
 ```bash
