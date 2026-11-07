@@ -181,6 +181,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("PATCH /research-proposals/{id}", h.updateProposal)
 	mux.HandleFunc("POST /research-proposals/{id}/convert-to-project", h.convertProposal)
 	mux.HandleFunc("POST /seedbeds/{seedbedId}/reviews", h.createReview)
+	mux.HandleFunc("GET /seedbeds/{seedbedId}/reviews", h.publishedReviews)
 	mux.HandleFunc("GET /admin/seedbed-reviews", h.listReviews)
 	mux.HandleFunc("PATCH /admin/seedbed-reviews/{id}/moderation", h.moderateReview)
 	mux.HandleFunc("GET /events", h.listEvents)
@@ -1312,6 +1313,17 @@ func (h *Handler) createReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 201, v)
+}
+func (h *Handler) publishedReviews(w http.ResponseWriter, r *http.Request) {
+	if !h.researchReady(w) {
+		return
+	}
+	v, e := h.research.PublishedReviews(r.Context(), r.PathValue("seedbedId"))
+	if e != nil {
+		researchError(w, e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"reviews": v})
 }
 func (h *Handler) listReviews(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {

@@ -312,6 +312,23 @@ func (r *ResearchRepository) ListReviews(c context.Context, s string) (out []dom
 	return out, rows.Err()
 }
 
+func (r *ResearchRepository) PublishedReviews(c context.Context, seedbedID string) (out []domain.PublicSeedbedReview, e error) {
+	out = make([]domain.PublicSeedbedReview, 0)
+	rows, e := r.db.Query(c, `SELECT r.id,r.semillero_id,trim(u.nombre||' '||COALESCE(u.apellido,'')),r.texto,r.creado_en FROM semillero_resenas r JOIN usuarios u ON u.id=r.autor_id WHERE r.semillero_id=$1 AND r.estado='publicada' ORDER BY r.moderado_en DESC NULLS LAST,r.creado_en DESC`, seedbedID)
+	if e != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var v domain.PublicSeedbedReview
+		if e = rows.Scan(&v.ID, &v.SeedbedID, &v.AuthorName, &v.Text, &v.CreatedAt); e != nil {
+			return
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
 func (r *ResearchRepository) ModerateReview(c context.Context, id, status, note string) (domain.SeedbedReview, error) {
 	return review(r.db.QueryRow(c, `UPDATE semillero_resenas SET estado=$2,nota_moderacion=$3,moderado_en=$4 WHERE id=$1 RETURNING id,semillero_id,autor_id,texto,estado,COALESCE(nota_moderacion,''),creado_en,moderado_en`, id, status, note, time.Now().UTC()))
 }

@@ -321,6 +321,15 @@ func (s *Service) Reviews(c context.Context, status string) ([]domain.SeedbedRev
 	return s.repo.ListReviews(c, status)
 }
 
+// PublishedReviews is public: unknown, unpublished or hidden seedbeds answer not found.
+func (s *Service) PublishedReviews(c context.Context, seedbedID string) ([]domain.PublicSeedbedReview, error) {
+	sb, e := s.seedbeds.Find(c, seedbedID)
+	if e != nil || sb.Status != domain.SeedbedPublished || sb.Visibility != domain.SeedbedPublished {
+		return nil, domain.ErrSeedbedNotFound
+	}
+	return s.repo.PublishedReviews(c, seedbedID)
+}
+
 func (s *Service) Moderate(c context.Context, id, status, note string) (domain.SeedbedReview, error) {
 	if status != "publicada" && status != "oculta" && status != "rechazada" {
 		return domain.SeedbedReview{}, domain.ErrInvalidResearch

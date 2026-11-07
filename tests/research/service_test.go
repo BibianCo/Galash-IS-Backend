@@ -36,6 +36,9 @@ func (u users) UpdateRole(context.Context, string, string) error                
 type seedbeds struct{ ports.SeedbedRepository }
 
 func (seedbeds) Find(_ context.Context, id string) (domain.Seedbed, error) {
+	if id == "public" {
+		return domain.Seedbed{ID: "public", Status: domain.SeedbedPublished, Visibility: domain.SeedbedPublished}, nil
+	}
 	if id != "sb" {
 		return domain.Seedbed{}, domain.ErrSeedbedNotFound
 	}
@@ -112,6 +115,10 @@ func (r *repository) CreateReview(_ context.Context, v domain.SeedbedReview) (do
 func (r *repository) ListReviews(_ context.Context, status string) ([]domain.SeedbedReview, error) {
 	r.actor = status
 	return []domain.SeedbedReview{}, nil
+}
+func (r *repository) PublishedReviews(_ context.Context, seedbedID string) ([]domain.PublicSeedbedReview, error) {
+	r.actor = seedbedID
+	return []domain.PublicSeedbedReview{{ID: "rev", SeedbedID: seedbedID, AuthorName: "Ana", Text: "x"}}, nil
 }
 func (r *repository) ProposalHistory(context.Context, string) ([]domain.ProposalHistory, error) {
 	return []domain.ProposalHistory{{Status: "Radicada"}}, nil
@@ -375,5 +382,31 @@ func TestGroupProjectWithoutSeedbedOnlyManagedByAdmin(t *testing.T) {
 	p.Status = "Finalizado"
 	if got, err := s.UpdateProject(ctx, "proj", p, "admin"); err != nil || got.SeedbedID != "" {
 		t.Fatalf("admin update: project=%+v err=%v", got, err)
+	}
+}
+
+func TestPublishedReviewsOnlyForPublicSeedbeds(t *testing.T) {
+	s, r := fixtures()
+	ctx := context.Background()
+	for _, id := range []string{"nope", "sb"} {
+		if _, err := s.PublishedReviews(ctx, id); !errors.Is(err, domain.ErrSeedbedNotFound) {
+			t.Fatalf("seedbed %q: %v", id, err)
+		}
+	}
+	v, err := s.PublishedReviews(ctx, "public")
+	if err != nil || len(v) != 1 || r.actor != "public" {
+		t.Fatalf("reviews=%+v err=%v actor=%q", v, err, r.actor)
+	}
+}
+
+func TestPublicReviewJSONHidesAuthorIDAndModeration(t *testing.T) {
+	b, _ := json.Marshal(domain.PublicSeedbedReview{})
+	for _, k := range []string{`"authorName"`, `"text"`, `"createdAt"`} {
+		if !strings.Contains(string(b), k) {
+			t.Fatalf("missing %s in %s", k, b)
+		}
+	}
+	if strings.Contains(string(b), "authorId") || strings.Contains(string(b), "moderation") {
+		t.Fatalf("leaks private fields: %s", b)
 	}
 }

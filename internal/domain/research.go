@@ -85,3 +85,12 @@ type SeedbedReview struct {
 	CreatedAt      *time.Time `json:"createdAt"`
 	ModeratedAt    *time.Time `json:"moderatedAt"`
 }
+
+// PublicSeedbedReview is the public view of a published review: no author id or moderation note.
+type PublicSeedbedReview struct {
+	ID         string    `json:"id"`
+	SeedbedID  string    `json:"seedbedId"`
+	AuthorName string    `json:"authorName"`
+	Text       string    `json:"text"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
