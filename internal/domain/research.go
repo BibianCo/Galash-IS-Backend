@@ -16,19 +16,27 @@ type Activity struct {
 }
 
 type Project struct {
-	ID             string     `json:"id"`
-	SeedbedID      string     `json:"seedbedId"`
-	Title          string     `json:"title"`
-	Summary        string     `json:"summary"`
-	ResearchLine   string     `json:"researchLine"`
-	Status         string     `json:"status"`
-	ResponsibleIDs []string   `json:"responsibleIds"`
-	MemberIDs      []string   `json:"memberIds"`
-	StartDate      *time.Time `json:"startDate"`
-	EndDate        *time.Time `json:"endDate"`
-	Progress       int        `json:"progress"`
-	CreatedBy      string     `json:"createdBy"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
+	ID             string          `json:"id"`
+	SeedbedID      string          `json:"seedbedId"`
+	Title          string          `json:"title"`
+	Summary        string          `json:"summary"`
+	ResearchLine   string          `json:"researchLine"`
+	Status         string          `json:"status"`
+	ResponsibleIDs []string        `json:"responsibleIds"`
+	MemberIDs      []string        `json:"memberIds"`
+	Responsibles   []ProjectPerson `json:"responsibles"`
+	Members        []ProjectPerson `json:"members"`
+	StartDate      *time.Time      `json:"startDate"`
+	EndDate        *time.Time      `json:"endDate"`
+	Progress       int             `json:"progress"`
+	CreatedBy      string          `json:"createdBy"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+}
+
+// ProjectPerson is the display data of a project participant: only id and name, even for hidden profiles.
+type ProjectPerson struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type ProjectHistory struct {

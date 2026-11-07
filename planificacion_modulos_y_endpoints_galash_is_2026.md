@@ -113,6 +113,10 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 **Estados mínimos de proyecto:** `Radicado`, `Activo` y `Finalizado`.
 
+**Personas del proyecto:** toda respuesta de proyecto incluye, además de `responsibleIds` y `memberIds`, las listas `responsibles` y `members` con `{"id":"<user-id>","name":"<nombre completo>"}` de cada id que corresponde a una cuenta existente, ordenadas por nombre (lista vacía `[]` si no hay). El nombre se muestra aunque el perfil esté oculto del directorio público; no se exponen otros datos personales.
+
+**Proyectos del grupo sin semillero:** los proyectos del grupo importados del SGI UPTC y de GrupLAC no pertenecen a un semillero; en las respuestas de proyectos llegan con `seedbedId` vacío (`""`), no aparecen al filtrar por semillero y solo `Admin` puede modificarlos o actualizar su avance (`403` para el resto). `POST /projects` sigue exigiendo semillero.
+
 #### Propuestas (fase posterior)
 
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |

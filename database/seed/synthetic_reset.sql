@@ -1,7 +1,8 @@
 -- Deletes only the synthetic data loaded by synthetic.sql (ids that start with 5eed).
 -- Real rows created through the API that reference synthetic rows are deleted too.
 BEGIN;
-DELETE FROM seguimiento_solicitud WHERE id::text LIKE '5eed%' OR solicitud_id::text LIKE '5eed%' OR responsable_id::text LIKE '5eed%';
+DELETE FROM seguimiento_solicitud WHERE id::text LIKE '5eed%' OR solicitud_id::text LIKE '5eed%' OR responsable_id::text LIKE '5eed%'
+    OR solicitud_id IN (SELECT id FROM solicitudes_registro WHERE semillero_id::text LIKE '5eed%');
 DELETE FROM solicitudes_registro WHERE id::text LIKE '5eed%' OR semillero_id::text LIKE '5eed%';
 DELETE FROM eventos WHERE id::text LIKE '5eed%' OR organizador_id::text LIKE '5eed%' OR semillero_id::text LIKE '5eed%';
 DELETE FROM actividades WHERE id::text LIKE '5eed%' OR semillero_id::text LIKE '5eed%';

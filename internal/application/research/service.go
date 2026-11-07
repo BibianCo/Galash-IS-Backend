@@ -38,6 +38,10 @@ func (s *Service) manage(ctx context.Context, actor, seedbed string) error {
 	if role(u, "admin") {
 		return nil
 	}
+	// TODO: permitir asignar a qué semillero pertenece un proyecto del grupo (importado de GrupLAC sin semillero); hoy solo Admin lo gestiona.
+	if seedbed == "" {
+		return domain.ErrForbidden
+	}
 	sb, e := s.seedbeds.Find(ctx, seedbed)
 	if e != nil {
 		return domain.ErrResearchNotFound

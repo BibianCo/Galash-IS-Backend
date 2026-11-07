@@ -361,3 +361,19 @@ func TestDelegateManagesActivitiesButNotProjects(t *testing.T) {
 		t.Fatalf("delegate create project: want forbidden, got %v", err)
 	}
 }
+
+func TestGroupProjectWithoutSeedbedOnlyManagedByAdmin(t *testing.T) {
+	s, r := fixtures()
+	r.project.SeedbedID = ""
+	ctx := context.Background()
+	for _, actor := range []string{"teacher", "other", "student"} {
+		if _, err := s.Progress(ctx, "proj", 50, actor); !errors.Is(err, domain.ErrForbidden) {
+			t.Fatalf("%s: want forbidden, got %v", actor, err)
+		}
+	}
+	p := r.project
+	p.Status = "Finalizado"
+	if got, err := s.UpdateProject(ctx, "proj", p, "admin"); err != nil || got.SeedbedID != "" {
+		t.Fatalf("admin update: project=%+v err=%v", got, err)
+	}
+}

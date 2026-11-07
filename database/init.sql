@@ -221,6 +221,8 @@ ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS responsables TEXT[] NOT NULL DEFA
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS integrantes TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id);
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+-- Proyectos del grupo (GrupLAC) pueden no pertenecer a un semillero. TODO: asignarles semillero.
+ALTER TABLE proyectos ALTER COLUMN semillero_id DROP NOT NULL;
 ALTER TABLE actividades ADD COLUMN IF NOT EXISTS responsables TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE actividades ADD COLUMN IF NOT EXISTS evidencias TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE actividades ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();

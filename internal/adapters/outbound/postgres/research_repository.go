@@ -67,12 +67,17 @@ func (r *ResearchRepository) UpdateActivity(c context.Context, id string, a doma
 
 func proj(row pgx.Row) (domain.Project, error) {
 	var p domain.Project
-	e := row.Scan(&p.ID, &p.SeedbedID, &p.Title, &p.Summary, &p.ResearchLine, &p.Status, &p.ResponsibleIDs, &p.MemberIDs, &p.StartDate, &p.EndDate, &p.Progress, &p.CreatedBy, &p.UpdatedAt)
+	e := row.Scan(&p.ID, &p.SeedbedID, &p.Title, &p.Summary, &p.ResearchLine, &p.Status, &p.ResponsibleIDs, &p.MemberIDs, &p.StartDate, &p.EndDate, &p.Progress, &p.CreatedBy, &p.UpdatedAt, &p.Responsibles, &p.Members)
 	e = dbErr(e)
 	return p, e
 }
 
-const projectSQL = `id,semillero_id,titulo,COALESCE(resumen,''),COALESCE(area_investigacion,''),estado,responsables,integrantes,fecha_inicio,fecha_fin,avance,COALESCE(creado_por::text,''),actualizado_en`
+// projectPeople resolves a text[] of user ids to [{id,name}] from usuarios, ignoring directory visibility.
+func projectPeople(column string) string {
+	return `COALESCE((SELECT json_agg(json_build_object('id',u.id::text,'name',trim(u.nombre||' '||COALESCE(u.apellido,''))) ORDER BY u.nombre,u.apellido) FROM usuarios u WHERE u.id::text = ANY(` + column + `)),'[]'::json)`
+}
+
+var projectSQL = `id,COALESCE(semillero_id::text,''),titulo,COALESCE(resumen,''),COALESCE(area_investigacion,''),estado,responsables,integrantes,fecha_inicio,fecha_fin,avance,COALESCE(creado_por::text,''),actualizado_en,` + projectPeople("responsables") + `,` + projectPeople("integrantes")
 
 func (r *ResearchRepository) ListProjects(c context.Context, s, st, period string) (out []domain.Project, e error) {
 	out = make([]domain.Project, 0)
