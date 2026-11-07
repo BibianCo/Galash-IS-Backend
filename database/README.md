@@ -49,7 +49,8 @@ docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
 `database/seed/seed.sh` carga datos ficticios en el PostgreSQL del compose:
 14 usuarios (docentes, estudiantes, uno inactivo y un visitante), 3 semilleros
 publicados y 1 borrador, integrantes, proyectos, actividades, solicitudes de
-registro en todos los estados con su historial, y eventos de agenda. Es
+registro en todos los estados con su historial, eventos de agenda y reseñas
+(4 publicadas por semillero publicado, más pendientes, una oculta y una rechazada). Es
 idempotente: puede ejecutarse varias veces.
 
 ```bash
@@ -60,6 +61,22 @@ database/seed/seed.sh --reset  # borrar solo los datos sintéticos (ids 5eed…)
 Los usuarios sintéticos no tienen cuenta Firebase y no pueden iniciar sesión.
 La clave de seguimiento de la solicitud sintética N es `synthetic-token-N`.
 Nunca ejecutar en una base con datos reales de producción.
+
+## Datos reales del grupo (fuera de git)
+
+Integrantes del SGI, proyectos del grupo y los 5 semilleros de los formularios de
+registro viven en `database/seed/` pero contienen datos de personas: están en
+`.gitignore` y se comparten por canal privado (`galash_datos_reales.tar.gz`, se
+extrae en `database/seed/`). Nunca subirlos al remoto.
+
+```bash
+database/seed/seed.sh --real        # integrantes -> proyectos -> semilleros (en ese orden)
+database/seed/seed.sh --real-reset  # borra en orden inverso
+```
+
+PowerShell: `./database/seed/seed.ps1 -Real` / `-RealReset`. Son idempotentes y
+conviven con los datos sintéticos. Las cuentas importadas (`sgi-uptc:%`) no
+inician sesión; se reclaman en el primer ingreso con un correo `@uptc.edu.co`.
 
 ### Carga UTF-8 desde Windows
 

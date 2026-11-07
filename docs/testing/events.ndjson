@@ -679,3 +679,7 @@
 {"v":1,"id":"R101","t":"run","at":"2026-11-07T00:30:00Z","build":"e5266b9+project-people","env":"E008","by":"agent","mode":"automated","cmd":"go build ./...; go vet ./internal/...; go test -count=1 ./tests/research; TEST_DATABASE_URL=<postgres desechable con init.sql> go test -p 1 -count=1 ./...; curl /projects en volumen local (22 proyectos, 180 personas con nombre, 0 ids sin nombre)"}
 {"v":1,"id":"X331","t":"result","run":"R101","test":"T167","s":"pass","ev":[]}
 {"v":1,"id":"R102","t":"run","at":"2026-11-07T22:00:00Z","by":"agent","mode":"automated","cmd":"go build ./...; go vet ./...; go test ./...","note":"pass; TestPublishedReviewsOnlyForPublicSeedbeds y TestPublicReviewJSONHidesAuthorIDAndModeration nuevos; repository_test (TestReviewNotifiesActiveAdmins ampliado) skip sin TEST_DATABASE_URL; smoke contenedor: 404 para id malformado/inexistente"}
+{"v":1,"id":"T168","t":"test","area":"auth","p":"must","name":"GET /auth/register/matches acepta como primer nombre varios nombres consecutivos escritos juntos (anamaria.rojas -> Ana María Rojas) y rechaza prefijos parciales u orden invertido (anamar, mariaana)"}
+{"v":1,"id":"R103","t":"run","at":"2026-11-07T23:00:00Z","by":"agent","mode":"automated","env":"E008","cmd":"go vet ./internal/application/auth/; go test -count=1 ./...","note":"pass; TestMatchImportedUsesVerifiedInstitutionalEmail amplía casos; contenedor auth reconstruido"}
+{"v":1,"id":"X332","t":"result","run":"R103","test":"T160","s":"pass","ev":[]}
+{"v":1,"id":"X333","t":"result","run":"R103","test":"T168","s":"pass","ev":[]}
