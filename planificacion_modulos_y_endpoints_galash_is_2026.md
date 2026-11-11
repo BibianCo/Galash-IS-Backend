@@ -111,7 +111,9 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/projects/progress` | Resume avance por proyecto, semillero o periodo. | Must / Estudiante, Docente o Admin autorizado | HU-SEM-07 |
 | `GET` | `/projects/{id}/history` | Consulta actualizaciones relevantes del proyecto. | Must / Estudiante, Docente o Admin autorizado | HU-SEM-05 |
 
-**Estados mínimos de proyecto:** `Radicado`, `Activo` y `Finalizado`.
+**Visibilidad del avance:** en `GET /projects` y `GET /projects/{id}`, el campo `progress` se omite para Visitante y consultas sin sesión. Una sesión válida de Estudiante, Docente (incluido el alias profesor) o Admin recibe el porcentaje real en ambos endpoints y puede consultar `GET /projects/progress`, sin exigir pertenencia o responsabilidad en el proyecto. Las credenciales inválidas o expiradas devuelven `401`. Esta regla solo cambia la lectura: actualizar avance conserva los permisos de Docente responsable o Admin.
+
+**Estados permitidos de proyecto:** únicamente `Activo` y `Finalizado`. Los proyectos nuevos y los convertidos desde propuestas aprobadas se crean en `Activo`; `Radicado` ya no es un estado válido y se rechaza con `400`. Los proyectos existentes en `Radicado` se migran a `Activo`, conservando su avance y demás datos, y se registra el cambio de estado en su historial.
 
 **Personas del proyecto:** toda respuesta de proyecto incluye, además de `responsibleIds` y `memberIds`, las listas `responsibles` y `members` con `{"id":"<user-id>","name":"<nombre completo>"}` de cada id que corresponde a una cuenta existente, ordenadas por nombre (lista vacía `[]` si no hay). El nombre se muestra aunque el perfil esté oculto del directorio público; no se exponen otros datos personales.
 
@@ -125,7 +127,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `POST` | `/research-proposals` | Registra título, problema, objetivos, metodología, responsables y anexos opcionales. | Should / Estudiante o Docente autorizado | HU-SEM-06 |
 | `GET` | `/research-proposals/{id}` | Consulta propuesta, observaciones e historial. | Should / Estudiante, Docente o Admin autorizado | HU-SEM-06 |
 | `PATCH` | `/research-proposals/{id}` | Actualiza propuesta u observaciones de revisión conforme a permisos. | Should / Estudiante, Docente o Admin autorizado | HU-SEM-06 |
-| `POST` | `/research-proposals/{id}/convert-to-project` | Convierte una propuesta aprobada en proyecto radicado conservando su historial. | Should / Docente o Admin autorizado | HU-SEM-06 |
+| `POST` | `/research-proposals/{id}/convert-to-project` | Convierte una propuesta aprobada en proyecto activo conservando su historial. | Should / Docente o Admin autorizado | HU-SEM-06 |
 
 #### Reseñas de semillero (mejora deseable)
 
@@ -176,6 +178,8 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `PATCH` | `/admin/content/pages/{id}` | Edita título y contenido; sanitiza formato permitido y registra actualización. | Must / Admin | HU-INFO-02 |
 | `POST` | `/admin/content/pages/{id}/publish` | Publica la versión vigente de una página. | Must / Admin | HU-INFO-02 |
 
+**Formato de páginas institucionales:** las listas responden `{pages: [...]}`. Cada página contiene `id`, `slug`, `title`, `content`, `status` (`borrador` o `publicado`), `authorId`, `authorName`, `createdAt`, `updatedAt` y `publishedAt` opcional. Crear/editar recibe `{slug, title, content}`; el slug usa minúsculas, números y guiones entre palabras. Crear devuelve `201` en borrador; editar y publicar devuelven `200` con la página. Editar conserva el estado, de modo que guardar una página publicada actualiza su contenido público inmediatamente; no existe acción de despublicación. El servidor sanitiza HTML permitido. Errores `{error}`: `400` datos o transición de publicación inválidos, `401` sin sesión, `403` sin permiso Admin, `404` página inexistente y `409` slug duplicado.
+
 ### Módulo 8. Tablero de comunicados y lectura
 
 **Objetivo:** publicar directrices con adjuntos y ofrecer trazabilidad de lectura por `Docente`.
@@ -212,6 +216,8 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `POST` | `/links` | Crea enlace y valida esquema/formato de URL. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}` | Actualiza nombre, descripción, destino, categoría, visibilidad u orden; registra autor y fecha. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}/status` | Activa, desactiva u oculta un enlace sin borrar historial. | Must / Admin | HU-LIN-01, HU-LIN-02 |
+
+**Formato de enlaces oficiales:** `GET /links` responde `{links: [...]}`. Cada enlace incluye `id`, `name`, `description`, `url`, `category`, `visible`, `order`, `status`, `updatedBy`, `updatedAt` y `createdAt`. Crear/editar recibe `{name, description, url, category, visible, order}`; nombre y descripción no vacíos, URL absoluta HTTP/HTTPS, orden entero no negativo y categoría `redes-sociales`, `cvlac`, `gruplac`, `minciencias` o `repositorios`. Crear responde `201` con estado `activo`; editar responde `200` y conserva el estado. Cambiar estado recibe `{status: "activo|inactivo|oculto"}` y devuelve `200`; activar marca `visible=true` y desactivar/ocultar marca `visible=false`. La vista pública muestra solo activos y visibles con URL válida; el administrador recibe todos y aplica ese mismo filtro para la vista previa pública. Errores `{error}`: `400` datos/categoría/estado inválidos, `401` sin sesión, `403` sin permiso Admin y `404` enlace inexistente.
 
 ### Módulo 11. Roles, permisos y paneles
 
@@ -250,6 +256,11 @@ La bitácora se genera internamente al modificar roles, solicitudes, semilleros,
 | `GET` | `/files/{id}` | Descarga o consulta metadatos del archivo tras validar permisos de acceso a la entidad asociada. | Must / Rol autorizado según contexto | HU-COM-01, HU-SEM-04, HU-SEM-06, HU-EVT-01 |
 
 Para comunicados se permiten PDF, Word y Excel, según la historia de usuario. Los archivos privados no deben quedar disponibles mediante URL pública predecible.
+
+**Formato del servicio de archivos:** `POST /files` recibe `multipart/form-data` con `file` (binario), `entityType` (`announcement`, `event`, `activity`, `project`, `proposal` o `evidence`) y `entityId` (UUID de una entidad existente). Requiere sesión activa y acceso autorizado a esa entidad; máximo 10 MiB por archivo. Responde `201` con `{id, entityType, entityId, name, contentType, size, uploadedBy, createdAt}`. En comunicados se usan PDF, DOC, DOCX, XLS y XLSX. El servicio también admite JPEG/PNG para los demás contextos admitidos; el backend valida extensión y contenido. `GET /files/{id}` devuelve el binario con `Content-Type` y `Content-Disposition: attachment`, usando la sesión y los permisos del archivo/entidad. Errores en JSON `{error}`: `400` para archivo o multipart inválido, `401` sin sesión, `403` para carga no autorizada, `404` para descarga inexistente o no accesible y `500` ante fallo interno.
+
+**Adjuntos cargados de comunicados:** crear primero el borrador con `POST /announcements` cuando aún no tenga id; subir con `entityType=announcement` y el id del borrador; asociar cada resultado mediante `PATCH /announcements/{id}` en `attachments: [{name, url}]`, donde `url` es la URL absoluta de `/files/{id}` en la base de API configurada. La descarga de esos adjuntos se realiza por `GET /files/{id}` con credenciales, conservando los enlaces externos anteriores. El borrador se publica mediante su acción independiente, una vez guardados los adjuntos.
+
 
 ## 4. Requisitos transversales y fuera del catálogo de endpoints
 

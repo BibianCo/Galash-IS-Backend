@@ -1079,8 +1079,39 @@ func (h *Handler) updateActivity(w http.ResponseWriter, r *http.Request) {
 func toProject(q projectRequest) domain.Project {
 	return domain.Project{SeedbedID: q.SeedbedID, Title: q.Title, Summary: q.Summary, ResearchLine: q.ResearchLine, Status: q.Status, ResponsibleIDs: q.ResponsibleIDs, MemberIDs: q.MemberIDs, StartDate: q.StartDate, EndDate: q.EndDate, Progress: q.Progress}
 }
+
+// A pointer shadows the embedded field so restricted responses omit progress,
+// while an authorized zero percent remains a real value in JSON.
+type projectReadResponse struct {
+	domain.Project
+	Progress *int `json:"progress,omitempty"`
+}
+
+func projectResponse(project domain.Project, includeProgress bool) projectReadResponse {
+	response := projectReadResponse{Project: project}
+	if includeProgress {
+		response.Progress = &project.Progress
+	}
+	return response
+}
+
+func (h *Handler) projectProgressAccess(w http.ResponseWriter, r *http.Request) (bool, bool) {
+	if !hasSessionCredential(r) {
+		return false, true
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return false, false
+	}
+	return actorRole(actor, "estudiante", "docente", "profesor", "admin"), true
+}
+
 func (h *Handler) listProjects(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
+		return
+	}
+	includeProgress, ok := h.projectProgressAccess(w, r)
+	if !ok {
 		return
 	}
 	v, e := h.research.ListProjects(r.Context(), r.URL.Query().Get("seedbedId"), r.URL.Query().Get("status"), r.URL.Query().Get("period"))
@@ -1088,7 +1119,14 @@ func (h *Handler) listProjects(w http.ResponseWriter, r *http.Request) {
 		researchError(w, e)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"projects": v})
+	var projects []projectReadResponse
+	if v != nil {
+		projects = make([]projectReadResponse, 0, len(v))
+	}
+	for _, project := range v {
+		projects = append(projects, projectResponse(project, includeProgress))
+	}
+	writeJSON(w, 200, map[string]any{"projects": projects})
 }
 func (h *Handler) createProject(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
@@ -1114,12 +1152,16 @@ func (h *Handler) getProject(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
 		return
 	}
+	includeProgress, ok := h.projectProgressAccess(w, r)
+	if !ok {
+		return
+	}
 	v, e := h.research.FindProject(r.Context(), r.PathValue("id"))
 	if e != nil {
 		researchError(w, e)
 		return
 	}
-	writeJSON(w, 200, v)
+	writeJSON(w, 200, projectResponse(v, includeProgress))
 }
 func (h *Handler) updateProject(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {

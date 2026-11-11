@@ -203,7 +203,7 @@ CREATE TABLE proyectos (
     fecha_fin DATE,
     semillero_id UUID NOT NULL REFERENCES semilleros(id),
     area_investigacion TEXT,
-    estado TEXT NOT NULL DEFAULT 'Radicado', avance INTEGER NOT NULL DEFAULT 0 CHECK (avance BETWEEN 0 AND 100),
+    estado TEXT NOT NULL DEFAULT 'Activo' CONSTRAINT proyectos_estado_check CHECK (estado IN ('Activo','Finalizado')), avance INTEGER NOT NULL DEFAULT 0 CHECK (avance BETWEEN 0 AND 100),
     responsables TEXT[] NOT NULL DEFAULT '{}', integrantes TEXT[] NOT NULL DEFAULT '{}', creado_por UUID REFERENCES usuarios(id), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -215,7 +215,7 @@ CREATE TABLE actividades (
     fecha DATE,
     semillero_id UUID NOT NULL REFERENCES semilleros(id), responsables TEXT[] NOT NULL DEFAULT '{}', evidencias TEXT[] NOT NULL DEFAULT '{}', creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Radicado';
+ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Activo';
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS avance INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS responsables TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS integrantes TEXT[] NOT NULL DEFAULT '{}';

@@ -78,9 +78,9 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [ ] |
 | GET | `/activities/{id}` | detalle de actividad | M4 | [ ] |
 | PATCH | `/activities/{id}` | modifica actividad | M4 | [ ] |
-| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members` | M4 | [ ] |
+| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members`; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [ ] |
 | POST | `/projects` | registra proyecto | M4 | [ ] |
-| GET | `/projects/{id}` | detalle de proyecto | M4 | [ ] |
+| GET | `/projects/{id}` | detalle de proyecto; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [ ] |
 | PATCH | `/projects/{id}` | modifica proyecto | M4 | [ ] |
 | PATCH | `/projects/{id}/progress` | actualiza avance | M4 | [ ] |
 | GET | `/projects/progress` | resumen de avance | M4 | [ ] |
@@ -191,3 +191,10 @@ enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,
 users/me/dashboard) | M12: audit-logs | M13 files: 2
 
 M3: `tituloMaximoNivelEstudio` es opcional en `POST /registration-requests`: puede omitirse o enviarse vacío.
+
+
+Proyectos M4: únicos estados admitidos `Activo` y `Finalizado`; creación y conversión de propuestas en `Activo`. `Radicado` rechazado con 400. Aplicar `database/migrations/017_project_statuses.sql` antes de desplegar el backend; conserva avance y registra conversiones de estado en historial.
+
+Archivos M13: POST /files usa multipart con file, entityType y entityId de entidad existente; 10 MiB por archivo. Responde metadatos con id/name/contentType/size. GET /files/{id} devuelve binario autorizado por sesión. Comunicados: primero se guarda borrador, se sube con entityType=announcement y se asocia cada archivo por PATCH /announcements/{id} en attachments [{name,url absoluta del GET configurado}]. Tipos PDF/DOC/DOCX/XLS/XLSX; máximo 10 adjuntos en un comunicado. Frontend usa selector múltiple y descarga Blob con credenciales, conservando enlaces externos.
+
+Gestión institucional M7/M10: el panel Admin → Contenido integra páginas (lista/alta/edición/publicación) y enlaces (lista/alta/edición/estado), con vista previa. Nosotros consume GET /content/pages y GET /links y muestra solo páginas publicadas y enlaces activos/visibles con URL válida. GET /content/pages/{slug} queda disponible sin consumo individual. Páginas publicadas se actualizan al guardar; no existe despublicación. Cuerpos y respuestas documentados en las secciones M7/M10 del contrato, sin modificar endpoints del servidor.

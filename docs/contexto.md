@@ -81,3 +81,19 @@ GALASH-UPTC web system for academic management, research, and communication.
 - Local galash-auth container rebuilt/restarted for optional admin q. Live HTTP GET /admin/members returns200 and every stored account, verified using a disposable synthetic account/session that was cleaned up. Frontend servicios.md handoff applied.
 
 - PR preparation integrates origin/main through b4a0ad2 and retains the branch fixes. Full Go suite passes. Both full shared-contract copies are now synchronized, superseding earlier drift-pending notes.
+
+- Local development database loaded using the user-supplied real-data package:170imported accounts,22group projects and5published real seedbeds. Existing volume/data preserved,15migrations applied, auth rebuilt, HTTP checks pass. Private SQL remains gitignored and no personal rows or screenshots are recorded. This is local environment state only; no API/contract change.
+
+- Autogestión: Mi perfil edita área, formación, ORCID, CvLAC y visibilidad; guarda URL de foto. Backend autoriza solo perfil propio, sin identidad, roles ni semilleros; Admin conserva administración. Requiere desplegar ambos cambios juntos.
+
+- Corrección por solicitud del usuario: se retiró la autogestión del perfil investigador; POST/PATCH /members regresan a permisos Admin. Mi perfil conserva información de solo lectura y edición de URL de foto únicamente. Sustituye el estado de autogestión descrito anteriormente.
+
+- Datos locales: retirados los 4 semilleros y 12 proyectos sintéticos; permanecen 5 semilleros reales y 22 proyectos reales. Solicitud y evento manuales conservados y reasignados a Complejidad Algorítmica y Programación Competitiva. Cuentas sin eliminar.
+
+- Proyectos: solo Activo y Finalizado en interfaz, backend y CHECK de PostgreSQL. Proyectos nuevos y conversiones desde propuestas se crean Activo; migración 017 conserva datos e historial. Base local mantiene 22 proyectos reales finalizados. Se entregó servicios.md actualizado al frontend.
+
+- Comunicados: subida real de adjuntos PDF/Word/Excel desde el equipo (10 MiB por archivo, 10 adjuntos); guarda borrador antes de POST /files y persiste cada referencia con PATCH. Descarga desde detalle por GET /files/{id} mediante Blob y sesión, con estado/error. Enlaces externos previos conservados. Sin cambios de backend operativo; contrato y servicios.md sincronizados con el frontend.
+
+- Admin → Contenido: gestión de secciones institucionales y enlaces con lista/editor/vista previa. Crea/edita borradores y publica; una sección publicada se actualiza al guardar. Enlaces con nombre, descripción, URL, categoría, orden, visibilidad y activación/ocultación. Nosotros lee contenido publicado y enlaces visibles del backend, incluidos filtros al visitar como Admin; conserva hero, galería y ubicación. Sin endpoint de despublicación ni editor de ubicación/galería. Contratos M7/M10 y servicios.md sincronizados, catálogo de consumo frontend actualizado. Compilación de producción completada; sin pruebas por instrucción del usuario.
+
+- Proyectos (2026-11-10): lista y detalle omiten progress para Visitante o sin sesión; estudiantes, docentes y admin pueden leer el avance. Backend local actualizado.
