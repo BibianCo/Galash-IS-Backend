@@ -74,7 +74,7 @@ func (s *Service) operate(ctx context.Context, actor, seedbed string) error {
 	return nil
 }
 
-func validStatus(v string) bool { return v == "Radicado" || v == "Activo" || v == "Finalizado" }
+func validStatus(v string) bool { return v == "Activo" || v == "Finalizado" }
 
 func (s *Service) CreateActivity(ctx context.Context, a domain.Activity, actor string) (domain.Activity, error) {
 	if e := s.operate(ctx, actor, a.SeedbedID); e != nil {

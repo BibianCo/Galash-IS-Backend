@@ -248,14 +248,14 @@ func (r *ResearchRepository) ProposalHistory(c context.Context, id string) (out 
 	return out, rows.Err()
 }
 
-// ConvertProposal creates the Radicado project and links both records; the proposal and its history stay intact.
+// ConvertProposal creates the Activo project and links both records; the proposal and its history stay intact.
 func (r *ResearchRepository) ConvertProposal(c context.Context, id, actor string) (domain.Project, error) {
 	tx, e := r.db.Begin(c)
 	if e != nil {
 		return domain.Project{}, e
 	}
 	defer tx.Rollback(c)
-	p, e := proj(tx.QueryRow(c, `INSERT INTO proyectos(semillero_id,titulo,resumen,area_investigacion,estado,responsables,integrantes,avance,creado_por) SELECT semillero_id,titulo,problema,'','Radicado',responsables,'{}',0,autor_id FROM propuestas_investigacion WHERE id=$1 RETURNING `+projectSQL, id))
+	p, e := proj(tx.QueryRow(c, `INSERT INTO proyectos(semillero_id,titulo,resumen,area_investigacion,estado,responsables,integrantes,avance,creado_por) SELECT semillero_id,titulo,problema,'','Activo',responsables,'{}',0,autor_id FROM propuestas_investigacion WHERE id=$1 RETURNING `+projectSQL, id))
 	if e == nil {
 		_, e = tx.Exec(c, `UPDATE propuestas_investigacion SET estado='Convertida',proyecto_id=$2,actualizado_en=now() WHERE id=$1`, id, p.ID)
 	}
