@@ -1,0 +1,31 @@
+site_name: GALASH UPTC
+site_description: Documentación técnica del Sistema de Información y Gestión Académica
+site_author: Equipo GALASH UPTC
+theme:
+  name: material
+  language: es
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+nav:
+  - Inicio: site/index.md
+  - Arquitectura: site/architecture.md
+  - Flujos: site/flows.md
+  - API:
+      - OpenAPI: openapi.yaml
+      - Swagger UI: site/swagger.md
+  - Operación: site/operations.md
+  - Contexto existente:
+      - Autenticación: auth/README.md
+      - Pipeline: pipeline.md
+      - Mapeo de estado: mapeo_estado_vs_contrato.md
