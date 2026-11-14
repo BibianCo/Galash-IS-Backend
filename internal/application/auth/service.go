@@ -264,8 +264,7 @@ func (s *Service) SetProfilePhoto(ctx context.Context, token, photoURL string) (
 		return "", err
 	}
 	photoURL = strings.TrimSpace(photoURL)
-	u, err := url.ParseRequestURI(photoURL)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || len(photoURL) > 2048 {
+	if !validPhotoURL(photoURL) {
 		return "", domain.ErrInvalidPhotoURL
 	}
 	if s.photos == nil {
@@ -275,6 +274,36 @@ func (s *Service) SetProfilePhoto(ctx context.Context, token, photoURL string) (
 		return "", err
 	}
 	return photoURL, nil
+}
+
+// SetUserPhoto lets an Admin replace (or clear with "") another account's image link; only the link is stored.
+func (s *Service) SetUserPhoto(ctx context.Context, token, userID, photoURL string) (string, error) {
+	actor, err := s.CurrentUser(ctx, token)
+	if err != nil {
+		return "", err
+	}
+	if !strings.EqualFold(strings.TrimSpace(actor.Role), "admin") {
+		return "", domain.ErrForbidden
+	}
+	photoURL = strings.TrimSpace(photoURL)
+	if photoURL != "" && !validPhotoURL(photoURL) {
+		return "", domain.ErrInvalidPhotoURL
+	}
+	if s.photos == nil || s.userReader == nil {
+		return "", errors.New("repositorio de fotos no configurado")
+	}
+	if _, err := s.userReader.FindByID(ctx, strings.TrimSpace(userID)); err != nil {
+		return "", domain.ErrMemberNotFound
+	}
+	if err := s.photos.SetPhotoURL(ctx, strings.TrimSpace(userID), photoURL); err != nil {
+		return "", err
+	}
+	return photoURL, nil
+}
+
+func validPhotoURL(photoURL string) bool {
+	u, err := url.ParseRequestURI(photoURL)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && len(photoURL) <= 2048
 }
 
 func (s *Service) SearchUsers(ctx context.Context, query string, limit int) ([]domain.User, error) {

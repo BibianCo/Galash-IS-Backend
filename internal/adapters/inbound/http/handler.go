@@ -140,6 +140,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("DELETE /auth/sessions/current", h.deleteSession)
 	mux.HandleFunc("GET /users/me", h.currentUser)
 	mux.HandleFunc("PUT /users/me/photo", h.setProfilePhoto)
+	mux.HandleFunc("PUT /users/{userId}/photo", h.setUserPhoto)
 	mux.HandleFunc("GET /members", h.publicMembers)
 	mux.HandleFunc("POST /members", h.createMember)
 	mux.HandleFunc("GET /members/{id}", h.getMember)
@@ -1807,6 +1808,36 @@ func (h *Handler) setProfilePhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, "no fue posible guardar la foto de perfil")
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{"photo_url": photoURL})
+	}
+}
+
+func (h *Handler) setUserPhoto(w http.ResponseWriter, r *http.Request) {
+	token, err := sessionToken(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "sesión requerida")
+		return
+	}
+	var request struct {
+		PhotoURL *string `json:"photo_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.PhotoURL == nil {
+		writeError(w, http.StatusBadRequest, "cuerpo JSON inválido")
+		return
+	}
+	photoURL, err := h.service.SetUserPhoto(r.Context(), token, r.PathValue("userId"), *request.PhotoURL)
+	switch {
+	case errors.Is(err, domain.ErrInvalidSession):
+		invalidSession(w, r, "sesión inválida o expirada")
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, http.StatusForbidden, "se requiere rol admin")
+	case errors.Is(err, domain.ErrInvalidPhotoURL):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, domain.ErrMemberNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+	case err != nil:
+		writeError(w, http.StatusInternalServerError, "no fue posible guardar la foto")
 	default:
 		writeJSON(w, http.StatusOK, map[string]string{"photo_url": photoURL})
 	}
