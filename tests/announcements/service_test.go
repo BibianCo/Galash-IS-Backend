@@ -110,3 +110,11 @@ func TestInactiveTeacherIsForbidden(t *testing.T) {
 		t.Errorf("confirm err=%v", err)
 	}
 }
+
+// Legacy "profesor" accounts are docentes and must read announcements.
+func TestLegacyProfesorCanList(t *testing.T) {
+	s := announcement.NewService(&repo{}, users{domain.User{ID: "u1", Role: "profesor", Status: "activo"}})
+	if _, err := s.List(context.Background(), "u1"); err != nil {
+		t.Fatalf("list err=%v", err)
+	}
+}

@@ -32,7 +32,8 @@ func seedDB(t *testing.T) dbFixture {
 	}
 	run := fmt.Sprintf("m8-%d", time.Now().UnixNano())
 	ids := []string{}
-	for _, role := range []string{"admin", "docente", "docente"} {
+	// teacher2 keeps the legacy "profesor" role: it must still be a receptor.
+	for _, role := range []string{"admin", "docente", "profesor"} {
 		var id string
 		uid := fmt.Sprintf("%s-%d", run, len(ids))
 		if err := db.QueryRow(ctx, `INSERT INTO usuarios (firebase_uid,nombre,apellido,email,rol,estado) VALUES ($1,'Prueba',$2,$1||'@example.test',$2,'activo') RETURNING id`, uid, role).Scan(&id); err != nil {

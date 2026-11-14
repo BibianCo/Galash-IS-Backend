@@ -18,7 +18,8 @@ func NewService(repo ports.AnnouncementRepository, users ports.UserReader) *Serv
 	return &Service{repo: repo, users: users}
 }
 func allowed(u domain.User) bool {
-	return strings.EqualFold(u.Role, "admin") || strings.EqualFold(u.Role, "docente")
+	// "profesor" is the legacy stored name for docente.
+	return strings.EqualFold(u.Role, "admin") || strings.EqualFold(u.Role, "docente") || strings.EqualFold(u.Role, "profesor")
 }
 func (s *Service) actor(ctx context.Context, id string) (domain.User, error) {
 	u, e := s.users.FindByID(ctx, id)
