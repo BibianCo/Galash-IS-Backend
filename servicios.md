@@ -50,6 +50,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | DELETE | `/auth/sessions/current` | cierra sesion | M1 | [ ] |
 | GET | `/users/me` | perfil y roles | M1 | [ ] |
 | PUT | `/users/me/photo` | guarda URL de foto de perfil | M1 | [ ] |
+| PUT | `/users/{userId}/photo` | Admin reemplaza o quita (`""`) la URL de foto de otra cuenta | M1 | [ ] |
 | GET | `/members` | dir. publico | M5 | [ ] |
 | POST | `/members` | crea perfil | M5 | [ ] |
 | GET | `/members/{id}` | detalle público/privado autorizado | M5 | [ ] |
@@ -78,9 +79,9 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [ ] |
 | GET | `/activities/{id}` | detalle de actividad | M4 | [ ] |
 | PATCH | `/activities/{id}` | modifica actividad | M4 | [ ] |
-| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members` | M4 | [ ] |
+| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members`; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [ ] |
 | POST | `/projects` | registra proyecto | M4 | [ ] |
-| GET | `/projects/{id}` | detalle de proyecto | M4 | [ ] |
+| GET | `/projects/{id}` | detalle de proyecto; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [ ] |
 | PATCH | `/projects/{id}` | modifica proyecto | M4 | [ ] |
 | PATCH | `/projects/{id}/progress` | actualiza avance | M4 | [ ] |
 | GET | `/projects/progress` | resumen de avance | M4 | [ ] |
@@ -146,12 +147,15 @@ lista inválida, `403` si no es director/Admin). `GET /seedbeds/{id}/members`
 marca `delegate: true`. Director y delegados gestionan solicitudes (M3),
 actividades (M4), eventos de su semillero (M6) y cronograma (M9, sin
 implementar). Aprobar una solicitud inscribe al solicitante como integrante
-activo del semillero. Una solicitud la decide el primero que la procese; si otro ya
+activo del semillero; un `visitante` pasa a `estudiante` y otros roles se conservan
+(Admin asigna `docente` a mano). Una solicitud la decide el primero que la procese; si otro ya
 cambió el estado responde `400`. Sin permiso: `403`.
 
 M2: los semilleros incluyen `topics` (máx. 4 `{title, phrase}`); en `PATCH
 /seedbeds/{id}` omitirlo conserva los temas. `GET /admin/members` responde
 `{"users": [...]}`, lista todas las cuentas sin `q` e incluye inactivas; `q` filtra opcionalmente por nombre o correo.
+
+M5: `GET /members` y `GET /members/{id}` incluyen `photo_url` (enlace de `PUT /users/me/photo`; `""` si no hay), dato público mostrado en el directorio y en el detalle del integrante.
 
 M6 usa `title`, `description`, `type`, `startAt`, `endAt`, `venue`, `meetingUrl`,
 `imageUrl` y `registrationUrl`. Las fechas son RFC3339; los estados son
@@ -191,3 +195,12 @@ enlaces: 4 | M11 roles: 6 (roles, permissions, GET users/{userId}/roles,
 users/me/dashboard) | M12: audit-logs | M13 files: 2
 
 M3: `tituloMaximoNivelEstudio` es opcional en `POST /registration-requests`: puede omitirse o enviarse vacío.
+
+Panel del líder: solicitudes usan seedbedId; eventos nuevos incluyen seedbedId fijo y solo se gestionan los creados durante la visita. No se consume el listado global de eventos/proyectos para el líder. Semillero, integrantes, delegados y actividades usan los servicios existentes con el id del semillero verificado.
+
+
+Proyectos M4: únicos estados admitidos `Activo` y `Finalizado`; creación y conversión de propuestas en `Activo`. `Radicado` rechazado con 400. Aplicar `database/migrations/017_project_statuses.sql` antes de desplegar el backend; conserva avance y registra conversiones de estado en historial.
+
+Archivos M13: POST /files usa multipart con file, entityType y entityId de entidad existente; 10 MiB por archivo. Responde metadatos con id/name/contentType/size. GET /files/{id} devuelve binario autorizado por sesión. Comunicados: primero se guarda borrador, se sube con entityType=announcement y se asocia cada archivo por PATCH /announcements/{id} en attachments [{name,url absoluta del GET configurado}]. Tipos PDF/DOC/DOCX/XLS/XLSX; máximo 10 adjuntos en un comunicado. Frontend usa selector múltiple y descarga Blob con credenciales, conservando enlaces externos.
+
+Gestión institucional M7/M10: el panel Admin → Contenido integra páginas (lista/alta/edición/publicación) y enlaces (lista/alta/edición/estado), con vista previa. Nosotros consume GET /content/pages y GET /links y muestra solo páginas publicadas y enlaces activos/visibles con URL válida. GET /content/pages/{slug} queda disponible sin consumo individual. Páginas publicadas se actualizan al guardar; no existe despublicación. Cuerpos y respuestas documentados en las secciones M7/M10 del contrato, sin modificar endpoints del servidor.

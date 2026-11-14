@@ -683,3 +683,23 @@
 {"v":1,"id":"R103","t":"run","at":"2026-11-07T23:00:00Z","by":"agent","mode":"automated","env":"E008","cmd":"go vet ./internal/application/auth/; go test -count=1 ./...","note":"pass; TestMatchImportedUsesVerifiedInstitutionalEmail amplía casos; contenedor auth reconstruido"}
 {"v":1,"id":"X332","t":"result","run":"R103","test":"T160","s":"pass","ev":[]}
 {"v":1,"id":"X333","t":"result","run":"R103","test":"T168","s":"pass","ev":[]}
+{"v":1,"id":"T169","t":"test","area":"research","p":"must","name":"Proyectos solo admiten Activo y Finalizado: Radicado se rechaza al crear/editar y crear sin estado asigna Activo"}
+{"v":1,"id":"T170","t":"test","area":"research","p":"must","name":"GET /projects y /projects/{id} omiten progress sin sesión y para visitante, lo incluyen para estudiante/docente/admin; credencial inválida 401"}
+{"v":1,"id":"T171","t":"test","area":"database","p":"must","name":"Migración 017_project_statuses.sql pasa Radicado a Activo conservando avance, registra historial y es idempotente"}
+{"v":1,"id":"R104","t":"run","at":"2026-11-11T17:00:00Z","by":"agent","mode":"automated","env":"E008","cmd":"go vet ./...; go test -count=1 ./...; TEST_DATABASE_URL=<postgres:16 temporal> go test -count=1 ./tests/research/; psql init.sql legado + 017 x2; psql synthetic.sql","note":"pass; Postgres temporal en contenedor desechable"}
+{"v":1,"id":"X334","t":"result","run":"R104","test":"T169","s":"pass","ev":[]}
+{"v":1,"id":"X335","t":"result","run":"R104","test":"T170","s":"pass","ev":[]}
+{"v":1,"id":"X336","t":"result","run":"R104","test":"T171","s":"pass","ev":[]}
+{"v":1,"id":"T172","t":"test","area":"member","p":"must","name":"GET /members y /members/{id} (List/Find) incluyen photo_url guardado con SetPhotoURL"}
+{"v":1,"id":"R105","t":"run","at":"2026-11-11T21:50:00Z","by":"agent","mode":"automated","env":"E008","cmd":"go vet ./...; go test -count=1 ./...; TEST_DATABASE_URL=<postgres:16 temporal> go test -count=1 ./tests/member/ ./tests/auth/ ./tests/research/","note":"pass; Postgres temporal desechable"}
+{"v":1,"id":"X337","t":"result","run":"R105","test":"T172","s":"pass","ev":[]}
+{"v": 1, "id": "T173", "t": "test", "area": "registration", "p": "must", "name": "Aprobar solicitud promueve solo visitante a estudiante; un docente conserva su rol"}
+{"v": 1, "id": "R106", "t": "run", "at": "2026-11-13T00:00:00Z", "by": "agent", "mode": "automated", "env": "E008", "cmd": "go vet; go test -count=1 ./...; TEST_DATABASE_URL=<postgres:16 temporal> go test -count=1 ./tests/registration/ ./tests/seedbed/", "note": "pass; test nuevo falla sin el filtro rol='visitante'"}
+{"v": 1, "id": "X338", "t": "result", "run": "R106", "test": "T173", "s": "pass", "ev": []}
+{"v": 1, "id": "X339", "t": "result", "run": "R106", "test": "T116", "s": "pass", "ev": []}
+{"v": 1, "id": "T174", "t": "test", "area": "announcements", "p": "must", "name": "Cuenta con rol heredado profesor lista comunicados y aparece en read-status"}
+{"v": 1, "id": "R107", "t": "run", "at": "2026-11-13T21:00:00Z", "by": "agent", "mode": "automated", "env": "E008", "cmd": "go vet; go test -count=1 ./...; TEST_DATABASE_URL=<postgres:16 temporal> go test -count=1 ./tests/announcements/ (x25)", "note": "pass; sin fix fallan TestLegacyProfesorCanList y TestRepositoryReadConfirmation. Una corrida inicial falló en contenedor recién creado y no se reprodujo en 25 repeticiones."}
+{"v": 1, "id": "X340", "t": "result", "run": "R107", "test": "T174", "s": "pass", "ev": []}
+{"v": 1, "id": "T175", "t": "test", "area": "auth", "p": "must", "name": "PUT /users/{userId}/photo: Admin guarda y quita enlace; no admin 403, sin sesión 401, URL inválida o cuerpo sin photo_url 400 sin tocar el repositorio"}
+{"v": 1, "id": "R108", "t": "run", "at": "2026-11-13T21:30:00Z", "by": "agent", "mode": "automated", "env": "E008", "cmd": "go vet ./internal/...; go test -count=1 ./...", "note": "pass"}
+{"v": 1, "id": "X341", "t": "result", "run": "R108", "test": "T175", "s": "pass", "ev": []}

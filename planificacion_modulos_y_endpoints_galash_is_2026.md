@@ -36,6 +36,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `DELETE` | `/auth/sessions/current` | Invalida la sesión actual. | Must / Estudiante, Docente o Admin | HU-AUTH-02 |
 | `GET` | `/users/me` | Devuelve el perfil mínimo (incluidos los datos básicos del alta) y los roles y permisos efectivos del usuario autenticado. | Must / Estudiante, Docente o Admin | HU-AUTH-01, HU-TR-02 |
 | `PUT` | `/users/me/photo` | Guarda el enlace (URL) de la imagen de perfil del usuario autenticado; reemplaza el anterior. | Must / Estudiante, Docente o Admin | — |
+| `PUT` | `/users/{userId}/photo` | Reemplaza o quita el enlace (URL) de la imagen de perfil de otra cuenta; solo se almacena el enlace. | Must / Admin | — |
 | `POST` | `/auth/password-recovery-requests` | Solicita recuperación por correo; la respuesta no revela si el correo está registrado. | Should / Visitante | HU-AUTH-03 |
 | `POST` | `/auth/password-resets` | Cambia la contraseña con un token vigente, de un solo uso. | Should / Visitante con token | HU-AUTH-03 |
 
@@ -46,6 +47,8 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 **Perfil en `GET /users/me`:** además de `id`, `name`, `last_name`, `email`, `role` y `status`, devuelve `document_type`, `document_number`, `student_code`, `birth_date` (`AAAA-MM-DD`) y `phone`; un dato no registrado llega como cadena vacía. También devuelve `managed_seedbed_ids`: lista (posiblemente vacía) de ids de semilleros de los que el usuario es director o delegado activo; no incluye el acceso global de `Admin`. Incluye `photo_url`: enlace de la imagen de perfil (cadena vacía si no hay).
 
 **Foto de perfil en `PUT /users/me/photo`:** requiere sesión activa y cuerpo JSON `{"photo_url":"<url>"}`; la URL debe ser absoluta `http` o `https` con host y de máximo 2048 caracteres. El enlace queda asociado al usuario de la sesión (nunca a un id enviado por el cliente) y reemplaza el anterior. Responde `200` con `{"photo_url":"<url>"}`. Errores: `400` para JSON inválido o URL inválida, `401` sin sesión o con sesión inválida/expirada y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
+
+**Foto de una cuenta por Admin en `PUT /users/{userId}/photo`:** `userId` es el `id` de la cuenta (el mismo de `GET /members`). Requiere sesión `Admin` y cuerpo JSON `{"photo_url":"<url>"}`, con las mismas reglas de URL que `PUT /users/me/photo`; `""` quita la foto. Solo se guarda el enlace. Responde `200` con `{"photo_url":"<url>"}`. Errores: `400` para JSON inválido, `photo_url` ausente o URL inválida, `401` sin sesión o con sesión inválida/expirada, `403` si no es `Admin`, `404` si la cuenta no existe y `500` si falla el guardado; formato de error `{"error":"<mensaje>"}`.
 
 **Reglas clave:** las contraseñas se almacenan con hash seguro; las sesiones expiran y se revocan al cerrar sesión. Solo `Admin` puede asignar o retirar los cuatro roles permitidos.
 
@@ -84,7 +87,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 
 **Datos de la solicitud:** `POST /registration-requests` requiere sesión; sin sesión válida responde `401`. Los datos personales (`nombre`, `cc`, `telefono`, `fechaNacimiento`) no se envían: se toman de la cuenta referenciada por `userId` y no se copian en la solicitud. `cod` es opcional: vacío se ignora y con valor actualiza el `codigo_estudiantil` de la cuenta (`409` si pertenece a otra cuenta). Obligatorios: `lugarNacimiento`, `direccionResidencia`, `linkCvLAC`, `linkORCID`, `maximoNivelEstudio`, `tituloPregrado`, `vinculacion`, `categoriaActualInvestigador` y `convocatoriaMinCiencias`; si falta alguno, o la cuenta no tiene documento, teléfono o fecha de nacimiento, responde `400`. Las respuestas de consulta siguen devolviendo `nombre`, `cc`, `cod`, `telefono` y `fechaNacimiento`, leídos de la cuenta. `tituloMaximoNivelEstudio` es opcional: puede omitirse o enviarse vacío; no bloquea la creación de la solicitud.
 
-**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. Basta una sola decisión: la atiende el primer gestor (director o delegado) o `Admin` que la procese; si otro ya cambió el estado, la transición se rechaza con `400`. Sin permiso sobre la solicitud responde `403`. Las solicitudes antiguas sin semillero solo las gestiona `Admin`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
+**Estados mínimos:** `Radicada`, `En revisión`, `Aprobada`, `Rechazada` y `Pendiente de información`. Las transiciones permitidas son `Radicada` → `En revisión` o `Pendiente de información`, `Pendiente de información` → `En revisión` y `En revisión` → `Aprobada` o `Rechazada`. Basta una sola decisión: la atiende el primer gestor (director o delegado) o `Admin` que la procese; si otro ya cambió el estado, la transición se rechaza con `400`. Sin permiso sobre la solicitud responde `403`. Las solicitudes antiguas sin semillero solo las gestiona `Admin`. Al aprobarse, el solicitante queda como integrante activo del semillero y, si su rol era `Visitante`, pasa a `Estudiante`; los demás roles se conservan. Si el solicitante es docente, `Admin` le asigna el rol `Docente` manualmente con `PUT /users/{userId}/roles`. La pantalla administrativa puede actualizarse mediante consulta periódica; si se requiere actualización push, se puede añadir SSE/WebSocket sin cambiar el modelo de solicitudes.
 
 ### Módulo 4. Actividades, proyectos y propuestas de investigación
 
@@ -111,7 +114,9 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/projects/progress` | Resume avance por proyecto, semillero o periodo. | Must / Estudiante, Docente o Admin autorizado | HU-SEM-07 |
 | `GET` | `/projects/{id}/history` | Consulta actualizaciones relevantes del proyecto. | Must / Estudiante, Docente o Admin autorizado | HU-SEM-05 |
 
-**Estados mínimos de proyecto:** `Radicado`, `Activo` y `Finalizado`.
+**Visibilidad del avance:** en `GET /projects` y `GET /projects/{id}`, el campo `progress` se omite para Visitante y consultas sin sesión. Una sesión válida de Estudiante, Docente (incluido el alias profesor) o Admin recibe el porcentaje real en ambos endpoints y puede consultar `GET /projects/progress`, sin exigir pertenencia o responsabilidad en el proyecto. Las credenciales inválidas o expiradas devuelven `401`. Esta regla solo cambia la lectura: actualizar avance conserva los permisos de Docente responsable o Admin.
+
+**Estados permitidos de proyecto:** únicamente `Activo` y `Finalizado`. Los proyectos nuevos y los convertidos desde propuestas aprobadas se crean en `Activo`; `Radicado` ya no es un estado válido y se rechaza con `400`. Los proyectos existentes en `Radicado` se migran a `Activo`, conservando su avance y demás datos, y se registra el cambio de estado en su historial.
 
 **Personas del proyecto:** toda respuesta de proyecto incluye, además de `responsibleIds` y `memberIds`, las listas `responsibles` y `members` con `{"id":"<user-id>","name":"<nombre completo>"}` de cada id que corresponde a una cuenta existente, ordenadas por nombre (lista vacía `[]` si no hay). El nombre se muestra aunque el perfil esté oculto del directorio público; no se exponen otros datos personales.
 
@@ -125,7 +130,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `POST` | `/research-proposals` | Registra título, problema, objetivos, metodología, responsables y anexos opcionales. | Should / Estudiante o Docente autorizado | HU-SEM-06 |
 | `GET` | `/research-proposals/{id}` | Consulta propuesta, observaciones e historial. | Should / Estudiante, Docente o Admin autorizado | HU-SEM-06 |
 | `PATCH` | `/research-proposals/{id}` | Actualiza propuesta u observaciones de revisión conforme a permisos. | Should / Estudiante, Docente o Admin autorizado | HU-SEM-06 |
-| `POST` | `/research-proposals/{id}/convert-to-project` | Convierte una propuesta aprobada en proyecto radicado conservando su historial. | Should / Docente o Admin autorizado | HU-SEM-06 |
+| `POST` | `/research-proposals/{id}/convert-to-project` | Convierte una propuesta aprobada en proyecto activo conservando su historial. | Should / Docente o Admin autorizado | HU-SEM-06 |
 
 #### Reseñas de semillero (mejora deseable)
 
@@ -148,6 +153,8 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `PATCH` | `/members/{id}` | Edita datos, asociación a semilleros, visibilidad y enlace CvLAC. | Must / Admin | HU-INT-01, HU-INT-03 |
 | `PATCH` | `/members/{id}/status` | Activa o desactiva perfil sin borrar historial relacionado. | Must / Admin | HU-INT-01 |
 | `GET` | `/members/{id}/publications` | Consulta artículos y publicaciones asociados al perfil cuando existan. | Must / Visitante según visibilidad | HU-INT-02 |
+
+**Foto en perfiles de integrantes:** `GET /members` y `GET /members/{id}` incluyen `photo_url` en cada perfil: el enlace guardado con `PUT /users/me/photo` (cadena vacía si no hay). Es un dato público del perfil y se muestra también en el directorio.
 
 ### Módulo 6. Eventos, talleres y convocatorias
 
@@ -175,6 +182,8 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `POST` | `/admin/content/pages` | Crea página en borrador y registra autor. | Must / Admin | HU-INFO-02 |
 | `PATCH` | `/admin/content/pages/{id}` | Edita título y contenido; sanitiza formato permitido y registra actualización. | Must / Admin | HU-INFO-02 |
 | `POST` | `/admin/content/pages/{id}/publish` | Publica la versión vigente de una página. | Must / Admin | HU-INFO-02 |
+
+**Formato de páginas institucionales:** las listas responden `{pages: [...]}`. Cada página contiene `id`, `slug`, `title`, `content`, `status` (`borrador` o `publicado`), `authorId`, `authorName`, `createdAt`, `updatedAt` y `publishedAt` opcional. Crear/editar recibe `{slug, title, content}`; el slug usa minúsculas, números y guiones entre palabras. Crear devuelve `201` en borrador; editar y publicar devuelven `200` con la página. Editar conserva el estado, de modo que guardar una página publicada actualiza su contenido público inmediatamente; no existe acción de despublicación. El servidor sanitiza HTML permitido. Errores `{error}`: `400` datos o transición de publicación inválidos, `401` sin sesión, `403` sin permiso Admin, `404` página inexistente y `409` slug duplicado.
 
 ### Módulo 8. Tablero de comunicados y lectura
 
@@ -213,6 +222,8 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `PATCH` | `/links/{id}` | Actualiza nombre, descripción, destino, categoría, visibilidad u orden; registra autor y fecha. | Must / Admin | HU-LIN-02 |
 | `PATCH` | `/links/{id}/status` | Activa, desactiva u oculta un enlace sin borrar historial. | Must / Admin | HU-LIN-01, HU-LIN-02 |
 
+**Formato de enlaces oficiales:** `GET /links` responde `{links: [...]}`. Cada enlace incluye `id`, `name`, `description`, `url`, `category`, `visible`, `order`, `status`, `updatedBy`, `updatedAt` y `createdAt`. Crear/editar recibe `{name, description, url, category, visible, order}`; nombre y descripción no vacíos, URL absoluta HTTP/HTTPS, orden entero no negativo y categoría `redes-sociales`, `cvlac`, `gruplac`, `minciencias` o `repositorios`. Crear responde `201` con estado `activo`; editar responde `200` y conserva el estado. Cambiar estado recibe `{status: "activo|inactivo|oculto"}` y devuelve `200`; activar marca `visible=true` y desactivar/ocultar marca `visible=false`. La vista pública muestra solo activos y visibles con URL válida; el administrador recibe todos y aplica ese mismo filtro para la vista previa pública. Errores `{error}`: `400` datos/categoría/estado inválidos, `401` sin sesión, `403` sin permiso Admin y `404` enlace inexistente.
+
 ### Módulo 11. Roles, permisos y paneles
 
 **Objetivo:** aplicar autorización en backend y entregar al frontend el contexto necesario para adaptar el panel.
@@ -250,6 +261,11 @@ La bitácora se genera internamente al modificar roles, solicitudes, semilleros,
 | `GET` | `/files/{id}` | Descarga o consulta metadatos del archivo tras validar permisos de acceso a la entidad asociada. | Must / Rol autorizado según contexto | HU-COM-01, HU-SEM-04, HU-SEM-06, HU-EVT-01 |
 
 Para comunicados se permiten PDF, Word y Excel, según la historia de usuario. Los archivos privados no deben quedar disponibles mediante URL pública predecible.
+
+**Formato del servicio de archivos:** `POST /files` recibe `multipart/form-data` con `file` (binario), `entityType` (`announcement`, `event`, `activity`, `project`, `proposal` o `evidence`) y `entityId` (UUID de una entidad existente). Requiere sesión activa y acceso autorizado a esa entidad; máximo 10 MiB por archivo. Responde `201` con `{id, entityType, entityId, name, contentType, size, uploadedBy, createdAt}`. En comunicados se usan PDF, DOC, DOCX, XLS y XLSX. El servicio también admite JPEG/PNG para los demás contextos admitidos; el backend valida extensión y contenido. `GET /files/{id}` devuelve el binario con `Content-Type` y `Content-Disposition: attachment`, usando la sesión y los permisos del archivo/entidad. Errores en JSON `{error}`: `400` para archivo o multipart inválido, `401` sin sesión, `403` para carga no autorizada, `404` para descarga inexistente o no accesible y `500` ante fallo interno.
+
+**Adjuntos cargados de comunicados:** crear primero el borrador con `POST /announcements` cuando aún no tenga id; subir con `entityType=announcement` y el id del borrador; asociar cada resultado mediante `PATCH /announcements/{id}` en `attachments: [{name, url}]`, donde `url` es la URL absoluta de `/files/{id}` en la base de API configurada. La descarga de esos adjuntos se realiza por `GET /files/{id}` con credenciales, conservando los enlaces externos anteriores. El borrador se publica mediante su acción independiente, una vez guardados los adjuntos.
+
 
 ## 4. Requisitos transversales y fuera del catálogo de endpoints
 
