@@ -75,7 +75,7 @@ INSERT INTO semillero_miembros (semillero_id, usuario_id, ingreso_en, retirado_e
   ('5eed0003-0000-4000-8000-000000000003', '5eed0001-0000-4000-8000-000000000013', now() - interval '300 days', now() - interval '30 days')
 ON CONFLICT DO NOTHING;
 
--- Projects: every seedbed has Activo, Finalizado and Radicado projects.
+-- Projects: every seedbed has Activo and Finalizado projects.
 INSERT INTO proyectos (id, titulo, resumen, semillero_id, area_investigacion, estado, avance, fecha_inicio, fecha_fin, responsables, integrantes, creado_por)
 SELECT ('5eed0004-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid, titulo, resumen,
        ('5eed0003-0000-4000-8000-00000000000' || s)::uuid, area, estado, avance,
@@ -86,15 +86,15 @@ FROM (VALUES
   (1,  1, 'Recorrido aumentado del campus', 'Prototipo para descubrir espacios universitarios con información virtual.', 'Experiencias inmersivas', 'Activo', 45, -120),
   (2,  1, 'Laboratorio de anatomía 3D', 'Modelos interactivos para acompañar la formación en ciencias de la salud.', 'Experiencias inmersivas', 'Activo', 70, -200),
   (3,  1, 'Museo interactivo', 'Experiencia aumentada para explorar piezas y relatos culturales.', 'Experiencias inmersivas', 'Finalizado', 100, -500),
-  (4,  1, 'Guía inmersiva de patrimonio', 'Recorrido que conecta lugares con su historia.', 'Experiencias inmersivas', 'Radicado', 0, 30),
+  (4,  1, 'Guía inmersiva de patrimonio', 'Recorrido que conecta lugares con su historia.', 'Experiencias inmersivas', 'Activo', 0, 30),
   (5,  2, 'Asistente académico inteligente', 'Orientación sobre recursos y actividades universitarias.', 'Aprendizaje automático', 'Activo', 55, -150),
   (6,  2, 'Clasificación de documentos', 'Modelos para organizar información por su contenido.', 'Aprendizaje automático', 'Activo', 30, -90),
   (7,  2, 'Análisis de datos ambientales', 'Patrones en registros abiertos del entorno.', 'Aprendizaje automático', 'Finalizado', 100, -450),
-  (8,  2, 'Visión artificial para reciclaje', 'Reconocimiento de materiales a partir de imágenes.', 'Aprendizaje automático', 'Radicado', 0, 45),
+  (8,  2, 'Visión artificial para reciclaje', 'Reconocimiento de materiales a partir de imágenes.', 'Aprendizaje automático', 'Activo', 0, 45),
   (9,  3, 'Análisis de seguridad en aplicaciones', 'Exploración de vulnerabilidades y prácticas de protección de datos.', 'Seguridad digital', 'Activo', 60, -180),
   (10, 3, 'Detección de mensajes sospechosos', 'Señales para reconocer intentos de suplantación.', 'Seguridad digital', 'Activo', 25, -60),
   (11, 3, 'Guía de protección de datos', 'Material de consulta sobre el cuidado de la información personal.', 'Seguridad digital', 'Finalizado', 100, -400),
-  (12, 3, 'Taller de ciudadanía digital', 'Formación en prácticas responsables en internet.', 'Seguridad digital', 'Radicado', 0, 20)
+  (12, 3, 'Taller de ciudadanía digital', 'Formación en prácticas responsables en internet.', 'Seguridad digital', 'Activo', 0, 20)
 ) AS p(n, s, titulo, resumen, area, estado, avance, inicio)
 ON CONFLICT DO NOTHING;
 

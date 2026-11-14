@@ -166,12 +166,12 @@ func (r *UserRepository) UpdateRole(ctx context.Context, firebaseUID, role strin
 }
 
 func memberSelect() string {
-	return `SELECT u.id, u.firebase_uid, u.nombre, COALESCE(u.apellido,''), u.email, COALESCE(u.tipo_dni,''), COALESCE(u.dni,''), u.rol, u.estado, COALESCE(p.area_investigacion,''), COALESCE(p.formacion,''), COALESCE(p.orcid,''), COALESCE(p.cvlac,''), COALESCE(p.visible_publicamente, true), COALESCE((SELECT array_agg(sm.semillero_id::text ORDER BY sm.semillero_id) FROM semillero_miembros sm WHERE sm.usuario_id = u.id AND sm.retirado_en IS NULL), ARRAY[]::text[]) FROM usuarios u LEFT JOIN perfil_investigador p ON p.usuario_id = u.id `
+	return `SELECT u.id, u.firebase_uid, u.nombre, COALESCE(u.apellido,''), u.email, COALESCE(u.tipo_dni,''), COALESCE(u.dni,''), u.rol, u.estado, COALESCE(p.area_investigacion,''), COALESCE(p.formacion,''), COALESCE(p.orcid,''), COALESCE(p.cvlac,''), COALESCE(p.visible_publicamente, true), COALESCE((SELECT array_agg(sm.semillero_id::text ORDER BY sm.semillero_id) FROM semillero_miembros sm WHERE sm.usuario_id = u.id AND sm.retirado_en IS NULL), ARRAY[]::text[]), COALESCE(u.foto_url,'') FROM usuarios u LEFT JOIN perfil_investigador p ON p.usuario_id = u.id `
 }
 
 func scanMember(row interface{ Scan(...any) error }) (domain.MemberProfile, error) {
 	var p domain.MemberProfile
-	err := row.Scan(&p.ID, &p.FirebaseUID, &p.Name, &p.LastName, &p.Email, &p.DocumentType, &p.DocumentNumber, &p.Role, &p.Status, &p.Area, &p.Formation, &p.ORCID, &p.CvLAC, &p.VisiblePublicly, &p.SeedbedIDs)
+	err := row.Scan(&p.ID, &p.FirebaseUID, &p.Name, &p.LastName, &p.Email, &p.DocumentType, &p.DocumentNumber, &p.Role, &p.Status, &p.Area, &p.Formation, &p.ORCID, &p.CvLAC, &p.VisiblePublicly, &p.SeedbedIDs, &p.PhotoURL)
 	return p, err
 }
 

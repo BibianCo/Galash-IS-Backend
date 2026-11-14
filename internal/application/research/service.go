@@ -74,7 +74,8 @@ func (s *Service) operate(ctx context.Context, actor, seedbed string) error {
 	return nil
 }
 
-func validStatus(v string) bool { return v == "Radicado" || v == "Activo" || v == "Finalizado" }
+// Radicado is no longer a project status (migration 017); it is rejected like any unknown value.
+func validStatus(v string) bool { return v == "Activo" || v == "Finalizado" }
 
 func (s *Service) CreateActivity(ctx context.Context, a domain.Activity, actor string) (domain.Activity, error) {
 	if e := s.operate(ctx, actor, a.SeedbedID); e != nil {
@@ -127,6 +128,9 @@ func (s *Service) UpdateActivity(ctx context.Context, id string, a domain.Activi
 func (s *Service) CreateProject(ctx context.Context, p domain.Project, actor string) (domain.Project, error) {
 	if e := s.manage(ctx, actor, p.SeedbedID); e != nil {
 		return p, e
+	}
+	if p.Status == "" {
+		p.Status = "Activo"
 	}
 	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 {
 		return p, domain.ErrInvalidResearch
