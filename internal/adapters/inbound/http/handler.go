@@ -1514,6 +1514,10 @@ func (h *Handler) createMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, err.Error())
 		return
 	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, 409, err.Error())
+		return
+	}
 	if err != nil {
 		writeError(w, 500, "no fue posible crear el perfil del integrante")
 		return
@@ -1572,6 +1576,10 @@ func (h *Handler) updateMember(w http.ResponseWriter, r *http.Request) {
 	}
 	if errors.Is(err, domain.ErrMemberNotFound) {
 		writeError(w, 404, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, 409, err.Error())
 		return
 	}
 	if err != nil {

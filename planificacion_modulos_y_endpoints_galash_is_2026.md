@@ -148,9 +148,9 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | Método | Endpoint | Descripción | Prioridad / acceso | Historias |
 |---|---|---|---|---|
 | `GET` | `/members` | Busca y filtra integrantes por tipo, semillero o área; excluye perfiles inactivos de la vista pública. | Must / Visitante | HU-INT-02 |
-| `POST` | `/members` | Crea perfil de `Estudiante` o `Docente` y valida campos obligatorios. | Must / Admin | HU-INT-01 |
+| `POST` | `/members` | Crea perfil de `Estudiante` o `Docente` y valida campos obligatorios. `409` si el correo (sin distinguir mayúsculas), el documento o el código estudiantil ya pertenecen a otra cuenta. | Must / Admin | HU-INT-01 |
 | `GET` | `/members/{id}` | Consulta el perfil público o, con permiso, los campos internos. | Must / Visitante o rol autorizado | HU-INT-02 |
-| `PATCH` | `/members/{id}` | Edita datos, asociación a semilleros, visibilidad y enlace CvLAC. `cvlac` omitido no cambia el enlace; `""` lo quita; otro valor debe ser URL http(s). | Must / Admin | HU-INT-01, HU-INT-03 |
+| `PATCH` | `/members/{id}` | Edita datos, asociación a semilleros, visibilidad y enlace CvLAC. `cvlac` omitido no cambia el enlace; `""` lo quita; otro valor debe ser URL http(s). `409` si el correo, el documento o el código ya pertenecen a otra cuenta. | Must / Admin | HU-INT-01, HU-INT-03 |
 | `PATCH` | `/members/{id}/status` | Activa o desactiva perfil sin borrar historial relacionado. | Must / Admin | HU-INT-01 |
 | `GET` | `/members/{id}/publications` | Consulta artículos y publicaciones asociados al perfil cuando existan. | Must / Visitante según visibilidad | HU-INT-02 |
 

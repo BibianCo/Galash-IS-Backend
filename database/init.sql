@@ -380,3 +380,16 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+-- Unique e-mail per account (D033). Same block as migrations/020_unique_email.sql.
+DO $$
+DECLARE
+  dupes text;
+BEGIN
+  SELECT string_agg(format('%s cuentas', n), ', ') INTO dupes
+  FROM (SELECT count(*) AS n FROM usuarios GROUP BY lower(email) HAVING count(*) > 1) d;
+  IF dupes IS NOT NULL THEN
+    RAISE EXCEPTION 'Hay correos repetidos (sin distinguir mayúsculas): %. Consulta: SELECT lower(email), count(*) FROM usuarios GROUP BY 1 HAVING count(*) > 1;', dupes;
+  END IF;
+  CREATE UNIQUE INDEX IF NOT EXISTS usuarios_email_lower_key ON usuarios (lower(email));
+END $$;

@@ -79,6 +79,7 @@ func TestSchemaRejectsInvalidWrites(t *testing.T) {
 		"unknown project state":      {`UPDATE proyectos SET estado='Radicado' WHERE id='00000000-0000-0000-0000-0000000000c1'`, "23514"},
 		"update audit log":           {`UPDATE audit_logs SET result='editado' WHERE action='tdb'`, "P0001"},
 		"delete audit log":           {`DELETE FROM audit_logs WHERE action='tdb'`, "P0001"},
+		"duplicate email (any case)": {`INSERT INTO usuarios (firebase_uid,nombre,email) VALUES ('tdb-uid-9','Otra','TDB1@Example.test')`, "23505"},
 		"unknown role":               {`UPDATE usuarios SET rol='superadmin' WHERE firebase_uid='tdb-uid-1'`, "23514"},
 		"unknown account state":      {`UPDATE usuarios SET estado='suspendido' WHERE firebase_uid='tdb-uid-1'`, "23514"},
 		"unknown seedbed state":      {`UPDATE semilleros SET visibilidad='Activo' WHERE nombre='tdb-semillero'`, "23514"},

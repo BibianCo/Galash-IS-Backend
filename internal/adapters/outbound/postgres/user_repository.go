@@ -225,6 +225,9 @@ func (r *UserRepository) Find(ctx context.Context, id string) (domain.MemberProf
 
 func (r *UserRepository) CreateMember(ctx context.Context, c memberapp.CreateCommand) (domain.MemberProfile, error) {
 	tx, err := r.db.Begin(ctx)
+	if isUniqueViolation(err) {
+		return domain.MemberProfile{}, domain.ErrDuplicateIdentity
+	}
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
@@ -251,6 +254,9 @@ func (r *UserRepository) CreateMember(ctx context.Context, c memberapp.CreateCom
 
 func (r *UserRepository) Update(ctx context.Context, id string, c memberapp.UpdateCommand) (domain.MemberProfile, error) {
 	tx, err := r.db.Begin(ctx)
+	if isUniqueViolation(err) {
+		return domain.MemberProfile{}, domain.ErrDuplicateIdentity
+	}
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
@@ -355,4 +361,10 @@ func (r *UserRepository) DeleteExpiredRecoveries(ctx context.Context) error {
 
 func (r *UserRepository) Ping(ctx context.Context) error {
 	return r.db.Ping(ctx)
+}
+
+// isUniqueViolation reports a duplicate dni, codigo_estudiantil or email (D033).
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
