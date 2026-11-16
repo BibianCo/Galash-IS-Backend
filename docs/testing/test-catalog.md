@@ -100,6 +100,9 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T176|database|`TestSchemaHasExpectedTables`|init.sql crea las 31 tablas base esperadas.|`tests/database/schema_test.go`|TDB-T01|
 |T177|database|`TestSchemaRejectsInvalidWrites`|Restricciones rechazan duplicados (dni, firebase_uid, nombre de semillero), nulos, referencias inexistentes, borrado de usuario referenciado, avance fuera de 0-100, estado de proyecto inválido y UPDATE/DELETE en audit_logs.|`tests/database/schema_test.go`|TDB-T01, TDB-T02, TDB-T03, TDB-T06|
 |T178|database|`TestProjectDeleteCascadesHistory`|Borrar un proyecto elimina en cascada solo su historial dependiente.|`tests/database/schema_test.go`|TDB-T01|
+|T179|registration|`TestApplicantReadsOwnRequestStatusOnly`|Solicitante consulta su solicitud (sesión o token de seguimiento) en los 5 estados; otra cuenta y token erróneo 404 sin datos; sin credencial 401.|`tests/registration/status_http_test.go`|PT-AUTH-05|
+|T180|member|`TestTeacherCvLACLinkIsValidatedAndShown`|Enlace CvLAC válido se guarda, aparece en el perfil público y se reemplaza; URL no http(s) se rechaza.|`tests/member/cvlac_test.go`|PT-INT-03|
+|T181|member|`TestTeacherCvLACLinkCanBeRemoved`|Retirar el CvLAC (cvlac vacío) lo quita del perfil. Omitida por defecto mientras D035 siga abierto.|`tests/member/cvlac_test.go`|PT-INT-03|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.
