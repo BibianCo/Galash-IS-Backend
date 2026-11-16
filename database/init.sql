@@ -203,7 +203,7 @@ CREATE TABLE proyectos (
     fecha_fin DATE,
     semillero_id UUID NOT NULL REFERENCES semilleros(id),
     area_investigacion TEXT,
-    estado TEXT NOT NULL DEFAULT 'Activo', avance INTEGER NOT NULL DEFAULT 0 CHECK (avance BETWEEN 0 AND 100),
+    estado TEXT NOT NULL DEFAULT 'Activo' CONSTRAINT proyectos_estado_check CHECK (estado IN ('Activo','Finalizado')), avance INTEGER NOT NULL DEFAULT 0 CHECK (avance BETWEEN 0 AND 100),
     responsables TEXT[] NOT NULL DEFAULT '{}', integrantes TEXT[] NOT NULL DEFAULT '{}', creado_por UUID REFERENCES usuarios(id), actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

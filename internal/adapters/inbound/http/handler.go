@@ -1080,11 +1080,38 @@ func (h *Handler) updateActivity(w http.ResponseWriter, r *http.Request) {
 func toProject(q projectRequest) domain.Project {
 	return domain.Project{SeedbedID: q.SeedbedID, Title: q.Title, Summary: q.Summary, ResearchLine: q.ResearchLine, Status: q.Status, ResponsibleIDs: q.ResponsibleIDs, MemberIDs: q.MemberIDs, StartDate: q.StartDate, EndDate: q.EndDate, Progress: q.Progress}
 }
+
+// A pointer shadows the embedded field so restricted responses omit progress,
+// while an authorized zero percent remains a real value in JSON.
+type projectReadResponse struct {
+	domain.Project
+	Progress *int `json:"progress,omitempty"`
+}
+
+func projectResponse(project domain.Project, includeProgress bool) projectReadResponse {
+	response := projectReadResponse{Project: project}
+	if includeProgress {
+		response.Progress = &project.Progress
+	}
+	return response
+}
+
+func (h *Handler) projectProgressAccess(w http.ResponseWriter, r *http.Request) (bool, bool) {
+	if !hasSessionCredential(r) {
+		return false, true
+	}
+	actor, ok := h.actor(w, r)
+	if !ok {
+		return false, false
+	}
+	return actorRole(actor, "estudiante", "docente", "profesor", "admin"), true
+}
+
 func (h *Handler) listProjects(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
 		return
 	}
-	see, ok := h.progressViewer(w, r)
+	includeProgress, ok := h.projectProgressAccess(w, r)
 	if !ok {
 		return
 	}
@@ -1093,34 +1120,14 @@ func (h *Handler) listProjects(w http.ResponseWriter, r *http.Request) {
 		researchError(w, e)
 		return
 	}
-	out := make([]any, len(v))
-	for i, p := range v {
-		out[i] = visibleProject(p, see)
+	var projects []projectReadResponse
+	if v != nil {
+		projects = make([]projectReadResponse, 0, len(v))
 	}
-	writeJSON(w, 200, map[string]any{"projects": out})
-}
-
-// hiddenProgressProject shadows the embedded progress so it is omitted from the JSON.
-type hiddenProgressProject struct {
-	domain.Project
-	Progress *int `json:"progress,omitempty"`
-}
-
-func visibleProject(p domain.Project, see bool) any {
-	if see {
-		return p
+	for _, project := range v {
+		projects = append(projects, projectResponse(project, includeProgress))
 	}
-	return hiddenProgressProject{Project: p}
-}
-
-// progressViewer tells whether the caller may read project progress (Estudiante, Docente or Admin).
-// No credentials means visitor; invalid or expired credentials answer 401.
-func (h *Handler) progressViewer(w http.ResponseWriter, r *http.Request) (see, ok bool) {
-	if !hasSessionCredential(r) {
-		return false, true
-	}
-	a, ok := h.actor(w, r)
-	return ok && actorRole(a, "estudiante", "docente", "profesor", "admin"), ok
+	writeJSON(w, 200, map[string]any{"projects": projects})
 }
 func (h *Handler) createProject(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
@@ -1146,7 +1153,7 @@ func (h *Handler) getProject(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
 		return
 	}
-	see, ok := h.progressViewer(w, r)
+	includeProgress, ok := h.projectProgressAccess(w, r)
 	if !ok {
 		return
 	}
@@ -1155,7 +1162,7 @@ func (h *Handler) getProject(w http.ResponseWriter, r *http.Request) {
 		researchError(w, e)
 		return
 	}
-	writeJSON(w, 200, visibleProject(v, see))
+	writeJSON(w, 200, projectResponse(v, includeProgress))
 }
 func (h *Handler) updateProject(w http.ResponseWriter, r *http.Request) {
 	if !h.researchReady(w) {
