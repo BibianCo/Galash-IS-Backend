@@ -1,0 +1,6 @@
+# D037: TLS termination for the API. Caddy obtains and renews the certificate for GALASH_API_DOMAIN
+# and redirects HTTP to HTTPS automatically. The API itself is reachable only inside the compose network
+# and adds Strict-Transport-Security when X-Forwarded-Proto is https (set by Caddy).
+{$GALASH_API_DOMAIN} {
+	reverse_proxy auth:8080
+}

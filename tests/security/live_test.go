@@ -179,3 +179,25 @@ func TestLivePublicResponsesHidePersonalData(t *testing.T) {
 		}
 	}
 }
+
+// PT-NF-04 / D037: behind the TLS proxy (X-Forwarded-Proto: https) the API sends HSTS; nosniff always.
+func TestLiveSecurityHeaders(t *testing.T) {
+	l := newLive(t)
+	for proto, wantHSTS := range map[string]bool{"https": true, "": false} {
+		request, _ := http.NewRequest(http.MethodGet, l.api+"/seedbeds", nil)
+		if proto != "" {
+			request.Header.Set("X-Forwarded-Proto", proto)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if got := response.Header.Get("Strict-Transport-Security") != ""; got != wantHSTS {
+			t.Errorf("proto %q: HSTS present=%v, want %v", proto, got, wantHSTS)
+		}
+		if response.Header.Get("X-Content-Type-Options") != "nosniff" {
+			t.Errorf("proto %q: missing nosniff", proto)
+		}
+	}
+}

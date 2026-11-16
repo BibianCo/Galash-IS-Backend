@@ -210,7 +210,18 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /audit-logs", h.listAuditLogs)
 	mux.HandleFunc("POST /files", h.uploadFile)
 	mux.HandleFunc("GET /files/{id}", h.getFile)
-	return localCORS(h.auditMutation(mux))
+	return securityHeaders(localCORS(h.auditMutation(mux)))
+}
+
+// securityHeaders sets HSTS when the request arrived over HTTPS (directly or through the TLS proxy) and nosniff always.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func localCORS(next http.Handler) http.Handler {
