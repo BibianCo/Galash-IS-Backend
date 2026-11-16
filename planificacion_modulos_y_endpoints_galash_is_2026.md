@@ -109,7 +109,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/projects` | Lista proyectos filtrables por semillero, estado y periodo. | Must / Visitante según visibilidad; vista completa para el rol autorizado | HU-SEM-02, HU-SEM-05 |
 | `POST` | `/projects` | Registra proyecto con título, resumen, línea, responsables, integrantes, fechas, estado y avance entre 0 y 100. | Must / Docente responsable o Admin | HU-SEM-05 |
 | `GET` | `/projects/{id}` | Consulta el proyecto y su avance según permisos. | Must / Visitante según visibilidad | HU-SEM-02, HU-SEM-07 |
-| `PATCH` | `/projects/{id}` | Actualiza datos del proyecto y registra autor y fecha del cambio. | Must / Docente responsable o Admin | HU-SEM-05 |
+| `PATCH` | `/projects/{id}` | Actualiza datos del proyecto y registra autor y fecha del cambio. Acepta `updatedAt` opcional (el valor leído en `GET`); si el proyecto cambió desde entonces responde `409` sin modificarlo. | Must / Docente responsable o Admin | HU-SEM-05 |
 | `PATCH` | `/projects/{id}/progress` | Actualiza el porcentaje de avance; valida rango 0–100 y autorización del responsable. | Must / Docente responsable o Admin | HU-SEM-05, HU-SEM-07 |
 | `GET` | `/projects/progress` | Resume avance por proyecto, semillero o periodo. | Must / Estudiante, Docente o Admin autorizado | HU-SEM-07 |
 | `GET` | `/projects/{id}/history` | Consulta actualizaciones relevantes del proyecto. | Must / Estudiante, Docente o Admin autorizado | HU-SEM-05 |
@@ -150,7 +150,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/members` | Busca y filtra integrantes por tipo, semillero o área; excluye perfiles inactivos de la vista pública. | Must / Visitante | HU-INT-02 |
 | `POST` | `/members` | Crea perfil de `Estudiante` o `Docente` y valida campos obligatorios. | Must / Admin | HU-INT-01 |
 | `GET` | `/members/{id}` | Consulta el perfil público o, con permiso, los campos internos. | Must / Visitante o rol autorizado | HU-INT-02 |
-| `PATCH` | `/members/{id}` | Edita datos, asociación a semilleros, visibilidad y enlace CvLAC. | Must / Admin | HU-INT-01, HU-INT-03 |
+| `PATCH` | `/members/{id}` | Edita datos, asociación a semilleros, visibilidad y enlace CvLAC. `cvlac` omitido no cambia el enlace; `""` lo quita; otro valor debe ser URL http(s). | Must / Admin | HU-INT-01, HU-INT-03 |
 | `PATCH` | `/members/{id}/status` | Activa o desactiva perfil sin borrar historial relacionado. | Must / Admin | HU-INT-01 |
 | `GET` | `/members/{id}/publications` | Consulta artículos y publicaciones asociados al perfil cuando existan. | Must / Visitante según visibilidad | HU-INT-02 |
 
@@ -165,7 +165,7 @@ Esta propuesta organiza las historias de usuario en módulos funcionales y defin
 | `GET` | `/events` | Lista eventos en formato de agenda; permite filtros por tipo, fecha y estado, diferencia vencidos de próximos y, para `Admin` autenticado, incluye borradores, publicados, cancelados y ocultos. | Must / Visitante o Admin autorizado | HU-EVT-03 |
 | `POST` | `/events` | Crea evento en borrador con fecha, hora, organizador, lugar/enlace e imagen opcional, y `seedbedId` opcional del semillero dueño (fijo después de creado). | Must / Docente o Admin; con `seedbedId`, director o delegado de ese semillero (o `Admin`) | HU-EVT-01 |
 | `GET` | `/events/{id}` | Consulta detalle e información de inscripción, si existe. | Must / Visitante si está publicado | HU-EVT-03 |
-| `PATCH` | `/events/{id}` | Actualiza los datos del evento y registra fecha de modificación. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |
+| `PATCH` | `/events/{id}` | Actualiza los datos del evento y registra fecha de modificación. Acepta `updatedAt` opcional (el valor leído en `GET`); si el evento cambió desde entonces responde `409` sin modificarlo. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |
 | `POST` | `/events/{id}/publish` | Publica un evento en borrador u oculto. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-01, HU-EVT-02 |
 | `POST` | `/events/{id}/cancel` | Cancela el evento conservando su información histórica. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |
 | `POST` | `/events/{id}/hide` | Oculta el evento sin borrarlo. | Must / Docente organizador, director o delegado del semillero del evento, o Admin | HU-EVT-02 |

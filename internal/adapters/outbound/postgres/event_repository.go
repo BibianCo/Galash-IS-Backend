@@ -55,7 +55,7 @@ func (r *EventRepository) Create(ctx context.Context, e domain.Event) (domain.Ev
 	return scanEvent(r.db.QueryRow(ctx, `INSERT INTO eventos(titulo,descripcion,tipo,inicia_en,termina_en,organizador_id,lugar,enlace,imagen_url,enlace_inscripcion,estado,semillero_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NULLIF($12,'')::uuid) RETURNING `+eventReturningSQL, e.Title, e.Description, e.Type, e.StartAt, e.EndAt, e.OrganizerID, e.Venue, e.MeetingURL, e.ImageURL, e.RegistrationURL, e.Status, e.SeedbedID))
 }
 func (r *EventRepository) Update(ctx context.Context, id string, e domain.Event) (domain.Event, error) {
-	return scanEvent(r.db.QueryRow(ctx, `UPDATE eventos SET titulo=$2,descripcion=$3,tipo=$4,inicia_en=$5,termina_en=$6,lugar=$7,enlace=$8,imagen_url=$9,enlace_inscripcion=$10,actualizado_en=now() WHERE id=$1 RETURNING `+eventReturningSQL, id, e.Title, e.Description, e.Type, e.StartAt, e.EndAt, e.Venue, e.MeetingURL, e.ImageURL, e.RegistrationURL))
+	return scanEvent(r.db.QueryRow(ctx, `UPDATE eventos SET titulo=$2,descripcion=$3,tipo=$4,inicia_en=$5,termina_en=$6,lugar=$7,enlace=$8,imagen_url=$9,enlace_inscripcion=$10,actualizado_en=now() WHERE id=$1 AND actualizado_en=$11 RETURNING `+eventReturningSQL, id, e.Title, e.Description, e.Type, e.StartAt, e.EndAt, e.Venue, e.MeetingURL, e.ImageURL, e.RegistrationURL, e.UpdatedAt))
 }
 func (r *EventRepository) SetStatus(ctx context.Context, id, status string) (domain.Event, error) {
 	return scanEvent(r.db.QueryRow(ctx, `UPDATE eventos SET estado=$2,actualizado_en=now() WHERE id=$1 RETURNING `+eventReturningSQL, id, status))

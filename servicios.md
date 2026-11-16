@@ -54,7 +54,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | GET | `/members` | dir. publico | M5 | [x] |
 | POST | `/members` | crea perfil | M5 | [ ] |
 | GET | `/members/{id}` | detalle público/privado autorizado | M5 | [x] |
-| PATCH | `/members/{id}` | edita perfil | M5 | [ ] |
+| PATCH | `/members/{id}` | edita perfil; `cvlac` `""` quita el enlace | M5 | [ ] |
 | PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [x] |
 | GET | `/members/{id}/publications` | publicaciones visibles | M5 | [x] |
 | GET | `/admin/members` | listado admin completo; filtro `q` opcional | M11 | [x] |
@@ -82,7 +82,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members`; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [x] |
 | POST | `/projects` | registra proyecto | M4 | [x] |
 | GET | `/projects/{id}` | detalle de proyecto; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [x] |
-| PATCH | `/projects/{id}` | modifica proyecto | M4 | [x] |
+| PATCH | `/projects/{id}` | modifica proyecto; `updatedAt` opcional, `409` si cambió | M4 | [x] |
 | PATCH | `/projects/{id}/progress` | actualiza avance | M4 | [x] |
 | GET | `/projects/progress` | resumen de avance | M4 | [x] |
 | GET | `/projects/{id}/history` | historial de proyecto | M4 | [x] |
@@ -98,7 +98,7 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | GET | `/events` | agenda pública filtrable; Admin autenticado ve todos los estados | M6 | [x] |
 | POST | `/events` | crea evento en borrador | M6 | [x] |
 | GET | `/events/{id}` | detalle publicado/autorizado | M6 | [x] |
-| PATCH | `/events/{id}` | edita evento | M6 | [x] |
+| PATCH | `/events/{id}` | edita evento; `updatedAt` opcional, `409` si cambió | M6 | [x] |
 | POST | `/events/{id}/publish` | publica evento | M6 | [x] |
 | POST | `/events/{id}/cancel` | cancela evento | M6 | [x] |
 | POST | `/events/{id}/hide` | oculta evento | M6 | [x] |

@@ -2,6 +2,7 @@ package research
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strconv"
 	"strings"
@@ -182,7 +183,14 @@ func (s *Service) UpdateProject(ctx context.Context, id string, p domain.Project
 	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 || endsBeforeStart(p) {
 		return p, domain.ErrInvalidResearch
 	}
-	return s.repo.UpdateProject(ctx, id, p, actor, projectChanges(old, p))
+	if p.UpdatedAt.IsZero() {
+		p.UpdatedAt = old.UpdatedAt
+	}
+	out, e := s.repo.UpdateProject(ctx, id, p, actor, projectChanges(old, p))
+	if errors.Is(e, domain.ErrResearchNotFound) {
+		return out, domain.ErrStaleUpdate // the project existed: the updatedAt check failed
+	}
+	return out, e
 }
 
 func (s *Service) Progress(ctx context.Context, id string, n int, actor string) (domain.Project, error) {

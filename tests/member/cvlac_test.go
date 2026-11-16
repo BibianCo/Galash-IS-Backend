@@ -46,12 +46,12 @@ func TestTeacherCvLACLinkIsValidatedAndShown(t *testing.T) {
 		t.Fatalf("without link: cvlac=%q err=%v", p.CvLAC, err)
 	}
 	for _, bad := range []string{"javascript:alert(1)", "ftp://cv.example/x", "cvlac", "https://"} {
-		if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: bad}); !errors.Is(err, domain.ErrInvalidMember) {
+		if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: &bad}); !errors.Is(err, domain.ErrInvalidMember) {
 			t.Errorf("%q: err=%v, want ErrInvalidMember", bad, err)
 		}
 	}
 	for _, link := range []string{"https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000000001", "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000000002"} {
-		if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: link}); err != nil {
+		if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: &link}); err != nil {
 			t.Fatalf("update %q: %v", link, err)
 		}
 		if p, err := service.Get(ctx, id, false); err != nil || p.CvLAC != link {
@@ -62,15 +62,20 @@ func TestTeacherCvLACLinkIsValidatedAndShown(t *testing.T) {
 
 // PT-INT-03: removing the link hides it from the profile.
 func TestTeacherCvLACLinkCanBeRemoved(t *testing.T) {
-	if os.Getenv("GALASH_RUN_KNOWN_DEFECTS") == "" {
-		t.Skip("D035 abierto: PATCH /members/{id} no puede retirar cvlac; GALASH_RUN_KNOWN_DEFECTS=1 lo ejecuta")
-	}
 	service, id := cvlacService(t)
 	ctx := context.Background()
-	if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: "https://cv.example/1"}); err != nil {
+	link, empty := "https://cv.example/1", ""
+	if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: &link}); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: ""}); err != nil {
+	// Omitting cvlac keeps the link.
+	if _, err := service.Update(ctx, id, memberapp.UpdateCommand{Area: "IA"}); err != nil {
+		t.Fatalf("other field: %v", err)
+	}
+	if p, _ := service.Get(ctx, id, false); p.CvLAC != link {
+		t.Fatalf("cvlac after unrelated update = %q, want %q", p.CvLAC, link)
+	}
+	if _, err := service.Update(ctx, id, memberapp.UpdateCommand{CvLAC: &empty}); err != nil {
 		t.Fatalf("clear: %v", err)
 	}
 	if p, _ := service.Get(ctx, id, false); p.CvLAC != "" {

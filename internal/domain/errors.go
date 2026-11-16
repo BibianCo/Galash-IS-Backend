@@ -39,6 +39,9 @@ var ErrEventNotFound = errors.New("evento no encontrado")
 var ErrInvalidEvent = errors.New("datos del evento inválidos")
 var ErrInvalidEventTransition = errors.New("transición de evento no permitida")
 var ErrEventConflict = errors.New("ya existe otro evento en el mismo lugar y horario")
+
+// ErrStaleUpdate: the record changed after the client loaded it (updatedAt mismatch).
+var ErrStaleUpdate = errors.New("el registro cambió desde que lo abriste; recarga y vuelve a intentarlo")
 var ErrContentNotFound = errors.New("página institucional no encontrada")
 var ErrDuplicateContent = errors.New("ya existe una página institucional con ese identificador")
 var ErrInvalidContent = errors.New("el título, identificador y contenido de la página son obligatorios")

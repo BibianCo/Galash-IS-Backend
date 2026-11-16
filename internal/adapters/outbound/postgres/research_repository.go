@@ -115,7 +115,7 @@ func (r *ResearchRepository) UpdateProject(c context.Context, id string, p domai
 		return p, e
 	}
 	defer tx.Rollback(c)
-	out, e := proj(tx.QueryRow(c, `UPDATE proyectos SET titulo=$2,resumen=$3,area_investigacion=$4,estado=$5,responsables=COALESCE($6::text[],'{}'),integrantes=COALESCE($7::text[],'{}'),fecha_inicio=$8,fecha_fin=$9,avance=$10,actualizado_en=now() WHERE id=$1 RETURNING `+projectSQL, id, p.Title, p.Summary, p.ResearchLine, p.Status, p.ResponsibleIDs, p.MemberIDs, p.StartDate, p.EndDate, p.Progress))
+	out, e := proj(tx.QueryRow(c, `UPDATE proyectos SET titulo=$2,resumen=$3,area_investigacion=$4,estado=$5,responsables=COALESCE($6::text[],'{}'),integrantes=COALESCE($7::text[],'{}'),fecha_inicio=$8,fecha_fin=$9,avance=$10,actualizado_en=now() WHERE id=$1 AND actualizado_en=$11 RETURNING `+projectSQL, id, p.Title, p.Summary, p.ResearchLine, p.Status, p.ResponsibleIDs, p.MemberIDs, p.StartDate, p.EndDate, p.Progress, p.UpdatedAt))
 	for _, h := range changes {
 		if e == nil {
 			e = projectHistory(c, tx, id, actor, h.Field, h.Value)

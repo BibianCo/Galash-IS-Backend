@@ -3,19 +3,11 @@ package research_test
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/galash-uptc/backend/internal/domain"
 )
-
-func knownDefect(t *testing.T, id string) {
-	t.Helper()
-	if os.Getenv("GALASH_RUN_KNOWN_DEFECTS") == "" {
-		t.Skip(id + " abierto; GALASH_RUN_KNOWN_DEFECTS=1 lo ejecuta")
-	}
-}
 
 // TDB-T03: a project cannot end before it starts.
 func TestProjectRejectsEndBeforeStart(t *testing.T) {
@@ -32,7 +24,6 @@ func TestProjectRejectsEndBeforeStart(t *testing.T) {
 
 // TDB-T11: two editors load the same project; the second save must not silently revert the first one.
 func TestStaleProjectSaveDoesNotSilentlyRevertOtherEdit(t *testing.T) {
-	knownDefect(t, "D039")
 	repo, db, _, seedbed := seed(t)
 	ctx := context.Background()
 	var id string
@@ -51,7 +42,7 @@ func TestStaleProjectSaveDoesNotSilentlyRevertOtherEdit(t *testing.T) {
 	}
 	_, staleErr := repo.UpdateProject(ctx, id, second, "", nil)
 	final, _ := repo.FindProject(ctx, id)
-	if staleErr == nil && final.Title != first.Title {
-		t.Fatalf("stale save succeeded and reverted title to %q (lost update without conflict)", final.Title)
+	if staleErr == nil || final.Title != first.Title || final.Summary == second.Summary {
+		t.Fatalf("stale save err=%v, final=%+v: want rejection keeping A's title", staleErr, final)
 	}
 }

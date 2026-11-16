@@ -257,6 +257,7 @@ type eventPatchRequest struct {
 	MeetingURL      *string         `json:"meetingUrl"`
 	ImageURL        *string         `json:"imageUrl"`
 	RegistrationURL *string         `json:"registrationUrl"`
+	UpdatedAt       *time.Time      `json:"updatedAt"`
 }
 
 func (h *Handler) eventReady(w http.ResponseWriter) bool {
@@ -272,7 +273,7 @@ func eventError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, domain.ErrEventNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, domain.ErrEventConflict):
+	case errors.Is(err, domain.ErrEventConflict), errors.Is(err, domain.ErrStaleUpdate):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, domain.ErrInvalidEvent), errors.Is(err, domain.ErrInvalidEventTransition):
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -426,6 +427,9 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.RegistrationURL != nil {
 		updated.RegistrationURL = *q.RegistrationURL
+	}
+	if q.UpdatedAt != nil {
+		updated.UpdatedAt = *q.UpdatedAt
 	}
 	e, err := h.events.Update(r.Context(), r.PathValue("id"), updated, actor.ID)
 	if err != nil {
@@ -992,6 +996,8 @@ func researchError(w http.ResponseWriter, e error) {
 		writeError(w, 404, mapResearchNotFound(e))
 	case errors.Is(e, domain.ErrInvalidResearch), errors.Is(e, domain.ErrInvalidProjectStatus):
 		writeError(w, 400, e.Error())
+	case errors.Is(e, domain.ErrStaleUpdate):
+		writeError(w, 409, e.Error())
 	default:
 		writeError(w, 500, "no fue posible procesar la investigación")
 	}
@@ -1419,7 +1425,7 @@ type memberRequest struct {
 	Area            string   `json:"area"`
 	Formation       string   `json:"formation"`
 	ORCID           string   `json:"orcid"`
-	CvLAC           string   `json:"cvlac"`
+	CvLAC           *string  `json:"cvlac"`
 	VisiblePublicly *bool    `json:"visible_publicly"`
 	SeedbedIDs      []string `json:"seedbed_ids"`
 	Status          string   `json:"status"`
@@ -1488,7 +1494,11 @@ func (h *Handler) createMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
 	}
-	p, err := h.members.Create(r.Context(), memberapp.CreateCommand{FirebaseUID: q.FirebaseUID, Name: q.Name, LastName: q.LastName, Email: q.Email, DocumentType: q.DocumentType, DocumentNumber: q.DocumentNumber, Role: q.Role, Area: q.Area, Formation: q.Formation, ORCID: q.ORCID, CvLAC: q.CvLAC, VisiblePublicly: q.VisiblePublicly == nil || *q.VisiblePublicly, SeedbedIDs: q.SeedbedIDs})
+	cvlac := ""
+	if q.CvLAC != nil {
+		cvlac = *q.CvLAC
+	}
+	p, err := h.members.Create(r.Context(), memberapp.CreateCommand{FirebaseUID: q.FirebaseUID, Name: q.Name, LastName: q.LastName, Email: q.Email, DocumentType: q.DocumentType, DocumentNumber: q.DocumentNumber, Role: q.Role, Area: q.Area, Formation: q.Formation, ORCID: q.ORCID, CvLAC: cvlac, VisiblePublicly: q.VisiblePublicly == nil || *q.VisiblePublicly, SeedbedIDs: q.SeedbedIDs})
 	if errors.Is(err, domain.ErrInvalidMember) {
 		writeError(w, 400, err.Error())
 		return

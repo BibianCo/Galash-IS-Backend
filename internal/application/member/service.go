@@ -64,7 +64,7 @@ func (s *Service) Update(ctx context.Context, id string, c UpdateCommand) (domai
 	if _, err := uuid.Parse(strings.TrimSpace(id)); err != nil {
 		return domain.MemberProfile{}, domain.ErrMemberNotFound
 	}
-	if c.Role != "" && !validateRole(c.Role) || !validURL(c.CvLAC) {
+	if c.Role != "" && !validateRole(c.Role) || c.CvLAC != nil && !validURL(*c.CvLAC) {
 		return domain.MemberProfile{}, domain.ErrInvalidMember
 	}
 	return s.repo.Update(ctx, id, c)
