@@ -745,3 +745,18 @@
 {"v": 1, "id": "X356", "t": "result", "run": "R113", "test": "T184", "s": "pass", "ev": ["docs/testing/evidence/R113/go-test-security.txt"]}
 {"v": 1, "id": "X357", "t": "result", "run": "R113", "test": "T185", "s": "fail", "ev": ["docs/testing/evidence/R113/transporte.txt"]}
 {"v": 1, "id": "D037", "t": "defect", "test": "T185", "run": "R113", "sev": "high", "s": "open", "area": "security", "name": "El despliegue versionado no configura HTTPS ni HSTS: la API se publica por HTTP en 8080 y no envía Strict-Transport-Security; la cookie Secure no viajaría por HTTP", "ref": "deploy/auth/docker-compose.legacy.yml", "note": "Si TLS lo termina un proxy externo no versionado, documentarlo y verificar HSTS allí."}
+{"v": 1, "id": "T186", "t": "test", "area": "ci", "p": "must", "name": "Análisis estático sin hallazgos: staticcheck ./... y govulncheck ./... sin vulnerabilidades alcanzables"}
+{"v": 1, "id": "R114", "t": "run", "at": "2026-11-16T19:40:00Z", "build": "ea8e6e8", "env": "E009", "by": "agent", "mode": "automated", "cmd": "go vet; go test -p 1 -count=1 ./... (con API live); staticcheck@v0.8.2; govulncheck@latest", "note": "Tras actualizar dependencias (go 1.26.0). Antes: 3 hallazgos staticcheck y 13 vulnerabilidades alcanzables en x/net, x/text, grpc y pgx."}
+{"v": 1, "id": "X358", "t": "result", "run": "R114", "test": "T186", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X359", "t": "result", "run": "R114", "test": "T045", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X360", "t": "result", "run": "R114", "test": "T046", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X361", "t": "result", "run": "R114", "test": "T047", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X362", "t": "result", "run": "R114", "test": "T048", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X363", "t": "result", "run": "R114", "test": "T049", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X364", "t": "result", "run": "R114", "test": "T176", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X365", "t": "result", "run": "R114", "test": "T177", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X366", "t": "result", "run": "R114", "test": "T178", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X367", "t": "result", "run": "R114", "test": "T179", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X368", "t": "result", "run": "R114", "test": "T180", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X369", "t": "result", "run": "R114", "test": "T183", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "X370", "t": "result", "run": "R114", "test": "T184", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
