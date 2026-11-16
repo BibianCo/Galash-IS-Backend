@@ -97,6 +97,9 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T063|module-4-research|`TestActivityWithoutOptionalListsIsStored`|Activity without responsibles or evidence is stored with empty lists.|`tests/research/repository_test.go`|PT-SEM-04|
 |T067|module-4-research|`TestReviewNotifiesActiveAdmins`|New review notifies every active admin in the same transaction; empty list is [].|`tests/research/repository_test.go`|PT-SEM-08|
 |T068|module-4-research|`TestMalformedOrMissingReferencesAreNotFound`|Malformed ids and missing seedbeds map to not-found errors instead of 500; empty activity list is [].|`tests/research/repository_test.go`|PT-SEM-04, PT-SEM-05|
+|T176|database|`TestSchemaHasExpectedTables`|init.sql crea las 31 tablas base esperadas.|`tests/database/schema_test.go`|TDB-T01|
+|T177|database|`TestSchemaRejectsInvalidWrites`|Restricciones rechazan duplicados (dni, firebase_uid, nombre de semillero), nulos, referencias inexistentes, borrado de usuario referenciado, avance fuera de 0-100, estado de proyecto inválido y UPDATE/DELETE en audit_logs.|`tests/database/schema_test.go`|TDB-T01, TDB-T02, TDB-T03, TDB-T06|
+|T178|database|`TestProjectDeleteCascadesHistory`|Borrar un proyecto elimina en cascada solo su historial dependiente.|`tests/database/schema_test.go`|TDB-T01|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.
