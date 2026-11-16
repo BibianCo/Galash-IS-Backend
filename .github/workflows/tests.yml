@@ -48,3 +48,22 @@ jobs:
 
       - name: Run Go vet
         run: go vet ./...
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Latest stable patch: govulncheck also reports standard-library CVEs of the toolchain in use.
+          go-version: stable
+          cache: true
+
+      - name: Run staticcheck
+        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
