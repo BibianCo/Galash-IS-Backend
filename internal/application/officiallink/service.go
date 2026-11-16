@@ -63,8 +63,7 @@ func (s *Service) Create(ctx context.Context, link domain.OfficialLink, actor st
 	link.Category = NormalizeCategory(link.Category)
 	link.Status = "activo"
 	link.UpdatedBy = actor
-	if link.Visible == false { /* false is a valid explicit visibility choice */
-	}
+	// false is a valid explicit visibility choice
 	if err := validate(link); err != nil {
 		return link, err
 	}

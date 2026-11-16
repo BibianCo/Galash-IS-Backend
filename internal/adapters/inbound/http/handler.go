@@ -42,13 +42,6 @@ type registerRequest struct {
 type sessionRequest struct {
 	Token string `json:"token"`
 }
-type recoveryRequest struct {
-	Email string `json:"email"`
-}
-type resetRequest struct {
-	Token    string `json:"token"`
-	Password string `json:"password"`
-}
 
 type Handler struct {
 	service       *application.Service
