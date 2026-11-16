@@ -44,89 +44,89 @@ fecha de nacimiento. Rutas en `internal/adapters/inbound/http/handler.go`.
 | Metodo | Ruta | Descripcion | Contrato | Uso |
 |---|---|---|---|---|
 | GET | `/health` | salud y bd | - | [ ] |
-| POST | `/auth/register` | alta por token (`claim_id` opcional) | M1 | [ ] |
-| GET | `/auth/register/matches` | integrantes SGI que coinciden con el correo | M1 | [ ] |
-| POST | `/auth/sessions` | crea sesion | M1 | [ ] |
-| DELETE | `/auth/sessions/current` | cierra sesion | M1 | [ ] |
-| GET | `/users/me` | perfil y roles | M1 | [ ] |
-| PUT | `/users/me/photo` | guarda URL de foto de perfil | M1 | [ ] |
-| PUT | `/users/{userId}/photo` | Admin reemplaza o quita (`""`) la URL de foto de otra cuenta | M1 | [ ] |
-| GET | `/members` | dir. publico | M5 | [ ] |
+| POST | `/auth/register` | alta por token (`claim_id` opcional) | M1 | [x] |
+| GET | `/auth/register/matches` | integrantes SGI que coinciden con el correo | M1 | [x] |
+| POST | `/auth/sessions` | crea sesion | M1 | [x] |
+| DELETE | `/auth/sessions/current` | cierra sesion | M1 | [x] |
+| GET | `/users/me` | perfil y roles | M1 | [x] |
+| PUT | `/users/me/photo` | guarda URL de foto de perfil | M1 | [x] |
+| PUT | `/users/{userId}/photo` | Admin reemplaza o quita (`""`) la URL de foto de otra cuenta | M1 | [x] |
+| GET | `/members` | dir. publico | M5 | [x] |
 | POST | `/members` | crea perfil | M5 | [ ] |
-| GET | `/members/{id}` | detalle público/privado autorizado | M5 | [ ] |
+| GET | `/members/{id}` | detalle público/privado autorizado | M5 | [x] |
 | PATCH | `/members/{id}` | edita perfil | M5 | [ ] |
-| PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [ ] |
-| GET | `/members/{id}/publications` | publicaciones visibles | M5 | [ ] |
-| GET | `/admin/members` | listado admin completo; filtro `q` opcional | M11 | [ ] |
+| PATCH | `/members/{id}/status` | activa o desactiva perfil | M5 | [x] |
+| GET | `/members/{id}/publications` | publicaciones visibles | M5 | [x] |
+| GET | `/admin/members` | listado admin completo; filtro `q` opcional | M11 | [x] |
 | PUT | `/users/roles` | alias rol | - | [ ] |
-| PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [ ] |
-| GET | `/seedbeds` | lista | M2 | [ ] |
-| POST | `/seedbeds` | crea | M2 | [ ] |
-| GET | `/seedbeds/{id}` | detalle | M2 | [ ] |
-| GET | `/seedbeds/{id}/space` | vista compuesta | M2 | [ ] |
-| PATCH | `/seedbeds/{id}` | edita | M2 | [ ] |
-| PATCH | `/seedbeds/{id}/visibility` | estado | M2 | [ ] |
-| GET | `/seedbeds/{id}/members` | integrantes | M2 | [ ] |
-| POST | `/seedbeds/{id}/members` | vincula | M2 | [ ] |
-| DELETE | `/seedbeds/{id}/members/{userId}` | retiro (quita delegación) | M2 | [ ] |
-| PUT | `/seedbeds/{id}/delegates` | reemplaza delegados (0-2), director o Admin | M2 | [ ] |
-| POST | `/registration-requests` | radica solicitud de la cuenta en sesión | M3 | [ ] |
-| GET | `/registration-requests/{id}/status` | consulta propia con token/sesión | M3 | [ ] |
-| GET | `/admin/registration-requests` | lista; Admin todas, director/delegado las de sus semilleros | M3 | [ ] |
-| GET | `/admin/registration-requests/{id}` | detalle e historial; Admin o gestor del semillero | M3 | [ ] |
-| PATCH | `/admin/registration-requests/{id}/status` | actualiza estado; Admin o gestor del semillero | M3 | [ ] |
-| GET | `/seedbeds/{seedbedId}/activities` | lista actividades | M4 | [ ] |
-| POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [ ] |
-| GET | `/activities/{id}` | detalle de actividad | M4 | [ ] |
-| PATCH | `/activities/{id}` | modifica actividad | M4 | [ ] |
-| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members`; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [ ] |
-| POST | `/projects` | registra proyecto | M4 | [ ] |
-| GET | `/projects/{id}` | detalle de proyecto; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [ ] |
-| PATCH | `/projects/{id}` | modifica proyecto | M4 | [ ] |
-| PATCH | `/projects/{id}/progress` | actualiza avance | M4 | [ ] |
-| GET | `/projects/progress` | resumen de avance | M4 | [ ] |
-| GET | `/projects/{id}/history` | historial de proyecto | M4 | [ ] |
+| PUT | `/users/{userId}/roles` | asigna rol (id = Firebase UID) | M11 | [x] |
+| GET | `/seedbeds` | lista | M2 | [x] |
+| POST | `/seedbeds` | crea | M2 | [x] |
+| GET | `/seedbeds/{id}` | detalle | M2 | [x] |
+| GET | `/seedbeds/{id}/space` | vista compuesta | M2 | [x] |
+| PATCH | `/seedbeds/{id}` | edita | M2 | [x] |
+| PATCH | `/seedbeds/{id}/visibility` | estado | M2 | [x] |
+| GET | `/seedbeds/{id}/members` | integrantes | M2 | [x] |
+| POST | `/seedbeds/{id}/members` | vincula | M2 | [x] |
+| DELETE | `/seedbeds/{id}/members/{userId}` | retiro (quita delegación) | M2 | [x] |
+| PUT | `/seedbeds/{id}/delegates` | reemplaza delegados (0-2), director o Admin | M2 | [x] |
+| POST | `/registration-requests` | radica solicitud de la cuenta en sesión | M3 | [x] |
+| GET | `/registration-requests/{id}/status` | consulta propia con token/sesión | M3 | [x] |
+| GET | `/admin/registration-requests` | lista; Admin todas, director/delegado las de sus semilleros | M3 | [x] |
+| GET | `/admin/registration-requests/{id}` | detalle e historial; Admin o gestor del semillero | M3 | [x] |
+| PATCH | `/admin/registration-requests/{id}/status` | actualiza estado; Admin o gestor del semillero | M3 | [x] |
+| GET | `/seedbeds/{seedbedId}/activities` | lista actividades | M4 | [x] |
+| POST | `/seedbeds/{seedbedId}/activities` | registra actividad | M4 | [x] |
+| GET | `/activities/{id}` | detalle de actividad | M4 | [x] |
+| PATCH | `/activities/{id}` | modifica actividad | M4 | [x] |
+| GET | `/projects` | lista proyectos (`seedbedId` `""` = proyecto del grupo, sin semillero; solo Admin lo modifica). Cada proyecto trae `responsibles` y `members` `[{id,name}]` para mostrar nombres sin consultar `/members`; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [x] |
+| POST | `/projects` | registra proyecto | M4 | [x] |
+| GET | `/projects/{id}` | detalle de proyecto; `progress` se omite para Visitante o sin sesión y se incluye para Estudiante, Docente y Admin | M4 | [x] |
+| PATCH | `/projects/{id}` | modifica proyecto | M4 | [x] |
+| PATCH | `/projects/{id}/progress` | actualiza avance | M4 | [x] |
+| GET | `/projects/progress` | resumen de avance | M4 | [x] |
+| GET | `/projects/{id}/history` | historial de proyecto | M4 | [x] |
 | GET | `/research-proposals` | lista propuestas | M4 | [ ] |
 | POST | `/research-proposals` | registra propuesta | M4 | [ ] |
 | GET | `/research-proposals/{id}` | detalle de propuesta | M4 | [ ] |
 | PATCH | `/research-proposals/{id}` | modifica propuesta | M4 | [ ] |
 | POST | `/research-proposals/{id}/convert-to-project` | convierte propuesta aprobada | M4 | [ ] |
-| POST | `/seedbeds/{seedbedId}/reviews` | crea reseña | M4 | [ ] |
-| GET | `/seedbeds/{seedbedId}/reviews` | reseñas publicadas (público; `404` si el semillero no es público) | M4 | [ ] |
-| GET | `/admin/seedbed-reviews` | lista reseñas | M4 | [ ] |
-| PATCH | `/admin/seedbed-reviews/{id}/moderation` | modera reseña | M4 | [ ] |
-| GET | `/events` | agenda pública filtrable; Admin autenticado ve todos los estados | M6 | [ ] |
-| POST | `/events` | crea evento en borrador | M6 | [ ] |
-| GET | `/events/{id}` | detalle publicado/autorizado | M6 | [ ] |
-| PATCH | `/events/{id}` | edita evento | M6 | [ ] |
-| POST | `/events/{id}/publish` | publica evento | M6 | [ ] |
-| POST | `/events/{id}/cancel` | cancela evento | M6 | [ ] |
-| POST | `/events/{id}/hide` | oculta evento | M6 | [ ] |
-| GET | `/content/pages` | páginas institucionales publicadas | M7 | [ ] |
+| POST | `/seedbeds/{seedbedId}/reviews` | crea reseña | M4 | [x] |
+| GET | `/seedbeds/{seedbedId}/reviews` | reseñas publicadas (público; `404` si el semillero no es público) | M4 | [x] |
+| GET | `/admin/seedbed-reviews` | lista reseñas | M4 | [x] |
+| PATCH | `/admin/seedbed-reviews/{id}/moderation` | modera reseña | M4 | [x] |
+| GET | `/events` | agenda pública filtrable; Admin autenticado ve todos los estados | M6 | [x] |
+| POST | `/events` | crea evento en borrador | M6 | [x] |
+| GET | `/events/{id}` | detalle publicado/autorizado | M6 | [x] |
+| PATCH | `/events/{id}` | edita evento | M6 | [x] |
+| POST | `/events/{id}/publish` | publica evento | M6 | [x] |
+| POST | `/events/{id}/cancel` | cancela evento | M6 | [x] |
+| POST | `/events/{id}/hide` | oculta evento | M6 | [x] |
+| GET | `/content/pages` | páginas institucionales publicadas | M7 | [x] |
 | GET | `/content/pages/{slug}` | página institucional publicada | M7 | [ ] |
-| GET | `/admin/content/pages` | páginas públicas y borradores | M7 | [ ] |
-| POST | `/admin/content/pages` | crea página en borrador | M7 | [ ] |
-| PATCH | `/admin/content/pages/{id}` | edita página y sanitiza contenido | M7 | [ ] |
-| POST | `/admin/content/pages/{id}/publish` | publica página vigente | M7 | [ ] |
-| GET | `/announcements` | comunicados publicados, borradores propios y todos los borradores para Admin; lectura propia | M8 | [ ] |
-| POST | `/announcements` | crea comunicado con adjuntos permitidos | M8 | [ ] |
-| GET | `/announcements/{id}` | detalle y adjuntos autorizados | M8 | [ ] |
-| PATCH | `/announcements/{id}` | edita comunicado en borrador | M8 | [ ] |
-| POST | `/announcements/{id}/publish` | publica comunicado | M8 | [ ] |
-| POST | `/announcements/{id}/read-confirmations` | confirma lectura idempotente | M8 | [ ] |
-| GET | `/announcements/{id}/read-status` | trazabilidad por docente para autor/admin | M8 | [ ] |
-| GET | `/internal-calendar/events` | agenda interna por rango, vista y semillero | M9 | [ ] |
-| POST | `/internal-calendar/events` | crea reunión, tutoría o hito | M9 | [ ] |
-| GET | `/internal-calendar/events/{id}` | detalle y participantes autorizado | M9 | [ ] |
-| PATCH | `/internal-calendar/events/{id}` | actualiza evento o participantes | M9 | [ ] |
-| DELETE | `/internal-calendar/events/{id}` | cancela lógicamente conservando trazabilidad | M9 | [ ] |
-| GET | `/links` | enlaces oficiales visibles para público; Admin activo consulta todos los estados, con filtro por categoría y orden | M10 | [ ] |
-| POST | `/links` | crea enlace oficial validando URL externa | M10 | [ ] |
-| PATCH | `/links/{id}` | actualiza enlace oficial y registra historial | M10 | [ ] |
-| PATCH | `/links/{id}/status` | activa, desactiva u oculta enlace sin borrar historial | M10 | [ ] |
-| GET | `/audit-logs` | consulta bitácora filtrable por actor, acción, entidad y periodo; Admin | M12 | [ ] |
-| POST | `/files` | carga multipart segura asociada a una entidad | M13 | [ ] |
-| GET | `/files/{id}` | descarga autorizada de un archivo adjunto | M13 | [ ] |
+| GET | `/admin/content/pages` | páginas públicas y borradores | M7 | [x] |
+| POST | `/admin/content/pages` | crea página en borrador | M7 | [x] |
+| PATCH | `/admin/content/pages/{id}` | edita página y sanitiza contenido | M7 | [x] |
+| POST | `/admin/content/pages/{id}/publish` | publica página vigente | M7 | [x] |
+| GET | `/announcements` | comunicados publicados, borradores propios y todos los borradores para Admin; lectura propia | M8 | [x] |
+| POST | `/announcements` | crea comunicado con adjuntos permitidos | M8 | [x] |
+| GET | `/announcements/{id}` | detalle y adjuntos autorizados | M8 | [x] |
+| PATCH | `/announcements/{id}` | edita comunicado en borrador | M8 | [x] |
+| POST | `/announcements/{id}/publish` | publica comunicado | M8 | [x] |
+| POST | `/announcements/{id}/read-confirmations` | confirma lectura idempotente | M8 | [x] |
+| GET | `/announcements/{id}/read-status` | trazabilidad por docente para autor/admin | M8 | [x] |
+| GET | `/internal-calendar/events` | agenda interna por rango, vista y semillero | M9 | [x] |
+| POST | `/internal-calendar/events` | crea reunión, tutoría o hito | M9 | [x] |
+| GET | `/internal-calendar/events/{id}` | detalle y participantes autorizado | M9 | [x] |
+| PATCH | `/internal-calendar/events/{id}` | actualiza evento o participantes | M9 | [x] |
+| DELETE | `/internal-calendar/events/{id}` | cancela lógicamente conservando trazabilidad | M9 | [x] |
+| GET | `/links` | enlaces oficiales visibles para público; Admin activo consulta todos los estados, con filtro por categoría y orden | M10 | [x] |
+| POST | `/links` | crea enlace oficial validando URL externa | M10 | [x] |
+| PATCH | `/links/{id}` | actualiza enlace oficial y registra historial | M10 | [x] |
+| PATCH | `/links/{id}/status` | activa, desactiva u oculta enlace sin borrar historial | M10 | [x] |
+| GET | `/audit-logs` | consulta bitácora filtrable por actor, acción, entidad y periodo; Admin | M12 | [x] |
+| POST | `/files` | carga multipart segura asociada a una entidad | M13 | [x] |
+| GET | `/files/{id}` | descarga autorizada de un archivo adjunto | M13 | [x] |
 
 Payloads M4 en camelCase (`id`, `seedbedId`, `responsibleIds`, `memberIds`,
 `progress`, ...). `GET /research-proposals/{id}` incluye `history` y

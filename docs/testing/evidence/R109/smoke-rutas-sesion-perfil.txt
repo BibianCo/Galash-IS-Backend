@@ -1,0 +1,12 @@
+POST /auth/sessions -> 401 {"error":"credenciales inválidas"}
+
+GET /users/me -> 401 {"error":"sesión requerida"}
+
+DELETE /auth/sessions/current -> 401 {"error":"sesión requerida"}
+
+PUT /users/me/photo -> 401 {"error":"sesión requerida"}
+
+GET /auth/register/matches -> 401 {"error":"se requiere Authorization: Bearer \u003ctoken\u003e"}
+
+POST /auth/register -> 401 {"error":"se requiere Authorization: Bearer \u003ctoken\u003e"}
+
