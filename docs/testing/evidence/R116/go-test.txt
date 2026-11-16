@@ -1,0 +1,19 @@
+--- PASS: TestRegistrationLifecycleKeepsIdentityAndHistory (0.05s)
+--- PASS: TestRegistrationFiltersMatchPreparedCounts (0.05s)
+--- PASS: TestConcurrentRegistrationUpdatesHaveOneWinner (0.10s)
+--- PASS: TestRegistrationLifecycleKeepsIdentityAndHistory (0.04s)
+--- PASS: TestRegistrationFiltersMatchPreparedCounts (0.05s)
+--- PASS: TestConcurrentRegistrationUpdatesHaveOneWinner (0.10s)
+--- PASS: TestRegistrationLifecycleKeepsIdentityAndHistory (0.04s)
+--- PASS: TestRegistrationFiltersMatchPreparedCounts (0.05s)
+--- PASS: TestConcurrentRegistrationUpdatesHaveOneWinner (0.10s)
+ok  	github.com/galash-uptc/backend/tests/registration	0.584s
+    integrity_test.go:27: create end before start: err=<nil>, want ErrInvalidResearch
+--- FAIL: TestProjectRejectsEndBeforeStart (0.00s)
+    integrity_test.go:56: stale save succeeded and reverted title to "Original" (lost update without conflict)
+--- FAIL: TestStaleProjectSaveDoesNotSilentlyRevertOtherEdit (0.04s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/research	0.042s
+FAIL
+--- PASS: TestLivePublicResponsesHidePersonalData (0.04s)
+ok  	github.com/galash-uptc/backend/tests/security	0.044s

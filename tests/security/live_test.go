@@ -142,3 +142,40 @@ func TestLiveInjectionPayloadsAreInert(t *testing.T) {
 		}
 	}
 }
+
+// TDB-T15: anonymous public responses never expose document, email or Firebase UID of members.
+func TestLivePublicResponsesHidePersonalData(t *testing.T) {
+	l := newLive(t)
+	ctx := context.Background()
+	if _, err := l.db.Exec(ctx, `UPDATE usuarios SET dni=$1, tipo_dni='CC', telefono='3000000000' WHERE id=$2`, l.run+"-dni", l.ids["docente"]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.db.Exec(ctx, `INSERT INTO perfil_investigador (usuario_id,visible_publicamente) VALUES ($1,true) ON CONFLICT (usuario_id) DO UPDATE SET visible_publicamente=true`, l.ids["docente"]); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = l.db.Exec(context.Background(), `DELETE FROM perfil_investigador WHERE usuario_id=$1`, l.ids["docente"])
+	})
+	admin := l.session(t, "admin", "1 hour", false)
+	body, _ := json.Marshal(map[string]string{"name": l.run + "-pub", "description": "d", "researchLine": "IA", "objective": "o", "responsibleTeacherId": l.ids["docente"], "contactEmail": "semillero@example.test"})
+	status, _, text := l.call(t, http.MethodPost, "/seedbeds", admin, string(body))
+	var seedbed struct{ ID string }
+	if status != http.StatusCreated || json.Unmarshal([]byte(text), &seedbed) != nil {
+		t.Fatalf("create seedbed: %d %s", status, text)
+	}
+	if status, _, text := l.call(t, http.MethodPatch, "/seedbeds/"+seedbed.ID+"/visibility", admin, `{"status":"Publicado"}`); status != http.StatusOK {
+		t.Fatalf("publish seedbed: %d %s", status, text)
+	}
+	secrets := []string{l.run + "-dni", l.run + "-docente@example.test", l.run + "-docente", "3000000000"}
+	for _, path := range []string{"/members", "/members?q=Prueba", "/members/" + l.ids["docente"], "/seedbeds/" + seedbed.ID, "/seedbeds/" + seedbed.ID + "/space", "/seedbeds/" + seedbed.ID + "/members"} {
+		status, _, text := l.call(t, http.MethodGet, path, "", "")
+		if status != http.StatusOK {
+			t.Errorf("%s: status %d, want 200 so the check is not vacuous: %s", path, status, text)
+		}
+		for _, s := range secrets {
+			if strings.Contains(text, s) {
+				t.Errorf("%s (anonymous) exposes %q: %s", path, s, text)
+			}
+		}
+	}
+}

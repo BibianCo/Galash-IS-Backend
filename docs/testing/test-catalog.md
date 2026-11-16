@@ -81,6 +81,7 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T064|module-4-research|`TestPatchKeepsOmittedFields`|PATCH of project, activity and proposal keeps omitted fields and validates the merged record.|`tests/research/http_test.go`|PT-SEM-04, PT-SEM-05, PT-SEM-06|
 |T183|security|`TestLiveSessionExpiryAndRevocation`|Contra la API en ejecución: sesión vigente 200; expirada (expira_en pasada) o revocada 401 en GET /users/me.|`tests/security/live_test.go`|PT-NF-04|
 |T184|security|`TestLiveInjectionPayloadsAreInert`|Payloads SQL y <script>/<img onerror> en campos de texto se guardan literalmente, la respuesta JSON escapa el marcado, la tabla sigue existiendo y la búsqueda de integrantes no filtra cuentas.|`tests/security/live_test.go`|PT-NF-04|
+|T194|security|`TestLivePublicResponsesHidePersonalData`|Sin sesión, directorio, perfil, semillero, espacio e integrantes no exponen dni, correo, teléfono ni firebase_uid (API en ejecución).|`tests/security/live_test.go`|TDB-T15, TDB-T09|
 
 ## Database integration tests
 
@@ -105,6 +106,11 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T179|registration|`TestApplicantReadsOwnRequestStatusOnly`|Solicitante consulta su solicitud (sesión o token de seguimiento) en los 5 estados; otra cuenta y token erróneo 404 sin datos; sin credencial 401.|`tests/registration/status_http_test.go`|PT-AUTH-05|
 |T180|member|`TestTeacherCvLACLinkIsValidatedAndShown`|Enlace CvLAC válido se guarda, aparece en el perfil público y se reemplaza; URL no http(s) se rechaza.|`tests/member/cvlac_test.go`|PT-INT-03|
 |T181|member|`TestTeacherCvLACLinkCanBeRemoved`|Retirar el CvLAC (cvlac vacío) lo quita del perfil. Omitida por defecto mientras D035 siga abierto.|`tests/member/cvlac_test.go`|PT-INT-03|
+|T187|registration|`TestRegistrationLifecycleKeepsIdentityAndHistory`|Recorre Radicada→Pendiente→En revisión→Aprobada y Radicada→En revisión→Rechazada: id, solicitante y semillero estables, historial ordenado y fechado, cierre no reabrible; aprobada asigna estudiante y membresía.|`tests/registration/lifecycle_test.go`|TDB-T04, PT-AUTH-06|
+|T188|registration|`TestRegistrationFiltersMatchPreparedCounts`|Filtros por estado, semillero, alcance de gestor y fecha devuelven exactamente los conteos del conjunto preparado (6 solicitudes).|`tests/registration/lifecycle_test.go`|TDB-T12|
+|T189|registration|`TestConcurrentRegistrationUpdatesHaveOneWinner`|Dos sesiones concurrentes cambian la misma solicitud: una gana, la otra recibe transición inválida y el historial no queda parcial (20 rondas).|`tests/registration/lifecycle_test.go`|TDB-T11|
+|T190|module-4-research|`TestProjectRejectsEndBeforeStart`|Crear o editar un proyecto con fecha fin anterior al inicio se rechaza. Omitida mientras D038 siga abierto.|`tests/research/integrity_test.go`|TDB-T03|
+|T191|module-4-research|`TestStaleProjectSaveDoesNotSilentlyRevertOtherEdit`|Un guardado con copia obsoleta no revierte en silencio la edición de otro usuario. Omitida mientras D039 siga abierto.|`tests/research/integrity_test.go`|TDB-T11|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.
