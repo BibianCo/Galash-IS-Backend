@@ -54,6 +54,16 @@ docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
   < database/migrations/018_app_role.sql
 ```
 
+Para exigir en la base los catálogos de estados y roles y el orden de fechas
+(D034, D038), aplica la migración 019. Si hay filas fuera de catálogo, la
+migración se detiene, las lista y no cambia nada; corrígelas y vuelve a
+ejecutarla:
+
+```bash
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
+  -d "${POSTGRES_DB:-galash}" -v ON_ERROR_STOP=1 < database/migrations/019_state_checks.sql
+```
+
 ## Datos sintéticos (desarrollo local)
 
 `database/seed/seed.sh` carga datos ficticios en el PostgreSQL del compose:

@@ -79,6 +79,13 @@ func TestSchemaRejectsInvalidWrites(t *testing.T) {
 		"unknown project state":      {`UPDATE proyectos SET estado='Radicado' WHERE id='00000000-0000-0000-0000-0000000000c1'`, "23514"},
 		"update audit log":           {`UPDATE audit_logs SET result='editado' WHERE action='tdb'`, "P0001"},
 		"delete audit log":           {`DELETE FROM audit_logs WHERE action='tdb'`, "P0001"},
+		"unknown role":               {`UPDATE usuarios SET rol='superadmin' WHERE firebase_uid='tdb-uid-1'`, "23514"},
+		"unknown account state":      {`UPDATE usuarios SET estado='suspendido' WHERE firebase_uid='tdb-uid-1'`, "23514"},
+		"unknown seedbed state":      {`UPDATE semilleros SET visibilidad='Activo' WHERE nombre='tdb-semillero'`, "23514"},
+		"unknown event state":        {`INSERT INTO eventos (titulo,estado) VALUES ('t','archivado')`, "23514"},
+		"event ends before start":    {`INSERT INTO eventos (titulo,inicia_en,termina_en) VALUES ('t','2030-01-02','2030-01-01')`, "23514"},
+		"project ends before start":  {`UPDATE proyectos SET fecha_inicio='2030-01-02', fecha_fin='2030-01-01' WHERE titulo='tdb-proyecto'`, "23514"},
+		"withdrawn before joining":   {`INSERT INTO semillero_miembros (semillero_id,usuario_id,ingreso_en,retirado_en) VALUES ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000a1','2030-01-02','2030-01-01')`, "23514"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := begin(t).Exec(context.Background(), c.sql)
