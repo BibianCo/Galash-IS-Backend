@@ -82,6 +82,8 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T183|security|`TestLiveSessionExpiryAndRevocation`|Contra la API en ejecución: sesión vigente 200; expirada (expira_en pasada) o revocada 401 en GET /users/me.|`tests/security/live_test.go`|PT-NF-04|
 |T184|security|`TestLiveInjectionPayloadsAreInert`|Payloads SQL y <script>/<img onerror> en campos de texto se guardan literalmente, la respuesta JSON escapa el marcado, la tabla sigue existiendo y la búsqueda de integrantes no filtra cuentas.|`tests/security/live_test.go`|PT-NF-04|
 |T194|security|`TestLivePublicResponsesHidePersonalData`|Sin sesión, directorio, perfil, semillero, espacio e integrantes no exponen dni, correo, teléfono ni firebase_uid (API en ejecución).|`tests/security/live_test.go`|TDB-T15, TDB-T09|
+|T197|event|`TestEventPatchWithStaleUpdatedAtReturnsConflict`|PATCH /events/{id} con updatedAt obsoleto responde 409 y conserva la edición más reciente; con updatedAt vigente o sin él, 200.|`tests/event/http_test.go`|TDB-T11|
+|T199|security|`TestLiveSecurityHeaders`|Contra la API en ejecución: HSTS solo cuando la petición llega por HTTPS (X-Forwarded-Proto) y nosniff siempre.|`tests/security/live_test.go`|PT-NF-04|
 
 ## Database integration tests
 
@@ -111,6 +113,8 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T189|registration|`TestConcurrentRegistrationUpdatesHaveOneWinner`|Dos sesiones concurrentes cambian la misma solicitud: una gana, la otra recibe transición inválida y el historial no queda parcial (20 rondas).|`tests/registration/lifecycle_test.go`|TDB-T11|
 |T190|module-4-research|`TestProjectRejectsEndBeforeStart`|Crear o editar un proyecto con fecha fin anterior al inicio se rechaza. Omitida mientras D038 siga abierto.|`tests/research/integrity_test.go`|TDB-T03|
 |T191|module-4-research|`TestStaleProjectSaveDoesNotSilentlyRevertOtherEdit`|Un guardado con copia obsoleta no revierte en silencio la edición de otro usuario. Omitida mientras D039 siga abierto.|`tests/research/integrity_test.go`|TDB-T11|
+|T198|database|`TestAppRoleHasLeastPrivilege`|El rol galash_app (migración 018) no es superusuario, no crea objetos ni modifica o borra audit_logs, y sí escribe datos.|`tests/database/schema_test.go`|TDB-T15|
+|T200|database|`TestSchemaRejectsInvalidWrites` (v2)|Versión 2 de T177: además rechaza rol, estado de cuenta, estado de semillero y de evento fuera de catálogo, fechas invertidas y correo repetido sin distinguir mayúsculas.|`tests/database/schema_test.go`|TDB-T02, TDB-T03, TDB-T06|
 
 For a new test type, add a table with the same columns. Keep domain as a column
 in every table so tests remain filterable by functionality.

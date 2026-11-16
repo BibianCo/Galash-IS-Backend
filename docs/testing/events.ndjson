@@ -788,3 +788,42 @@
 {"v": 1, "id": "X368", "t": "result", "run": "R114", "test": "T180", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
 {"v": 1, "id": "X369", "t": "result", "run": "R114", "test": "T183", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
 {"v": 1, "id": "X370", "t": "result", "run": "R114", "test": "T184", "s": "pass", "ev": ["docs/testing/evidence/R114/ci-local.txt"]}
+{"v": 1, "id": "T197", "t": "test", "area": "event", "p": "must", "name": "TestEventPatchWithStaleUpdatedAtReturnsConflict: PATCH /events/{id} con updatedAt obsoleto responde 409 y conserva la edición más reciente; con updatedAt vigente o sin él, 200.", "matrix": "TDB-T11"}
+{"v": 1, "id": "T198", "t": "test", "area": "database", "p": "must", "name": "TestAppRoleHasLeastPrivilege: El rol galash_app (migración 018) no es superusuario, no crea objetos ni modifica o borra audit_logs, y sí escribe datos.", "matrix": "TDB-T15"}
+{"v": 1, "id": "T200", "t": "test", "area": "database", "p": "must", "name": "TestSchemaRejectsInvalidWrites` (v2): Versión 2 de T177: además rechaza rol, estado de cuenta, estado de semillero y de evento fuera de catálogo, fechas invertidas y correo repetido sin distinguir mayúsculas.", "matrix": "TDB-T02, TDB-T03, TDB-T06"}
+{"v": 1, "id": "T199", "t": "test", "area": "security", "p": "must", "name": "TestLiveSecurityHeaders: HSTS tras HTTPS y nosniff siempre", "matrix": "PT-NF-04"}
+{"v": 1, "id": "E011", "t": "env", "os": "Linux", "device": "development-shell", "runtime": "API local (go run, Go 1.27) conectada como galash_app (migración 018) en :18080; PostgreSQL 16 efímero con init.sql (incluye 019 y 020) y synthetic.sql; Caddy 2.8 local con tls internal para la verificación de D037"}
+{"v": 1, "id": "R118", "t": "run", "at": "2026-11-16T21:00:00Z", "build": "fix/GSW-195-defectos", "env": "E011", "by": "agent", "mode": "automated", "cmd": "go vet; GALASH_API_URL=… go test -p 1 -count=1 -v ./...; TEST_LIVE_API_URL=… TestLiveAdminEndpointListsAllAccounts; staticcheck; govulncheck; curl vía Caddy (tls-hsts.txt)", "note": "Toda la suite pasa con la API usando el rol de privilegios mínimos: 197 PASS + prueba live opcional; 0 FAIL. Sin vulnerabilidades alcanzables."}
+{"v": 1, "id": "X381", "t": "result", "run": "R118", "test": "T045", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X382", "t": "result", "run": "R118", "test": "T046", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X383", "t": "result", "run": "R118", "test": "T047", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X384", "t": "result", "run": "R118", "test": "T048", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X385", "t": "result", "run": "R118", "test": "T049", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X386", "t": "result", "run": "R118", "test": "T177", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X387", "t": "result", "run": "R118", "test": "T179", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X388", "t": "result", "run": "R118", "test": "T180", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X389", "t": "result", "run": "R118", "test": "T181", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X390", "t": "result", "run": "R118", "test": "T183", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X391", "t": "result", "run": "R118", "test": "T184", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X392", "t": "result", "run": "R118", "test": "T185", "s": "pass", "ev": ["docs/testing/evidence/R118/tls-hsts.txt", "docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X393", "t": "result", "run": "R118", "test": "T186", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X394", "t": "result", "run": "R118", "test": "T187", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X395", "t": "result", "run": "R118", "test": "T188", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X396", "t": "result", "run": "R118", "test": "T189", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X397", "t": "result", "run": "R118", "test": "T190", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X398", "t": "result", "run": "R118", "test": "T191", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X399", "t": "result", "run": "R118", "test": "T194", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X400", "t": "result", "run": "R118", "test": "T195", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt", "database/migrations/018_app_role.sql"]}
+{"v": 1, "id": "X401", "t": "result", "run": "R118", "test": "T197", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X402", "t": "result", "run": "R118", "test": "T198", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X403", "t": "result", "run": "R118", "test": "T199", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X404", "t": "result", "run": "R118", "test": "T200", "s": "pass", "ev": ["docs/testing/evidence/R118/go-test.txt"]}
+{"v": 1, "id": "X405", "t": "result", "run": "R118", "test": "T182", "s": "skip", "note": "PT-CON-01 fuera de alcance por decisión del usuario (16/11/2026): no se implementa formulario de contacto."}
+{"v": 1, "defect": "D033", "t": "defect", "test": "T200", "run": "R118", "s": "closed", "note": "Índice único sobre lower(email) (migración 020) y 409 en POST/PATCH /members"}
+{"v": 1, "defect": "D034", "t": "defect", "test": "T200", "run": "R118", "s": "closed", "note": "CHECKs de catálogo para 12 columnas de estado/rol (migración 019); tipo, categoría, vinculación, origen y resultado de auditoría y tipo_dni quedan validados en la aplicación"}
+{"v": 1, "defect": "D035", "t": "defect", "test": "T181", "run": "R118", "s": "closed", "note": "cvlac \"\" retira el enlace; omitido lo conserva (contract-change)"}
+{"v": 1, "defect": "D036", "t": "defect", "test": "T182", "run": "R118", "s": "closed", "note": "Cerrado como fuera de alcance por decisión del usuario; el contrato no define contacto y el sitio publica correo y dirección"}
+{"v": 1, "defect": "D037", "t": "defect", "test": "T199", "run": "R118", "s": "closed", "note": "TLS en Caddy (deploy/proxy), API sin puerto público, HSTS y nosniff verificados"}
+{"v": 1, "defect": "D038", "t": "defect", "test": "T190", "run": "R118", "s": "closed", "note": "Servicio y CHECK de BD rechazan fecha de fin anterior al inicio"}
+{"v": 1, "defect": "D039", "t": "defect", "test": "T191", "run": "R118", "s": "closed", "note": "UPDATE condicionado por actualizado_en y 409 en PATCH de proyectos y eventos (contract-change); también T197"}
+{"v": 1, "defect": "D040", "t": "defect", "test": "T198", "run": "R118", "s": "closed", "note": "Rol galash_app con privilegios mínimos; la suite live pasa con la API conectada con ese rol"}
