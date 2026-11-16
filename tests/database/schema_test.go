@@ -100,3 +100,26 @@ func TestProjectDeleteCascadesHistory(t *testing.T) {
 		t.Fatalf("history rows = %d (%v), want 0", n, err)
 	}
 }
+
+// TDB-T15 / D040: the API role (migration 018) is not a superuser, cannot create objects and cannot rewrite the audit trail.
+func TestAppRoleHasLeastPrivilege(t *testing.T) {
+	tx, ctx := begin(t), context.Background()
+	var exists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='galash_app')`).Scan(&exists); err != nil || !exists {
+		t.Fatalf("role galash_app missing (apply database/migrations/018_app_role.sql): %v", err)
+	}
+	for check, want := range map[string]bool{
+		`SELECT rolsuper OR rolcreatedb OR rolcreaterole FROM pg_roles WHERE rolname='galash_app'`: false,
+		`SELECT has_schema_privilege('galash_app','public','CREATE')`:                              false,
+		`SELECT has_table_privilege('galash_app','audit_logs','UPDATE')`:                           false,
+		`SELECT has_table_privilege('galash_app','audit_logs','DELETE')`:                           false,
+		`SELECT has_table_privilege('galash_app','audit_logs','INSERT')`:                           true,
+		`SELECT has_table_privilege('galash_app','usuarios','UPDATE')`:                             true,
+		`SELECT has_table_privilege('galash_app','sesiones','DELETE')`:                             true,
+	} {
+		var got bool
+		if err := tx.QueryRow(ctx, check).Scan(&got); err != nil || got != want {
+			t.Errorf("%s = %v (%v), want %v", check, got, err, want)
+		}
+	}
+}
