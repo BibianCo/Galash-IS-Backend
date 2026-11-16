@@ -1,0 +1,6 @@
+=== RUN   TestLiveSessionExpiryAndRevocation
+--- PASS: TestLiveSessionExpiryAndRevocation (0.04s)
+=== RUN   TestLiveInjectionPayloadsAreInert
+--- PASS: TestLiveInjectionPayloadsAreInert (0.04s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/security	0.079s

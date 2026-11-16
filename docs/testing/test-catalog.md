@@ -79,6 +79,8 @@ function, keep one catalog row per `T` ID and repeat the function name.
 |T043|seedbeds|`TestSeedbedMemberHistoryIsRestricted`|Withdrawal history only for responsible or admin; hidden members not exposed.|`tests/seedbed/http_test.go`|PT-SEM-02, PT-SEM-03|
 |T044|seedbeds|`TestLinkAndWithdrawMemberRequireResponsibleOrAdmin`|Link and withdraw member require responsible or admin.|`tests/seedbed/http_test.go`|PT-SEM-03|
 |T064|module-4-research|`TestPatchKeepsOmittedFields`|PATCH of project, activity and proposal keeps omitted fields and validates the merged record.|`tests/research/http_test.go`|PT-SEM-04, PT-SEM-05, PT-SEM-06|
+|T183|security|`TestLiveSessionExpiryAndRevocation`|Contra la API en ejecución: sesión vigente 200; expirada (expira_en pasada) o revocada 401 en GET /users/me.|`tests/security/live_test.go`|PT-NF-04|
+|T184|security|`TestLiveInjectionPayloadsAreInert`|Payloads SQL y <script>/<img onerror> en campos de texto se guardan literalmente, la respuesta JSON escapa el marcado, la tabla sigue existiendo y la búsqueda de integrantes no filtra cuentas.|`tests/security/live_test.go`|PT-NF-04|
 
 ## Database integration tests
 
