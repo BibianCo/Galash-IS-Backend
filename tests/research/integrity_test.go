@@ -19,7 +19,6 @@ func knownDefect(t *testing.T, id string) {
 
 // TDB-T03: a project cannot end before it starts.
 func TestProjectRejectsEndBeforeStart(t *testing.T) {
-	knownDefect(t, "D038")
 	s, _ := fixtures()
 	start, end := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	p := domain.Project{SeedbedID: "sb", Title: "P", Status: "Activo", StartDate: &start, EndDate: &end}

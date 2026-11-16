@@ -77,6 +77,10 @@ func (s *Service) operate(ctx context.Context, actor, seedbed string) error {
 // Radicado is no longer a project status (migration 017); it is rejected like any unknown value.
 func validStatus(v string) bool { return v == "Activo" || v == "Finalizado" }
 
+func endsBeforeStart(p domain.Project) bool {
+	return p.StartDate != nil && p.EndDate != nil && p.EndDate.Before(*p.StartDate)
+}
+
 func (s *Service) CreateActivity(ctx context.Context, a domain.Activity, actor string) (domain.Activity, error) {
 	if e := s.operate(ctx, actor, a.SeedbedID); e != nil {
 		return a, e
@@ -132,7 +136,7 @@ func (s *Service) CreateProject(ctx context.Context, p domain.Project, actor str
 	if p.Status == "" {
 		p.Status = "Activo"
 	}
-	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 {
+	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 || endsBeforeStart(p) {
 		return p, domain.ErrInvalidResearch
 	}
 	p.CreatedBy = actor
@@ -175,7 +179,7 @@ func (s *Service) UpdateProject(ctx context.Context, id string, p domain.Project
 		return p, e
 	}
 	p.SeedbedID = old.SeedbedID
-	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 {
+	if strings.TrimSpace(p.Title) == "" || !validStatus(p.Status) || p.Progress < 0 || p.Progress > 100 || endsBeforeStart(p) {
 		return p, domain.ErrInvalidResearch
 	}
 	return s.repo.UpdateProject(ctx, id, p, actor, projectChanges(old, p))
