@@ -55,19 +55,19 @@ func seed(t *testing.T) (*postgresadapter.ResearchRepository, *pgxpool.Pool, str
 func TestProjectUpdatesKeepAuthorAndDateHistory(t *testing.T) {
 	r, _, user, seedbed := seed(t)
 	ctx := context.Background()
-	p, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "P", Status: "Radicado", CreatedBy: user})
+	p, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "P", Status: "Activo", CreatedBy: user})
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.Status = "Activo"
-	if _, err := r.UpdateProject(ctx, p.ID, p, user, []domain.ProjectHistory{{Field: "estado", Value: "Activo"}}); err != nil {
+	p.Status = "Finalizado"
+	if _, err := r.UpdateProject(ctx, p.ID, p, user, []domain.ProjectHistory{{Field: "estado", Value: "Finalizado"}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := r.UpdateProgress(ctx, p.ID, 60, user); err != nil {
 		t.Fatal(err)
 	}
 	got, err := r.FindProject(ctx, p.ID)
-	if err != nil || got.Status != "Activo" || got.Progress != 60 || got.CreatedBy != user {
+	if err != nil || got.Status != "Finalizado" || got.Progress != 60 || got.CreatedBy != user {
 		t.Fatalf("project=%+v err=%v", got, err)
 	}
 	history, err := r.ProjectHistory(ctx, p.ID)
@@ -99,7 +99,7 @@ func TestConvertProposalKeepsHistoryAndLinksProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	project, err := r.ConvertProposal(ctx, p.ID, user)
-	if err != nil || project.Status != "Radicado" || project.SeedbedID != seedbed || project.Title != "T" {
+	if err != nil || project.Status != "Activo" || project.SeedbedID != seedbed || project.Title != "T" {
 		t.Fatalf("project=%+v err=%v", project, err)
 	}
 	got, err := r.FindProposal(ctx, p.ID)
@@ -176,7 +176,7 @@ func TestMalformedOrMissingReferencesAreNotFound(t *testing.T) {
 		t.Fatalf("malformed history id: %v", err)
 	}
 	missing := "00000000-0000-0000-0000-000000000000"
-	if _, err := r.CreateProject(ctx, domain.Project{SeedbedID: missing, Title: "P", Status: "Radicado", CreatedBy: user}); !errors.Is(err, domain.ErrSeedbedNotFound) {
+	if _, err := r.CreateProject(ctx, domain.Project{SeedbedID: missing, Title: "P", Status: "Activo", CreatedBy: user}); !errors.Is(err, domain.ErrSeedbedNotFound) {
 		t.Fatalf("missing seedbed project: %v", err)
 	}
 	if _, err := r.CreateReview(ctx, domain.SeedbedReview{SeedbedID: missing, AuthorID: user, Text: "x"}); !errors.Is(err, domain.ErrSeedbedNotFound) {
@@ -204,7 +204,7 @@ func TestProjectReturnsNamesOfResponsiblesAndHiddenMembers(t *testing.T) {
 		_, _ = db.Exec(ctx, `DELETE FROM usuarios WHERE id=$1`, hidden)
 	})
 
-	created, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "P", Status: "Radicado", CreatedBy: user,
+	created, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "P", Status: "Activo", CreatedBy: user,
 		ResponsibleIDs: []string{user}, MemberIDs: []string{hidden, "00000000-0000-4000-8000-000000000000"}})
 	if err != nil {
 		t.Fatal(err)
@@ -231,7 +231,7 @@ func TestProjectReturnsNamesOfResponsiblesAndHiddenMembers(t *testing.T) {
 	}
 	want(list[0])
 
-	empty, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "Sin equipo", Status: "Radicado", CreatedBy: user})
+	empty, err := r.CreateProject(ctx, domain.Project{SeedbedID: seedbed, Title: "Sin equipo", Status: "Activo", CreatedBy: user})
 	if err != nil || empty.Responsibles == nil || len(empty.Responsibles) != 0 || empty.Members == nil {
 		t.Fatalf("project without people must return empty lists, got %+v err=%v", empty, err)
 	}

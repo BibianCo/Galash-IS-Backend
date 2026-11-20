@@ -339,3 +339,57 @@ BEGIN RAISE EXCEPTION 'audit_logs es inmutable'; END $$;
 DROP TRIGGER IF EXISTS audit_logs_immutable_trigger ON audit_logs;
 CREATE TRIGGER audit_logs_immutable_trigger BEFORE UPDATE OR DELETE ON audit_logs
     FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();
+
+-- Catalog and date-order CHECKs (D034, D038). Same block as migrations/019_state_checks.sql.
+DO $$
+DECLARE
+  rules text[][] := ARRAY[
+    ['usuarios', 'usuarios_rol_check', 'rol IN (''visitante'',''estudiante'',''profesor'',''docente'',''admin'')'],
+    ['usuarios', 'usuarios_estado_check', 'estado IN (''activo'',''inactivo'')'],
+    ['solicitudes_registro', 'solicitudes_registro_estado_check', 'estado IN (''Radicada'',''En revisión'',''Aprobada'',''Rechazada'',''Pendiente de información'')'],
+    ['seguimiento_solicitud', 'seguimiento_solicitud_estado_check', 'estado IN (''Radicada'',''En revisión'',''Aprobada'',''Rechazada'',''Pendiente de información'')'],
+    ['semilleros', 'semilleros_estado_check', 'estado IN (''Borrador'',''Publicado'',''Oculto'',''Inactivo'')'],
+    ['semilleros', 'semilleros_visibilidad_check', 'visibilidad IN (''Borrador'',''Publicado'',''Oculto'',''Inactivo'')'],
+    ['eventos', 'eventos_estado_check', 'estado IN (''borrador'',''publicado'',''cancelado'',''oculto'')'],
+    ['comunicados', 'comunicados_estado_check', 'estado IN (''borrador'',''publicado'')'],
+    ['contenido_paginas', 'contenido_paginas_estado_check', 'estado IN (''borrador'',''publicado'')'],
+    ['semillero_resenas', 'semillero_resenas_estado_check', 'estado IN (''pendiente'',''publicada'',''oculta'',''rechazada'')'],
+    ['actividades', 'actividades_estado_check', 'estado IN (''pendiente'',''próxima'',''en curso'',''finalizada'')'],
+    ['enlaces_oficiales_historial', 'enlaces_oficiales_historial_estado_check', 'estado IN (''activo'',''inactivo'',''oculto'')'],
+    ['proyectos', 'proyectos_fechas_check', 'fecha_fin IS NULL OR fecha_inicio IS NULL OR fecha_fin >= fecha_inicio'],
+    ['eventos', 'eventos_fechas_check', 'termina_en IS NULL OR inicia_en IS NULL OR termina_en >= inicia_en'],
+    ['cronograma_interno', 'cronograma_interno_fechas_check', 'termina_en > inicia_en'],
+    ['semillero_miembros', 'semillero_miembros_fechas_check', 'retirado_en IS NULL OR ingreso_en IS NULL OR retirado_en >= ingreso_en']
+  ];
+  r text[];
+  bad bigint;
+  report text := '';
+BEGIN
+  FOREACH r SLICE 1 IN ARRAY rules LOOP
+    EXECUTE format('SELECT count(*) FROM %I WHERE NOT (%s)', r[1], r[3]) INTO bad;
+    IF bad > 0 THEN
+      report := report || format(E'\n  %s: %s fila(s) incumplen %s', r[1], bad, r[3]);
+    END IF;
+  END LOOP;
+  IF report <> '' THEN
+    RAISE EXCEPTION 'Datos fuera de catálogo; corrígelos antes de aplicar 019:%', report;
+  END IF;
+  FOREACH r SLICE 1 IN ARRAY rules LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = r[2]) THEN
+      EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I CHECK (%s)', r[1], r[2], r[3]);
+    END IF;
+  END LOOP;
+END $$;
+
+-- Unique e-mail per account (D033). Same block as migrations/020_unique_email.sql.
+DO $$
+DECLARE
+  dupes text;
+BEGIN
+  SELECT string_agg(format('%s cuentas', n), ', ') INTO dupes
+  FROM (SELECT count(*) AS n FROM usuarios GROUP BY lower(email) HAVING count(*) > 1) d;
+  IF dupes IS NOT NULL THEN
+    RAISE EXCEPTION 'Hay correos repetidos (sin distinguir mayúsculas): %. Consulta: SELECT lower(email), count(*) FROM usuarios GROUP BY 1 HAVING count(*) > 1;', dupes;
+  END IF;
+  CREATE UNIQUE INDEX IF NOT EXISTS usuarios_email_lower_key ON usuarios (lower(email));
+END $$;

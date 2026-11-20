@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"slices"
 	"strings"
@@ -169,7 +170,14 @@ func (s *Service) Update(ctx context.Context, id string, update domain.Event, ac
 	if conflict {
 		return update, domain.ErrEventConflict
 	}
-	return s.repo.Update(ctx, id, update)
+	if update.UpdatedAt.IsZero() {
+		update.UpdatedAt = old.UpdatedAt
+	}
+	e, err := s.repo.Update(ctx, id, update)
+	if errors.Is(err, domain.ErrEventNotFound) {
+		return e, domain.ErrStaleUpdate // the event existed: the updatedAt check failed
+	}
+	return e, err
 }
 
 func (s *Service) SetStatus(ctx context.Context, id, status, actor string) (domain.Event, error) {

@@ -95,6 +95,23 @@ func TestRepositoryReadsPersonalDataFromAccount(t *testing.T) {
 	if err := db.QueryRow(ctx, `SELECT rol FROM usuarios WHERE id=$1`, complete).Scan(&role); err != nil || role != "estudiante" {
 		t.Fatalf("role=%q err=%v", role, err)
 	}
+	// Approval only promotes visitors: an existing docente keeps the role.
+	if _, err := db.Exec(ctx, `UPDATE usuarios SET rol='docente' WHERE id=$1`, other); err != nil {
+		t.Fatalf("seed docente: %v", err)
+	}
+	request.UserID, request.StudentCode = other, ""
+	teacherRequest, err := repo.CreateRegistration(ctx, request, run+"-h4")
+	if err != nil {
+		t.Fatalf("create docente request: %v", err)
+	}
+	for _, state := range []string{domain.RegistrationReview, domain.RegistrationApproved} {
+		if _, err := repo.UpdateRegistrationStatus(ctx, teacherRequest.ID, state, "ok", ""); err != nil {
+			t.Fatalf("docente %s: %v", state, err)
+		}
+	}
+	if err := db.QueryRow(ctx, `SELECT rol FROM usuarios WHERE id=$1`, other).Scan(&role); err != nil || role != "docente" {
+		t.Fatalf("docente role=%q err=%v", role, err)
+	}
 	list, err := repo.ListRegistrations(ctx, domain.RegistrationApproved, "", "", "", "", nil)
 	if err != nil || len(list) == 0 {
 		t.Fatalf("list=%d err=%v", len(list), err)

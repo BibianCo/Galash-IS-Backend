@@ -1,0 +1,12 @@
+=== RUN   TestApplicantReadsOwnRequestStatusOnly
+--- PASS: TestApplicantReadsOwnRequestStatusOnly (0.04s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/registration	0.039s
+=== RUN   TestTeacherCvLACLinkIsValidatedAndShown
+--- PASS: TestTeacherCvLACLinkIsValidatedAndShown (0.03s)
+=== RUN   TestTeacherCvLACLinkCanBeRemoved
+    cvlac_test.go:77: cvlac after removal = "https://cv.example/1", want empty
+--- FAIL: TestTeacherCvLACLinkCanBeRemoved (0.03s)
+FAIL
+FAIL	github.com/galash-uptc/backend/tests/member	0.055s
+FAIL

@@ -116,7 +116,8 @@ func (r *RegistrationRepository) UpdateRegistrationStatus(ctx context.Context, i
 	if err != nil { return domain.RegistrationRequest{}, err }
 	if _, err = tx.Exec(ctx, `INSERT INTO seguimiento_solicitud (solicitud_id,estado,comentario,responsable_id) VALUES ($1,$2,$3,NULLIF($4,'')::uuid)`, id, status, observation, responsibleID); err != nil { return domain.RegistrationRequest{}, err }
 	if status == domain.RegistrationApproved {
-		if _, err = tx.Exec(ctx, `UPDATE usuarios SET rol='estudiante' WHERE estado='activo' AND (id=NULLIF($1,'')::uuid OR dni=$2)`, request.UserID, request.DocumentNumber); err != nil { return domain.RegistrationRequest{}, err }
+		// Visitors default to estudiante; other roles stay (Admin sets docente manually).
+		if _, err = tx.Exec(ctx, `UPDATE usuarios SET rol='estudiante' WHERE estado='activo' AND rol='visitante' AND (id=NULLIF($1,'')::uuid OR dni=$2)`, request.UserID, request.DocumentNumber); err != nil { return domain.RegistrationRequest{}, err }
 		// Approval joins the applicant to the requested seedbed; rejoining clears a previous withdrawal.
 		if request.UserID != "" && request.SeedbedID != "" {
 			if _, err = tx.Exec(ctx, `INSERT INTO semillero_miembros (semillero_id,usuario_id) VALUES ($1,$2) ON CONFLICT (semillero_id,usuario_id) DO UPDATE SET retirado_en=NULL`, request.SeedbedID, request.UserID); err != nil { return domain.RegistrationRequest{}, err }

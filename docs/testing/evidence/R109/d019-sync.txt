@@ -1,0 +1,1 @@
+servicios.md y contrato byte-idénticos entre Galash-IS y Galash-IS-Backend (cmp sin diferencias) tras copiar la columna Uso del front

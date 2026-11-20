@@ -82,6 +82,12 @@ func (r *repository) CreateProject(_ context.Context, p domain.Project) (domain.
 func (r *repository) FindProject(context.Context, string) (domain.Project, error) {
 	return r.project, nil
 }
+func (r *repository) ListProjects(context.Context, string, string, string) ([]domain.Project, error) {
+	return []domain.Project{r.project}, nil
+}
+func (r *repository) ProjectProgress(context.Context, string, string) ([]domain.Project, error) {
+	return []domain.Project{r.project}, nil
+}
 func (r *repository) UpdateProject(_ context.Context, id string, p domain.Project, actor string, changes []domain.ProjectHistory) (domain.Project, error) {
 	r.actor, r.changes = actor, changes
 	p.ID = id
@@ -125,7 +131,7 @@ func (r *repository) ProposalHistory(context.Context, string) ([]domain.Proposal
 }
 func (r *repository) ConvertProposal(_ context.Context, _ string, actor string) (domain.Project, error) {
 	r.converted, r.actor = true, actor
-	return domain.Project{ID: "proj", Status: "Radicado"}, nil
+	return domain.Project{ID: "proj", Status: "Activo"}, nil
 }
 
 func fixtures() (*application.Service, *repository) {
@@ -140,9 +146,10 @@ func fixturesWithUsers() (*application.Service, *repository, users) {
 		"other":    {ID: "other", Role: "docente"},
 		"student":  {ID: "student", Role: "estudiante"},
 		"delegate": {ID: "delegate", Role: "estudiante"},
+		"visitor":  {ID: "visitor", Role: "visitante"},
 	}
 	r := &repository{
-		project:  domain.Project{ID: "proj", SeedbedID: "sb", Title: "P", Status: "Radicado", Progress: 10},
+		project:  domain.Project{ID: "proj", SeedbedID: "sb", Title: "P", Status: "Activo", Progress: 10},
 		proposal: domain.ResearchProposal{ID: "prop", SeedbedID: "sb", Title: "T", Problem: "P", Objectives: "O", Methodology: "M", AuthorID: "student", Status: "Radicada", Observations: "revisar"},
 	}
 	return application.NewService(r, seedbeds{}, u), r, u
@@ -199,7 +206,7 @@ func TestProjectProgressMustBeBetween0And100(t *testing.T) {
 func TestProjectUpdateRecordsActorAndChangedFields(t *testing.T) {
 	s, r := fixtures()
 	p := r.project
-	p.Status, p.Progress = "Activo", 40
+	p.Status, p.Progress = "Finalizado", 40
 	if _, err := s.UpdateProject(context.Background(), "proj", p, "teacher"); err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +214,7 @@ func TestProjectUpdateRecordsActorAndChangedFields(t *testing.T) {
 	for _, h := range r.changes {
 		got[h.Field] = h.Value
 	}
-	if r.actor != "teacher" || len(got) != 2 || got["estado"] != "Activo" || got["avance"] != "40" {
+	if r.actor != "teacher" || len(got) != 2 || got["estado"] != "Finalizado" || got["avance"] != "40" {
 		t.Fatalf("history actor=%q changes=%v", r.actor, got)
 	}
 }
@@ -285,7 +292,7 @@ func TestConvertRequiresApprovedProposalAndReviewer(t *testing.T) {
 		t.Fatalf("student: want forbidden, got %v", err)
 	}
 	p, err := s.Convert(ctx, "prop", "teacher")
-	if err != nil || !r.converted || p.Status != "Radicado" || r.actor != "teacher" {
+	if err != nil || !r.converted || p.Status != "Activo" || r.actor != "teacher" {
 		t.Fatalf("convert project=%+v converted=%v err=%v", p, r.converted, err)
 	}
 }
@@ -364,7 +371,7 @@ func TestDelegateManagesActivitiesButNotProjects(t *testing.T) {
 	if _, err := s.UpdateActivity(ctx, "act", a, "delegate"); err != nil {
 		t.Fatalf("delegate update activity: %v", err)
 	}
-	if _, err := s.CreateProject(ctx, domain.Project{SeedbedID: "sb", Title: "P", Status: "Radicado"}, "delegate"); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := s.CreateProject(ctx, domain.Project{SeedbedID: "sb", Title: "P", Status: "Activo"}, "delegate"); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("delegate create project: want forbidden, got %v", err)
 	}
 }
@@ -408,5 +415,24 @@ func TestPublicReviewJSONHidesAuthorIDAndModeration(t *testing.T) {
 	}
 	if strings.Contains(string(b), "authorId") || strings.Contains(string(b), "moderation") {
 		t.Fatalf("leaks private fields: %s", b)
+	}
+}
+
+func TestProjectStatusesOnlyActivoAndFinalizado(t *testing.T) {
+	s, r := fixtures()
+	ctx := context.Background()
+	if _, err := s.CreateProject(ctx, domain.Project{SeedbedID: "sb", Title: "P", Status: "Radicado"}, "teacher"); !errors.Is(err, domain.ErrInvalidResearch) {
+		t.Fatalf("create Radicado: want invalid, got %v", err)
+	}
+	p, err := s.CreateProject(ctx, domain.Project{SeedbedID: "sb", Title: "P"}, "teacher")
+	if err != nil || p.Status != "Activo" {
+		t.Fatalf("create without status: project=%+v err=%v", p, err)
+	}
+	if _, err := s.UpdateProject(ctx, "proj", domain.Project{Title: "P", Status: "Radicado"}, "teacher"); !errors.Is(err, domain.ErrInvalidResearch) {
+		t.Fatalf("update Radicado: want invalid, got %v", err)
+	}
+	r.project.Status = "Finalizado"
+	if _, err := s.UpdateProject(ctx, "proj", domain.Project{Title: "P", Status: "Finalizado"}, "teacher"); err != nil {
+		t.Fatalf("update Finalizado: %v", err)
 	}
 }

@@ -42,13 +42,6 @@ type registerRequest struct {
 type sessionRequest struct {
 	Token string `json:"token"`
 }
-type recoveryRequest struct {
-	Email string `json:"email"`
-}
-type resetRequest struct {
-	Token    string `json:"token"`
-	Password string `json:"password"`
-}
 
 type Handler struct {
 	service       *application.Service
@@ -140,6 +133,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("DELETE /auth/sessions/current", h.deleteSession)
 	mux.HandleFunc("GET /users/me", h.currentUser)
 	mux.HandleFunc("PUT /users/me/photo", h.setProfilePhoto)
+	mux.HandleFunc("PUT /users/{userId}/photo", h.setUserPhoto)
 	mux.HandleFunc("GET /members", h.publicMembers)
 	mux.HandleFunc("POST /members", h.createMember)
 	mux.HandleFunc("GET /members/{id}", h.getMember)
@@ -216,7 +210,18 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /audit-logs", h.listAuditLogs)
 	mux.HandleFunc("POST /files", h.uploadFile)
 	mux.HandleFunc("GET /files/{id}", h.getFile)
-	return localCORS(h.auditMutation(mux))
+	return securityHeaders(localCORS(h.auditMutation(mux)))
+}
+
+// securityHeaders sets HSTS when the request arrived over HTTPS (directly or through the TLS proxy) and nosniff always.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func localCORS(next http.Handler) http.Handler {
@@ -263,6 +268,7 @@ type eventPatchRequest struct {
 	MeetingURL      *string         `json:"meetingUrl"`
 	ImageURL        *string         `json:"imageUrl"`
 	RegistrationURL *string         `json:"registrationUrl"`
+	UpdatedAt       *time.Time      `json:"updatedAt"`
 }
 
 func (h *Handler) eventReady(w http.ResponseWriter) bool {
@@ -278,7 +284,7 @@ func eventError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, domain.ErrEventNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, domain.ErrEventConflict):
+	case errors.Is(err, domain.ErrEventConflict), errors.Is(err, domain.ErrStaleUpdate):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, domain.ErrInvalidEvent), errors.Is(err, domain.ErrInvalidEventTransition):
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -432,6 +438,9 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.RegistrationURL != nil {
 		updated.RegistrationURL = *q.RegistrationURL
+	}
+	if q.UpdatedAt != nil {
+		updated.UpdatedAt = *q.UpdatedAt
 	}
 	e, err := h.events.Update(r.Context(), r.PathValue("id"), updated, actor.ID)
 	if err != nil {
@@ -998,6 +1007,8 @@ func researchError(w http.ResponseWriter, e error) {
 		writeError(w, 404, mapResearchNotFound(e))
 	case errors.Is(e, domain.ErrInvalidResearch), errors.Is(e, domain.ErrInvalidProjectStatus):
 		writeError(w, 400, e.Error())
+	case errors.Is(e, domain.ErrStaleUpdate):
+		writeError(w, 409, e.Error())
 	default:
 		writeError(w, 500, "no fue posible procesar la investigación")
 	}
@@ -1425,7 +1436,7 @@ type memberRequest struct {
 	Area            string   `json:"area"`
 	Formation       string   `json:"formation"`
 	ORCID           string   `json:"orcid"`
-	CvLAC           string   `json:"cvlac"`
+	CvLAC           *string  `json:"cvlac"`
 	VisiblePublicly *bool    `json:"visible_publicly"`
 	SeedbedIDs      []string `json:"seedbed_ids"`
 	Status          string   `json:"status"`
@@ -1494,9 +1505,17 @@ func (h *Handler) createMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "cuerpo JSON inválido")
 		return
 	}
-	p, err := h.members.Create(r.Context(), memberapp.CreateCommand{FirebaseUID: q.FirebaseUID, Name: q.Name, LastName: q.LastName, Email: q.Email, DocumentType: q.DocumentType, DocumentNumber: q.DocumentNumber, Role: q.Role, Area: q.Area, Formation: q.Formation, ORCID: q.ORCID, CvLAC: q.CvLAC, VisiblePublicly: q.VisiblePublicly == nil || *q.VisiblePublicly, SeedbedIDs: q.SeedbedIDs})
+	cvlac := ""
+	if q.CvLAC != nil {
+		cvlac = *q.CvLAC
+	}
+	p, err := h.members.Create(r.Context(), memberapp.CreateCommand{FirebaseUID: q.FirebaseUID, Name: q.Name, LastName: q.LastName, Email: q.Email, DocumentType: q.DocumentType, DocumentNumber: q.DocumentNumber, Role: q.Role, Area: q.Area, Formation: q.Formation, ORCID: q.ORCID, CvLAC: cvlac, VisiblePublicly: q.VisiblePublicly == nil || *q.VisiblePublicly, SeedbedIDs: q.SeedbedIDs})
 	if errors.Is(err, domain.ErrInvalidMember) {
 		writeError(w, 400, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, 409, err.Error())
 		return
 	}
 	if err != nil {
@@ -1557,6 +1576,10 @@ func (h *Handler) updateMember(w http.ResponseWriter, r *http.Request) {
 	}
 	if errors.Is(err, domain.ErrMemberNotFound) {
 		writeError(w, 404, err.Error())
+		return
+	}
+	if errors.Is(err, domain.ErrDuplicateIdentity) {
+		writeError(w, 409, err.Error())
 		return
 	}
 	if err != nil {
@@ -1814,6 +1837,36 @@ func (h *Handler) setProfilePhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, "no fue posible guardar la foto de perfil")
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{"photo_url": photoURL})
+	}
+}
+
+func (h *Handler) setUserPhoto(w http.ResponseWriter, r *http.Request) {
+	token, err := sessionToken(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "sesión requerida")
+		return
+	}
+	var request struct {
+		PhotoURL *string `json:"photo_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.PhotoURL == nil {
+		writeError(w, http.StatusBadRequest, "cuerpo JSON inválido")
+		return
+	}
+	photoURL, err := h.service.SetUserPhoto(r.Context(), token, r.PathValue("userId"), *request.PhotoURL)
+	switch {
+	case errors.Is(err, domain.ErrInvalidSession):
+		invalidSession(w, r, "sesión inválida o expirada")
+	case errors.Is(err, domain.ErrForbidden):
+		writeError(w, http.StatusForbidden, "se requiere rol admin")
+	case errors.Is(err, domain.ErrInvalidPhotoURL):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, domain.ErrMemberNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+	case err != nil:
+		writeError(w, http.StatusInternalServerError, "no fue posible guardar la foto")
 	default:
 		writeJSON(w, http.StatusOK, map[string]string{"photo_url": photoURL})
 	}

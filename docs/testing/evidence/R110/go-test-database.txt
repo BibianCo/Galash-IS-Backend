@@ -1,0 +1,32 @@
+=== RUN   TestSchemaHasExpectedTables
+--- PASS: TestSchemaHasExpectedTables (0.02s)
+=== RUN   TestSchemaRejectsInvalidWrites
+=== RUN   TestSchemaRejectsInvalidWrites/duplicate_seedbed_name
+=== RUN   TestSchemaRejectsInvalidWrites/session_for_missing_user
+=== RUN   TestSchemaRejectsInvalidWrites/delete_referenced_user
+=== RUN   TestSchemaRejectsInvalidWrites/progress_above_100
+=== RUN   TestSchemaRejectsInvalidWrites/unknown_project_state
+=== RUN   TestSchemaRejectsInvalidWrites/delete_audit_log
+=== RUN   TestSchemaRejectsInvalidWrites/null_email
+=== RUN   TestSchemaRejectsInvalidWrites/project_in_missing_seedbed
+=== RUN   TestSchemaRejectsInvalidWrites/progress_below_0
+=== RUN   TestSchemaRejectsInvalidWrites/update_audit_log
+=== RUN   TestSchemaRejectsInvalidWrites/duplicate_dni
+=== RUN   TestSchemaRejectsInvalidWrites/duplicate_firebase_uid
+--- PASS: TestSchemaRejectsInvalidWrites (0.14s)
+    --- PASS: TestSchemaRejectsInvalidWrites/duplicate_seedbed_name (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/session_for_missing_user (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/delete_referenced_user (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/progress_above_100 (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/unknown_project_state (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/delete_audit_log (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/null_email (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/project_in_missing_seedbed (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/progress_below_0 (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/update_audit_log (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/duplicate_dni (0.01s)
+    --- PASS: TestSchemaRejectsInvalidWrites/duplicate_firebase_uid (0.01s)
+=== RUN   TestProjectDeleteCascadesHistory
+--- PASS: TestProjectDeleteCascadesHistory (0.01s)
+PASS
+ok  	github.com/galash-uptc/backend/tests/database	0.182s

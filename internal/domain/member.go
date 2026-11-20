@@ -18,6 +18,7 @@ type MemberProfile struct {
 	CvLAC           string   `json:"cvlac,omitempty"`
 	VisiblePublicly bool     `json:"visible_publicly"`
 	SeedbedIDs      []string `json:"seedbed_ids,omitempty"`
+	PhotoURL        string   `json:"photo_url"`
 }
 
 type Publication struct {

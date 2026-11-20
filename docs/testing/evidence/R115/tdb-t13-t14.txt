@@ -1,0 +1,31 @@
+## 1. Esquema versión anterior (7b09f31^: cac60ba 2026-11-10) + datos sintéticos
+init.sql anterior: OK
+synthetic.sql: OK
+2 proyectos en estado 'Radicado' (válido en la versión anterior)
+audit_logs|0
+eventos|4
+proyecto_historial|0
+proyectos|12
+semillero_miembros|13
+semilleros|4
+solicitudes_registro|6
+usuarios|14
+## 2. TDB-T14: respaldo previo (pg_dump -Fc)
+pg_dump: 129 ms, 78462 bytes, PostgreSQL 16.15
+## 3. TDB-T13a: re-aplicar init.sql actual sobre la base existente
+exit=3 en 51 ms; primer error: ERROR:  relation "usuarios" already exists
+## 4. TDB-T13b: migración incremental 017_project_statuses.sql
+exit=0 en 55 ms
+3c3
+< proyecto_historial|0
+---
+> proyecto_historial|2
+(diferencias arriba: historial agrega una fila por proyecto migrado)
+estados de proyecto: Activo=9, Finalizado=3
+CHECK proyectos_estado_check: t
+esquema igual al de init.sql actual (tablas): 31 tablas
+## 5. Reversión / TDB-T14: restaurar el respaldo en una base nueva y comparar
+pg_restore exit=0 en 284 ms
+conteos restaurados = conteos previos a la migración
+estados tras revertir: Activo=7, Finalizado=3, Radicado=2
+contenedor eliminado

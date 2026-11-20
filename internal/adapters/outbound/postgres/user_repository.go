@@ -166,12 +166,12 @@ func (r *UserRepository) UpdateRole(ctx context.Context, firebaseUID, role strin
 }
 
 func memberSelect() string {
-	return `SELECT u.id, u.firebase_uid, u.nombre, COALESCE(u.apellido,''), u.email, COALESCE(u.tipo_dni,''), COALESCE(u.dni,''), u.rol, u.estado, COALESCE(p.area_investigacion,''), COALESCE(p.formacion,''), COALESCE(p.orcid,''), COALESCE(p.cvlac,''), COALESCE(p.visible_publicamente, true), COALESCE((SELECT array_agg(sm.semillero_id::text ORDER BY sm.semillero_id) FROM semillero_miembros sm WHERE sm.usuario_id = u.id AND sm.retirado_en IS NULL), ARRAY[]::text[]) FROM usuarios u LEFT JOIN perfil_investigador p ON p.usuario_id = u.id `
+	return `SELECT u.id, u.firebase_uid, u.nombre, COALESCE(u.apellido,''), u.email, COALESCE(u.tipo_dni,''), COALESCE(u.dni,''), u.rol, u.estado, COALESCE(p.area_investigacion,''), COALESCE(p.formacion,''), COALESCE(p.orcid,''), COALESCE(p.cvlac,''), COALESCE(p.visible_publicamente, true), COALESCE((SELECT array_agg(sm.semillero_id::text ORDER BY sm.semillero_id) FROM semillero_miembros sm WHERE sm.usuario_id = u.id AND sm.retirado_en IS NULL), ARRAY[]::text[]), COALESCE(u.foto_url,'') FROM usuarios u LEFT JOIN perfil_investigador p ON p.usuario_id = u.id `
 }
 
 func scanMember(row interface{ Scan(...any) error }) (domain.MemberProfile, error) {
 	var p domain.MemberProfile
-	err := row.Scan(&p.ID, &p.FirebaseUID, &p.Name, &p.LastName, &p.Email, &p.DocumentType, &p.DocumentNumber, &p.Role, &p.Status, &p.Area, &p.Formation, &p.ORCID, &p.CvLAC, &p.VisiblePublicly, &p.SeedbedIDs)
+	err := row.Scan(&p.ID, &p.FirebaseUID, &p.Name, &p.LastName, &p.Email, &p.DocumentType, &p.DocumentNumber, &p.Role, &p.Status, &p.Area, &p.Formation, &p.ORCID, &p.CvLAC, &p.VisiblePublicly, &p.SeedbedIDs, &p.PhotoURL)
 	return p, err
 }
 
@@ -225,6 +225,9 @@ func (r *UserRepository) Find(ctx context.Context, id string) (domain.MemberProf
 
 func (r *UserRepository) CreateMember(ctx context.Context, c memberapp.CreateCommand) (domain.MemberProfile, error) {
 	tx, err := r.db.Begin(ctx)
+	if isUniqueViolation(err) {
+		return domain.MemberProfile{}, domain.ErrDuplicateIdentity
+	}
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
@@ -251,6 +254,9 @@ func (r *UserRepository) CreateMember(ctx context.Context, c memberapp.CreateCom
 
 func (r *UserRepository) Update(ctx context.Context, id string, c memberapp.UpdateCommand) (domain.MemberProfile, error) {
 	tx, err := r.db.Begin(ctx)
+	if isUniqueViolation(err) {
+		return domain.MemberProfile{}, domain.ErrDuplicateIdentity
+	}
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
@@ -262,7 +268,7 @@ func (r *UserRepository) Update(ctx context.Context, id string, c memberapp.Upda
 	if result.RowsAffected() == 0 {
 		return domain.MemberProfile{}, domain.ErrMemberNotFound
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($6,$1,$2,$3,$4,COALESCE($5,true)) ON CONFLICT(usuario_id) DO UPDATE SET area_investigacion=COALESCE(NULLIF($1,''),perfil_investigador.area_investigacion), formacion=COALESCE(NULLIF($2,''),perfil_investigador.formacion), orcid=COALESCE(NULLIF($3,''),perfil_investigador.orcid), cvlac=COALESCE(NULLIF($4,''),perfil_investigador.cvlac), visible_publicamente=COALESCE($5,perfil_investigador.visible_publicamente)`, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly, id)
+	_, err = tx.Exec(ctx, `INSERT INTO perfil_investigador(usuario_id,area_investigacion,formacion,orcid,cvlac,visible_publicamente) VALUES($6,$1,$2,$3,NULLIF($4::text,''),COALESCE($5,true)) ON CONFLICT(usuario_id) DO UPDATE SET area_investigacion=COALESCE(NULLIF($1,''),perfil_investigador.area_investigacion), formacion=COALESCE(NULLIF($2,''),perfil_investigador.formacion), orcid=COALESCE(NULLIF($3,''),perfil_investigador.orcid), cvlac=CASE WHEN $4::text IS NULL THEN perfil_investigador.cvlac ELSE NULLIF($4::text,'') END, visible_publicamente=COALESCE($5,perfil_investigador.visible_publicamente)`, c.Area, c.Formation, c.ORCID, c.CvLAC, c.VisiblePublicly, id)
 	if err != nil {
 		return domain.MemberProfile{}, err
 	}
@@ -355,4 +361,10 @@ func (r *UserRepository) DeleteExpiredRecoveries(ctx context.Context) error {
 
 func (r *UserRepository) Ping(ctx context.Context) error {
 	return r.db.Ping(ctx)
+}
+
+// isUniqueViolation reports a duplicate dni, codigo_estudiantil or email (D033).
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }

@@ -1,0 +1,28 @@
+## OPTIONS /seedbeds Origin http://localhost:4200
+HTTP/1.1 204 No Content
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Origin: http://localhost:4200
+Vary: Origin
+
+
+## GET /auth/session con Origin y cookie sintética
+HTTP/1.1 404 Not Found
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Origin: http://localhost:4200
+Content-Type: text/plain; charset=utf-8
+Vary: Origin
+X-Content-Type-Options: nosniff
+Content-Length: 19
+
+404 page not found
+
+## GET /seedbeds/00000000-0000-0000-0000-000000000000
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+Content-Length: 36
+
+{"error":"semillero no encontrado"}

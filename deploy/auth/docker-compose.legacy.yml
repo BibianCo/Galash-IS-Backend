@@ -7,16 +7,39 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8080
-      DATABASE_URL: postgres://${POSTGRES_USER:-galash}:${POSTGRES_PASSWORD:-galash}@galash-postgres:5432/${POSTGRES_DB:-galash}?sslmode=disable
+      DATABASE_URL: postgres://galash_app:${GALASH_APP_PASSWORD:?define GALASH_APP_PASSWORD (migración 018)}@galash-postgres:5432/${POSTGRES_DB:-galash}?sslmode=disable
       FIREBASE_CREDENTIALS_FILE: /secrets/firebase-service-account.json
-    ports:
-      - "${AUTH_PORT:-8080}:8080"
+    # Not published: only the TLS proxy reaches the API (D037).
+    expose:
+      - "8080"
     volumes:
       - ${FIREBASE_CREDENTIALS_FILE:-./firebase-service-account.json}:/secrets/firebase-service-account.json:ro
     networks:
       - database
+      - edge
+
+  proxy:
+    image: caddy:2.8-alpine
+    container_name: galash-proxy
+    restart: unless-stopped
+    environment:
+      GALASH_API_DOMAIN: ${GALASH_API_DOMAIN:?define el dominio público de la API}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - auth
+    networks:
+      - edge
+
+volumes:
+  caddy-data:
 
 networks:
+  edge:
   database:
     external: true
     name: database_default

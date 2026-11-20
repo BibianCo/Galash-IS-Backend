@@ -78,7 +78,7 @@ func (r *AnnouncementRepository) ConfirmRead(ctx context.Context, id, userID str
 	return announcementErr(err)
 }
 func (r *AnnouncementRepository) ReadStatus(ctx context.Context, id string) ([]domain.AnnouncementReadStatus, error) {
-	rows, err := r.db.Query(ctx, `SELECT u.id,u.nombre||' '||COALESCE(u.apellido,''),u.email,CASE WHEN l.confirmado_en IS NULL THEN 'Pendiente' ELSE 'Leído' END,l.confirmado_en FROM usuarios u LEFT JOIN comunicados_lecturas l ON l.usuario_id=u.id AND l.comunicado_id=$1 WHERE lower(u.rol)='docente' AND u.estado='activo' ORDER BY u.nombre,u.apellido`, id)
+	rows, err := r.db.Query(ctx, `SELECT u.id,u.nombre||' '||COALESCE(u.apellido,''),u.email,CASE WHEN l.confirmado_en IS NULL THEN 'Pendiente' ELSE 'Leído' END,l.confirmado_en FROM usuarios u LEFT JOIN comunicados_lecturas l ON l.usuario_id=u.id AND l.comunicado_id=$1 WHERE lower(u.rol) IN ('docente','profesor') AND u.estado='activo' ORDER BY u.nombre,u.apellido`, id)
 	if err != nil {
 		return nil, err
 	}
