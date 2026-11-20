@@ -44,6 +44,26 @@ docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
   -d "${POSTGRES_DB:-galash}" < database/migrations/011_seedbed_delegates.sql
 ```
 
+Para que la API no use el superusuario de `POSTGRES_USER` (D040), crea el rol
+`galash_app` con privilegios mínimos (lectura y escritura de datos, sin DDL y
+sin modificar `audit_logs`) y usa ese usuario en `DATABASE_URL`:
+
+```bash
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
+  -d "${POSTGRES_DB:-galash}" -v app_password="$GALASH_APP_PASSWORD" \
+  < database/migrations/018_app_role.sql
+```
+
+Para exigir en la base los catálogos de estados y roles y el orden de fechas
+(D034, D038), aplica la migración 019. Si hay filas fuera de catálogo, la
+migración se detiene, las lista y no cambia nada; corrígelas y vuelve a
+ejecutarla:
+
+```bash
+docker compose exec -T postgres psql -U "${POSTGRES_USER:-galash}" \
+  -d "${POSTGRES_DB:-galash}" -v ON_ERROR_STOP=1 < database/migrations/019_state_checks.sql
+```
+
 ## Datos sintéticos (desarrollo local)
 
 `database/seed/seed.sh` carga datos ficticios en el PostgreSQL del compose:

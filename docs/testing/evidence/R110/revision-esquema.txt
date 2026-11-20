@@ -1,0 +1,145 @@
+## Tablas base
+31
+## UNIQUE (sin PK)
+contenido_paginas | slug
+lineas_investigacion | nombre
+perfil_investigador | usuario_id
+recuperaciones_password | token_hash
+semilleros | nombre
+sesiones | token_hash
+solicitudes_registro | token_hash
+usuarios | codigo_estudiantil
+usuarios | dni
+usuarios | firebase_uid
+## FKs y regla ON DELETE
+usuarios | semillero_id | semilleros | NO ACTION
+archivos_adjuntos | subido_por | usuarios | NO ACTION
+sesiones | usuario_id | usuarios | NO ACTION
+recuperaciones_password | usuario_id | usuarios | NO ACTION
+semilleros | lider_id | usuarios | NO ACTION
+semilleros | linea_id | lineas_investigacion | NO ACTION
+semillero_miembros | semillero_id | semilleros | NO ACTION
+semillero_miembros | usuario_id | usuarios | NO ACTION
+solicitudes_registro | responsable_id | usuarios | NO ACTION
+solicitudes_registro | semillero_id | semilleros | NO ACTION
+solicitudes_registro | usuario_id | usuarios | NO ACTION
+perfil_investigador | usuario_id | usuarios | NO ACTION
+publicaciones | usuario_id | usuarios | NO ACTION
+noticias | autor_id | usuarios | NO ACTION
+seguimiento_solicitud | responsable_id | usuarios | NO ACTION
+seguimiento_solicitud | solicitud_id | solicitudes_registro | NO ACTION
+notificaciones | usuario_id | usuarios | NO ACTION
+proyectos | creado_por | usuarios | NO ACTION
+proyectos | semillero_id | semilleros | NO ACTION
+actividades | semillero_id | semilleros | NO ACTION
+proyecto_historial | autor_id | usuarios | NO ACTION
+proyecto_historial | proyecto_id | proyectos | CASCADE
+propuestas_investigacion | autor_id | usuarios | NO ACTION
+propuestas_investigacion | proyecto_id | proyectos | NO ACTION
+propuestas_investigacion | semillero_id | semilleros | NO ACTION
+propuesta_historial | autor_id | usuarios | NO ACTION
+propuesta_historial | propuesta_id | propuestas_investigacion | CASCADE
+semillero_resenas | autor_id | usuarios | NO ACTION
+semillero_resenas | semillero_id | semilleros | NO ACTION
+contenido_paginas | autor_id | usuarios | NO ACTION
+comunicados | autor_id | usuarios | NO ACTION
+comunicados_lecturas | comunicado_id | comunicados | CASCADE
+comunicados_lecturas | usuario_id | usuarios | CASCADE
+cronograma_interno | organizador_id | usuarios | NO ACTION
+cronograma_interno | semillero_id | semilleros | NO ACTION
+cronograma_interno_participantes | evento_id | cronograma_interno | CASCADE
+cronograma_interno_participantes | usuario_id | usuarios | NO ACTION
+cronograma_interno_historial | actor_id | usuarios | NO ACTION
+cronograma_interno_historial | evento_id | cronograma_interno | CASCADE
+eventos | organizador_id | usuarios | NO ACTION
+eventos | semillero_id | semilleros | NO ACTION
+cronograma_reuniones | organizador_id | usuarios | NO ACTION
+cronograma_reuniones | semillero_id | semilleros | NO ACTION
+colaboradores_externos | semillero_id | semilleros | NO ACTION
+enlaces_oficiales | actualizado_por | usuarios | NO ACTION
+enlaces_oficiales_historial | cambiado_por | usuarios | NO ACTION
+enlaces_oficiales_historial | enlace_id | enlaces_oficiales | NO ACTION
+audit_logs | actor_id | usuarios | NO ACTION
+## FKs sin índice que las encabece
+usuarios | semillero_id
+archivos_adjuntos | subido_por
+sesiones | usuario_id
+recuperaciones_password | usuario_id
+semilleros | lider_id
+semilleros | linea_id
+solicitudes_registro | semillero_id
+solicitudes_registro | responsable_id
+noticias | autor_id
+seguimiento_solicitud | solicitud_id
+seguimiento_solicitud | responsable_id
+notificaciones | usuario_id
+proyectos | semillero_id
+proyectos | creado_por
+actividades | semillero_id
+proyecto_historial | proyecto_id
+proyecto_historial | autor_id
+propuestas_investigacion | proyecto_id
+propuestas_investigacion | semillero_id
+propuestas_investigacion | autor_id
+propuesta_historial | propuesta_id
+propuesta_historial | autor_id
+semillero_resenas | semillero_id
+semillero_resenas | autor_id
+contenido_paginas | autor_id
+comunicados | autor_id
+comunicados_lecturas | usuario_id
+cronograma_interno | organizador_id
+cronograma_interno_participantes | usuario_id
+cronograma_interno_historial | evento_id
+cronograma_interno_historial | actor_id
+eventos | semillero_id
+eventos | organizador_id
+cronograma_reuniones | semillero_id
+cronograma_reuniones | organizador_id
+colaboradores_externos | semillero_id
+enlaces_oficiales | actualizado_por
+enlaces_oficiales_historial | enlace_id
+enlaces_oficiales_historial | cambiado_por
+## CHECKs de tabla
+archivos_adjuntos | CHECK (((tamano > 0) AND (tamano <= 10485760)))
+proyectos | CHECK ((estado = ANY (ARRAY['Activo'::text, 'Finalizado'::text])))
+proyectos | CHECK (((avance >= 0) AND (avance <= 100)))
+cronograma_interno | CHECK ((tipo = ANY (ARRAY['reunion'::text, 'tutoria'::text, 'hito'::text])))
+cronograma_interno | CHECK ((estado = ANY (ARRAY['activo'::text, 'cancelado'::text])))
+enlaces_oficiales | CHECK ((orden >= 0))
+enlaces_oficiales | CHECK ((estado = ANY (ARRAY['activo'::text, 'inactivo'::text, 'oculto'::text])))
+## Columnas de estado/rol/tipo sin CHECK
+actividades.estado default 'pendiente'::text
+audit_logs.origin
+audit_logs.result
+comunicados.estado default 'borrador'::text
+contenido_paginas.estado default 'borrador'::text
+enlaces_oficiales.categoria
+enlaces_oficiales_historial.categoria
+enlaces_oficiales_historial.estado
+eventos.estado default 'borrador'::text
+eventos.tipo default 'evento'::text
+notificaciones.tipo
+propuesta_historial.estado
+propuestas_investigacion.estado default 'Radicada'::text
+seguimiento_solicitud.estado
+semillero_resenas.estado default 'pendiente'::text
+semilleros.estado default 'Borrador'::text
+semilleros.visibilidad default 'Borrador'::text
+solicitudes_registro.estado default 'Radicada'::text
+solicitudes_registro.vinculacion
+usuarios.estado default 'activo'::text
+usuarios.rol default 'visitante'::text
+usuarios.tipo_dni
+## Tablas sin actualizado_en
+usuarios, archivos_adjuntos, sesiones, lineas_investigacion, recuperaciones_password, semillero_miembros, perfil_investigador, publicaciones, noticias, seguimiento_solicitud, notificaciones, semillero_resenas, proyecto_historial, propuesta_historial, comunicados_lecturas, cronograma_interno_participantes, cronograma_interno_historial, cronograma_reuniones, colaboradores_externos, enlaces_oficiales_historial, audit_logs
+## Triggers
+audit_logs | audit_logs_immutable_trigger | BEFORE | DELETE/UPDATE
+enlaces_oficiales | enlaces_oficiales_historial_trigger | AFTER | INSERT/UPDATE
+## Sondas (dentro de transacción revertida, datos sintéticos)
+BEGIN
+INSERT 0 2
+emails duplicados aceptados | 2
+INSERT 0 1
+rol/estado libres aceptados | rol-inexistente | estado-inexistente
+ROLLBACK

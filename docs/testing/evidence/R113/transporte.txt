@@ -1,0 +1,16 @@
+# PT-NF-04: transporte (2026-11-16)
+## Archivos de despliegue
+deploy/auth/.env.example
+deploy/auth/docker-compose.legacy.yml
+## Búsqueda de TLS/HSTS en deploy/, main.go e internal/
+(sin coincidencias)
+## Puerto publicado (compose)
+12:    ports:
+13-      - "${AUTH_PORT:-8080}:8080"
+## Cabeceras de una respuesta real (API local)
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 16
+
+## Cookie de sesión (handler.go)
+1751: HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode, MaxAge: 86400

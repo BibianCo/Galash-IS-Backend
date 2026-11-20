@@ -1,0 +1,7 @@
+# PT-CON-01: búsqueda de endpoint/formulario de contacto (2026-11-16)
+$ grep -i "contact" handler.go (rutas)
+(sin rutas de contacto)
+$ grep -i contact contrato y servicios.md
+(solo contactEmail de semilleros; ningún endpoint de contacto)
+$ frontend: <form> en componentes con "Contacto"
+(sin formularios: bloques estáticos)

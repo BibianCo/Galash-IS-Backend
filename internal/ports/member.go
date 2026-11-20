@@ -17,7 +17,8 @@ type CreateMemberCommand struct {
 }
 type UpdateMemberCommand struct {
 	Name, LastName, Email, DocumentType, DocumentNumber, Role string
-	Area, Formation, ORCID, CvLAC                             string
+	Area, Formation, ORCID                                    string
+	CvLAC                                                     *string // nil keeps the link, "" removes it
 	VisiblePublicly                                           *bool
 	SeedbedIDs                                                []string
 }

@@ -1,0 +1,43 @@
+Unable to find image 'grafana/k6:0.54.0' locally
+0.54.0: Pulling from grafana/k6
+4f4fb700ef54: Pulling fs layer
+43c4264eed91: Pulling fs layer
+2961e627175d: Pulling fs layer
+707af19e45d8: Pulling fs layer
+4f4fb700ef54: Already exists
+4f4fb700ef54: Pull complete
+43c4264eed91: Download complete
+707af19e45d8: Download complete
+43c4264eed91: Pull complete
+707af19e45d8: Pull complete
+220862cf6e3f: Download complete
+2961e627175d: Download complete
+2961e627175d: Pull complete
+Digest: sha256:1f40432b1cbe7234e977f96c362c9bc550a2d2b583d014dd8669fe40d3e9e755
+Status: Downloaded newer image for grafana/k6:0.54.0
+
+     ✓ 200
+
+     checks.........................: 100.00% 781540 out of 781540
+     data_received..................: 2.4 GB  39 MB/s
+     data_sent......................: 82 MB   1.4 MB/s
+     http_req_blocked...............: avg=2.89µs  p(50)=2.06µs  p(95)=2.99µs  p(99)=8.02µs   max=3.67ms  
+     http_req_connecting............: avg=8ns     p(50)=0s      p(95)=0s      p(99)=0s       max=376.31µs
+     http_req_duration..............: avg=3.75ms  p(50)=3.12ms  p(95)=7.18ms  p(99)=8.14ms   max=41ms    
+       { expected_response:true }...: avg=3.75ms  p(50)=3.12ms  p(95)=7.18ms  p(99)=8.14ms   max=41ms    
+     ✓ { name:GET /events }.........: avg=2.51ms  p(50)=2.42ms  p(95)=3.59ms  p(99)=4.29ms   max=41ms    
+     ✓ { name:GET /projects }.......: avg=3.6ms   p(50)=3.51ms  p(95)=4.83ms  p(99)=5.64ms   max=18.6ms  
+     ✓ { name:GET /seedbeds }.......: avg=2.41ms  p(50)=2.32ms  p(95)=3.46ms  p(99)=4.19ms   max=35.56ms 
+     ✓ { name:GET /users/me }.......: avg=6.45ms  p(50)=6.41ms  p(95)=8ms     p(99)=8.89ms   max=17.57ms 
+   ✓ http_req_failed................: 0.00%   0 out of 781540
+     http_req_receiving.............: avg=36.8µs  p(50)=20.07µs p(95)=91.26µs p(99)=359.07µs max=5.52ms  
+     http_req_sending...............: avg=10.7µs  p(50)=6.19µs  p(95)=10.59µs p(99)=94.21µs  max=6.44ms  
+     http_req_tls_handshaking.......: avg=0s      p(50)=0s      p(95)=0s      p(99)=0s       max=0s      
+     http_req_waiting...............: avg=3.7ms   p(50)=3.07ms  p(95)=7.13ms  p(99)=8.06ms   max=40.95ms 
+     http_reqs......................: 781540  13023.777698/s
+     iteration_duration.............: avg=15.34ms p(50)=15.18ms p(95)=17.45ms p(99)=19ms     max=73.64ms 
+     iterations.....................: 195385  3255.944425/s
+     vus............................: 50      min=50               max=50
+     vus_max........................: 50      min=50               max=50
+
+time="2026-11-16T16:17:42Z" level=error msg="failed to handle the end-of-test summary" error="Could not save some summary information:\n\t- could not open '/s/k6-summary.json': open /s/k6-summary.json: permission denied"

@@ -1,0 +1,27 @@
+go version go1.27.3-X:nodwarf5 linux/amd64
+go vet OK
+ok  	github.com/galash-uptc/backend/tests/announcements	0.140s
+ok  	github.com/galash-uptc/backend/tests/audit	0.019s
+ok  	github.com/galash-uptc/backend/tests/auth	0.279s
+ok  	github.com/galash-uptc/backend/tests/content	0.065s
+ok  	github.com/galash-uptc/backend/tests/database	0.130s
+ok  	github.com/galash-uptc/backend/tests/event	0.048s
+ok  	github.com/galash-uptc/backend/tests/files	0.137s
+ok  	github.com/galash-uptc/backend/tests/internalcalendar	0.219s
+ok  	github.com/galash-uptc/backend/tests/links	0.058s
+ok  	github.com/galash-uptc/backend/tests/member	0.052s
+ok  	github.com/galash-uptc/backend/tests/registration	0.081s
+ok  	github.com/galash-uptc/backend/tests/research	0.214s
+ok  	github.com/galash-uptc/backend/tests/security	0.070s
+ok  	github.com/galash-uptc/backend/tests/seedbed	0.192s
+staticcheck OK
+=== Symbol Results ===
+
+No vulnerabilities found.
+
+Your code is affected by 0 vulnerabilities.
+This scan also found 1 vulnerability in packages you import and 1 vulnerability
+in modules you require, but your code doesn't appear to call these
+vulnerabilities.
+Use '-show verbose' for more details.
+govulncheck exit=0

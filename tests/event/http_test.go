@@ -100,6 +100,10 @@ func (r *repository) Find(_ context.Context, id string) (domain.Event, error) {
 	return e, nil
 }
 func (r *repository) Update(_ context.Context, id string, e domain.Event) (domain.Event, error) {
+	// Mirrors the SQL guard: UPDATE ... WHERE id=$1 AND actualizado_en=$11.
+	if !r.events[id].UpdatedAt.Equal(e.UpdatedAt) {
+		return domain.Event{}, domain.ErrEventNotFound
+	}
 	e.CreatedAt, e.UpdatedAt = r.events[id].CreatedAt, time.Now()
 	r.events[id] = e
 	return e, nil
@@ -372,4 +376,18 @@ func TestSeedbedEventsAreManagedByDirectorAndDelegates(t *testing.T) {
 	}
 	// Without seedbed, a student cannot create events at all.
 	expect(t, "student without seedbed", s.do(t, http.MethodPost, "/events", "delegate", virtual), http.StatusForbidden)
+}
+
+// D039 / TDB-T11: a PATCH with a stale updatedAt is rejected with 409 and keeps the newer edit.
+func TestEventPatchWithStaleUpdatedAtReturnsConflict(t *testing.T) {
+	s := newServer(t)
+	created := expect(t, "create", s.do(t, http.MethodPost, "/events", "admin", virtual), http.StatusCreated)
+	stale := created.UpdatedAt.Format(time.RFC3339Nano)
+	first := expect(t, "first edit", s.do(t, http.MethodPatch, "/events/"+created.ID, "admin", `{"title":"Edición A","updatedAt":"`+stale+`"}`), http.StatusOK)
+	expect(t, "stale edit", s.do(t, http.MethodPatch, "/events/"+created.ID, "admin", `{"venue":"Aula B","updatedAt":"`+stale+`"}`), http.StatusConflict)
+	if got := s.repo.events[created.ID]; got.Title != "Edición A" || got.Venue == "Aula B" {
+		t.Fatalf("stale edit changed the event: %+v", got)
+	}
+	expect(t, "fresh edit", s.do(t, http.MethodPatch, "/events/"+created.ID, "admin", `{"venue":"Aula B","updatedAt":"`+first.UpdatedAt.Format(time.RFC3339Nano)+`"}`), http.StatusOK)
+	expect(t, "edit without updatedAt", s.do(t, http.MethodPatch, "/events/"+created.ID, "admin", `{"title":"Sin versión"}`), http.StatusOK)
 }
